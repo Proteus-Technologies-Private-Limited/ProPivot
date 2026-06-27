@@ -23,6 +23,7 @@ const FORWARDED_EVENTS = [
   'queryerror', 'ready', 'reportchange', 'reportcomplete', 'reportfilecancelled',
   'reportfileerror', 'reportfileloaded', 'runningquery', 'update',
   'beforetoolbarcreated', 'aftergriddraw', 'beforegriddraw',
+  'columnresize', 'columnreorder', 'columnpropertychange',
 ];
 
 @Component({
@@ -66,6 +67,9 @@ export class ProPivotComponent implements OnChanges, OnDestroy {
   @Output() beforetoolbarcreated = new EventEmitter<object>();
   @Output() aftergriddraw = new EventEmitter<object>();
   @Output() beforegriddraw = new EventEmitter<object>();
+  @Output() columnresize = new EventEmitter<object>();
+  @Output() columnreorder = new EventEmitter<object>();
+  @Output() columnpropertychange = new EventEmitter<object>();
 
   @ViewChild('wrapper', { static: true }) wrapper!: ElementRef<HTMLElement>;
 

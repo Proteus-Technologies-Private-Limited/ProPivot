@@ -1,6 +1,12 @@
 // Minimal, dependency-free PDF writer (docs/Architecture.md).
 // Renders the export table as a paginated monospaced grid using the standard
-// Courier font (no embedding needed), producing a real, openable .pdf.
+// Courier font (no embedding needed), producing a real, openable .pdf. To match
+// the HTML preview it also draws per-cell background fills, data/progress bars,
+// colored & bold text, and left/right/center alignment from the computed
+// SheetCell.style / SheetCell.bar descriptors (see src/core/cellStyle.ts).
+
+import type { SheetCell } from './xlsx';
+import { parseRgb } from '../core/cellStyle';
 
 export interface PdfOptions {
   title?: string;
@@ -24,10 +30,15 @@ function pdfEscape(s: string): string {
   return out;
 }
 
+/** PDF fill-color operand (0..1, deterministic) for an [r,g,b] triple. */
+function rgbOp(rgb: [number, number, number]): string {
+  return `${(rgb[0] / 255).toFixed(3)} ${(rgb[1] / 255).toFixed(3)} ${(rgb[2] / 255).toFixed(3)}`;
+}
+
 /**
- * Build a PDF document as bytes from a header row + data rows (text).
+ * Build a PDF document as bytes from a header row + styled data rows.
  */
-export function buildPdf(header: string[], rows: string[][], opts: PdfOptions = {}): Uint8Array {
+export function buildPdf(header: string[], rows: SheetCell[][], opts: PdfOptions = {}): Uint8Array {
   const fontSize = opts.fontSize ?? 8;
   const landscape = opts.orientation === 'landscape';
   const pageW = landscape ? 842 : 595;
@@ -43,7 +54,7 @@ export function buildPdf(header: string[], rows: string[][], opts: PdfOptions = 
   // Column widths (in chars), fitted to the page.
   const desired: number[] = header.map((h, i) => {
     let max = h.length;
-    for (const r of rows) max = Math.max(max, (r[i] ?? '').length);
+    for (const r of rows) max = Math.max(max, (r[i]?.text ?? '').length);
     return Math.min(Math.max(max, 3) + 1, 60);
   });
   const maxChars = Math.floor(avail / charW);
@@ -57,6 +68,7 @@ export function buildPdf(header: string[], rows: string[][], opts: PdfOptions = 
   const xOf: number[] = [];
   let acc = margin;
   for (let i = 0; i < ncol; i++) { xOf.push(acc); acc += widths[i] * charW; }
+  const colPx = (i: number) => widths[i] * charW;
 
   const fit = (s: string, w: number): string => {
     if (s.length <= w) return s;
@@ -79,19 +91,43 @@ export function buildPdf(header: string[], rows: string[][], opts: PdfOptions = 
       content += `BT /F2 ${fontSize + 2} Tf 1 0 0 1 ${margin} ${y - fontSize} Tm (${pdfEscape(opts.title)}) Tj ET\n`;
       y -= titleH;
     }
-    // header (bold)
-    const drawRow = (cells: string[], font: string) => {
-      content += `BT /${font} ${fontSize} Tf\n`;
-      for (let c = 0; c < ncol; c++) {
-        const txt = fit(cells[c] ?? '', widths[c]);
-        content += `1 0 0 1 ${xOf[c].toFixed(2)} ${(y - fontSize).toFixed(2)} Tm (${pdfEscape(txt)}) Tj\n`;
+
+    const drawRow = (cells: SheetCell[], header: boolean) => {
+      // 1) Backgrounds + bars (skip for the header band).
+      if (!header) {
+        for (let c = 0; c < ncol; c++) {
+          const cell = cells[c];
+          if (!cell) continue;
+          const w = colPx(c);
+          const bg = parseRgb(cell.style?.bg);
+          if (bg) content += `${rgbOp(bg)} rg ${xOf[c].toFixed(2)} ${(y - lineHeight).toFixed(2)} ${w.toFixed(2)} ${lineHeight.toFixed(2)} re f\n`;
+          if (cell.bar) {
+            const barRgb = parseRgb(cell.bar.color);
+            if (barRgb) content += `${rgbOp(barRgb)} rg ${xOf[c].toFixed(2)} ${(y - lineHeight).toFixed(2)} ${(w * Math.max(0, Math.min(1, cell.bar.pct))).toFixed(2)} ${lineHeight.toFixed(2)} re f\n`;
+          }
+        }
+        content += '0 0 0 rg\n';
       }
-      content += 'ET\n';
+      // 2) Text (per cell, so color / font / alignment can vary).
+      for (let c = 0; c < ncol; c++) {
+        const cell = cells[c] ?? { text: '' };
+        const txt = fit(cell.text ?? '', widths[c]);
+        if (!txt) continue;
+        const font = header || cell.style?.bold ? 'F2' : 'F1';
+        const w = colPx(c);
+        const align = cell.style?.align ?? (cell.num !== undefined ? 'right' : 'left');
+        const textW = txt.length * charW;
+        const x = align === 'right' ? xOf[c] + w - textW : align === 'center' ? xOf[c] + (w - textW) / 2 : xOf[c];
+        const color = header ? null : parseRgb(cell.style?.color);
+        if (color) content += `${rgbOp(color)} rg\n`;
+        content += `BT /${font} ${fontSize} Tf 1 0 0 1 ${x.toFixed(2)} ${(y - fontSize).toFixed(2)} Tm (${pdfEscape(txt)}) Tj ET\n`;
+        if (color) content += '0 0 0 rg\n';
+      }
       y -= lineHeight;
     };
 
-    drawRow(header, 'F2');
-    for (const r of slice) drawRow(r, 'F1');
+    drawRow(header.map((text) => ({ text })), true);
+    for (const r of slice) drawRow(r, false);
 
     pages.push(content);
     i += rowsPerPage;

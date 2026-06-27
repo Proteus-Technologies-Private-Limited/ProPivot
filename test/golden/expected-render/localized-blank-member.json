@@ -9,8 +9,8 @@
       },
       {
         "tag": "th",
-        "text": "2023",
-        "cls": "pp-colh"
+        "text": "2023<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
+        "cls": "pp-colh pp-draggable"
       },
       {
         "tag": "th",
@@ -21,13 +21,13 @@
     [
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
-        "cls": "pp-measureh"
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-draggable"
       },
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
-        "cls": "pp-measureh pp-grand"
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-grand pp-draggable"
       }
     ]
   ],

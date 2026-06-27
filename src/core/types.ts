@@ -76,6 +76,10 @@ export interface Hierarchy {
   caption?: string;
   sort?: 'asc' | 'desc' | 'unsorted';
   filter?: FilterSpec;
+  /** Pixel column width (drag-resized or set programmatically). */
+  width?: number;
+  /** Rich display format applied to this dimension's member cells. */
+  display?: DisplayFormat;
 }
 
 /** Special placeholder for the measures axis inside rows/columns. */
@@ -97,6 +101,10 @@ export interface Measure {
    * `'rows'` computes down the row axis instead. Ignored for non-positional measures.
    */
   positionalAxis?: 'rows' | 'columns';
+  /** Pixel column width (drag-resized or set programmatically). */
+  width?: number;
+  /** Rich display format applied to this measure's value cells. */
+  display?: DisplayFormat;
 }
 
 export interface Sorting {
@@ -146,6 +154,24 @@ export interface Options {
   defaultHierarchySortName?: 'asc' | 'desc' | 'unsorted';
   showAggregationLabels?: boolean;
   localization?: unknown;
+  /**
+   * Column UX: drag-resize, drag-reorder, and the per-column properties panel
+   * (heading / aggregation / conditional formatting / display format / filter).
+   * `true` (default) enables everything; an object toggles each facet. `false`
+   * disables all of it (read-only columns).
+   */
+  columnProperties?: boolean | ColumnPropertiesOptions;
+}
+
+export interface ColumnPropertiesOptions {
+  /** Master switch (default true). */
+  enabled?: boolean;
+  /** Allow opening the panel and editing properties (default true). */
+  edit?: boolean;
+  /** Allow drag-resizing columns (default true). */
+  resize?: boolean;
+  /** Allow drag-reordering columns between/within zones (default true). */
+  reorder?: boolean;
 }
 
 export interface NumberFormat {
@@ -182,7 +208,121 @@ export interface Condition {
   row?: number;
   column?: number;
   measure?: string;
+  /**
+   * Optional per-SLOT scope. When set, the condition only applies to the measure
+   * whose stable slot `key` matches (so two measures over the same field — e.g.
+   * sum AND average of `sales` — don't bleed each other's conditional formats).
+   * Falls back to `measure` (uniqueName) matching when absent.
+   */
+  measureKey?: string;
   isTotal?: boolean;
+}
+
+// ── Display formats (per-column rich rendering) ──────────────────────────────
+// Ported from the twasta.ai transaction list-table; the formatting logic lives
+// in src/core/cellStyle.ts. A column may carry an optional `display: DisplayFormat`.
+// It is display-only — it never affects aggregation or the stored value.
+
+export type DisplayFormatType =
+  | 'text'            // default — no special formatting
+  | 'number'          // decimal / currency / accounting / percent / scientific / compact
+  | 'percent_ring'    // circular completeness ring around the value
+  | 'progress'        // horizontal progress bar (value within min..max)
+  | 'data_bar'        // in-cell bar drawn behind the number
+  | 'heatmap'         // text/background graded across value bands (stepped or gradient)
+  | 'rating'          // stars / hearts / dots out of N
+  | 'signed'          // +/- delta, colored, with ▲▼ arrow
+  | 'sparkline'       // tiny inline line chart from an array / comma list
+  | 'bullet'          // target-vs-actual bullet (actual bar + target tick)
+  | 'status_tag'      // colored badge/pill (value → color map)
+  | 'status_dot'      // colored dot; value beside it (optionally hidden)
+  | 'icon_map'        // value → icon glyph
+  | 'boolean'         // ✓ / ✗ (or a value map)
+  | 'tags'            // comma/array value → colored chips
+  | 'avatar'          // initials avatar + name
+  | 'background'      // conditional cell background from first-matching rule
+  | 'date'            // date/time pattern
+  | 'relative_time'   // "3 days ago" / "in 2h"
+  | 'date_range'      // start + end companion column shown as one cell
+  | 'countdown'       // time remaining to a due date, SLA-colored
+  | 'telephone'       // phone link (tel:) — optional country flag from dial code
+  | 'country'         // country flag + value from an ISO-2 code
+  | 'email'           // mail link (mailto:)
+  | 'url'             // open link in a new tab
+  | 'image'           // thumbnail of an image URL
+  | 'file'            // filename + icon, click to open
+  | 'map'             // map pin opening the location in a new tab
+  | 'copy'            // value with a copy-to-clipboard affordance
+  | 'case'            // text case transform (upper/lower/title/camel/sentence)
+  | 'truncate'        // clamp long text with a hover tooltip
+  | 'masked'          // mask sensitive value (••••1234)
+  | 'template'        // wrap value in a template, e.g. "INV-{value}"
+  | 'two_line';       // bold primary value + muted secondary companion column
+
+export interface DisplayMapEntry {
+  when: string;                 // matched (case-insensitively) against the value
+  color?: string;               // named color or hex/css
+  icon?: string;                // emoji / glyph
+  label?: string;               // replacement display text
+}
+
+export interface DisplayRule {
+  when: string;                 // expression over the value, e.g. "value > 1000"
+  color: string;                // applied when the expression is truthy
+}
+
+export interface DisplayFormat {
+  type: DisplayFormatType;
+
+  // numeric formatting (number / data_bar / signed / etc.)
+  numberStyle?: 'decimal' | 'currency' | 'accounting' | 'percent' | 'scientific' | 'compact';
+  locale?: string;
+  currency?: string;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+
+  // progress / ring / bullet / data_bar / rating
+  min?: number;
+  max?: number;
+  color?: string;
+  showValue?: boolean;
+
+  // heatmap
+  scale?: 'stepped' | 'gradient';
+  thresholds?: number[];
+  colors?: string[];
+  applyTo?: 'text' | 'background';
+
+  // status maps / conditional background
+  map?: DisplayMapEntry[];
+  rules?: DisplayRule[];
+  defaultColor?: string;
+  defaultIcon?: string;
+  defaultLabel?: string;
+  hideValue?: boolean;
+
+  // rating / icons
+  icon?: string;                // 'star' | 'heart' | 'circle' | any emoji
+
+  // text transforms
+  textCase?: 'upper' | 'lower' | 'title' | 'camel' | 'sentence';
+  truncate?: number;
+  maskLast?: number;
+  maskChar?: string;
+  template?: string;
+
+  // temporal
+  datePattern?: string;
+  warnDays?: number;
+  dangerDays?: number;
+
+  // contact / link / media
+  label?: string;
+  showFlag?: boolean;
+
+  // country
+  countryShow?: 'flag_name' | 'flag' | 'flag_code';
 }
 
 export interface Report {

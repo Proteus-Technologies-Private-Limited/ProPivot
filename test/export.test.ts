@@ -107,3 +107,36 @@ describe('exportMatrix', () => {
     expect(html).toContain('<th>');
   });
 });
+
+describe('export carries HTML-preview styling (PDF/SVG parity)', () => {
+  const styled: Report = {
+    dataSource: { type: 'json', data },
+    slice: {
+      rows: [{ uniqueName: 'region' }],
+      columns: [{ uniqueName: 'year' }],
+      measures: [{ uniqueName: 'sales', aggregation: 'sum', display: { type: 'data_bar', min: 0, max: 200, color: 'blue' } }],
+    },
+    conditions: [{ formula: '#value > 120', measure: 'sales', format: { backgroundColor: '#c5e1a5' } }],
+  };
+  const sNormal = normalizeReport(styled);
+  const sMatrix = buildMatrix(buildStore(data as never), sNormal);
+
+  it('PDF embeds fill rectangles for backgrounds / data bars', () => {
+    const bytes = exportMatrix('pdf', sMatrix, sNormal) as Uint8Array;
+    const text = Buffer.from(bytes).toString('latin1');
+    expect(text).toContain(' rg'); // a fill color was set
+    expect(text).toContain(' re'); // a rectangle was drawn (background/bar)
+  });
+
+  it('SVG embeds <rect fill> cell backgrounds / bars', () => {
+    const svg = exportMatrix('image', sMatrix, sNormal) as string;
+    expect(svg).toMatch(/<rect[^>]*fill="#/);
+  });
+
+  it('plain reports do not emit cell fills (no churn)', () => {
+    const bytes = exportMatrix('pdf', matrix, normal) as Uint8Array;
+    const text = Buffer.from(bytes).toString('latin1');
+    // No cell-fill rectangle operators in an unstyled export.
+    expect(text).not.toContain(' re f');
+  });
+});

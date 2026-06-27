@@ -1,0 +1,115 @@
+{
+  "head": [
+    [
+      {
+        "tag": "th",
+        "text": "region",
+        "cls": "pp-corner",
+        "rs": 2
+      },
+      {
+        "tag": "th",
+        "text": "2023<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
+        "cls": "pp-colh pp-draggable"
+      },
+      {
+        "tag": "th",
+        "text": "2024<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
+        "cls": "pp-colh pp-draggable"
+      },
+      {
+        "tag": "th",
+        "text": "Grand Total",
+        "cls": "pp-colh pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-draggable"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-draggable"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-grand pp-draggable"
+      }
+    ]
+  ],
+  "body": [
+    [
+      {
+        "tag": "th",
+        "text": "<span><span style=\"display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#dce6fc;color:#2563eb;font-weight:600;font-size:0.82em\">E</span></span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:5.0%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">600</span></span>",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:21.7%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">2,600</span></span>",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:26.7%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">3,200</span></span>",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "<span><span style=\"display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#daf0e2;color:#16a34a;font-weight:600;font-size:0.82em\">W</span></span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:10.0%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">1,200</span></span>",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:75.0%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">9,000</span></span>",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:85.0%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">10,200</span></span>",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "<span>Grand Total</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:15.0%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">1,800</span></span>",
+        "cls": "pp-cell pp-total pp-grand"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:96.7%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">11,600</span></span>",
+        "cls": "pp-cell pp-total pp-grand"
+      },
+      {
+        "tag": "td",
+        "text": "<span style=\"position:relative;display:inline-block;min-width:70px;padding:1px 4px;width:100%;box-sizing:border-box;text-align:right\"><span style=\"position:absolute;inset:0;width:100.0%;background:#dce6fc;border-radius:3px\"></span><span style=\"position:relative\">13,400</span></span>",
+        "cls": "pp-cell pp-total pp-grand"
+      }
+    ]
+  ]
+}

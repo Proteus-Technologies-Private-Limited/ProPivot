@@ -2,7 +2,7 @@
 // Compatible API shape: constructor, methods, events, customizeCell.
 
 import type {
-  Report, Condition, Measure, Options,
+  Report, Condition, Measure, Hierarchy, Options, DisplayFormat,
 } from '../core/types';
 import { normalizeReport, type NormalReport } from '../core/normalize';
 import type { CellMatrix, AxisNode } from '../core/matrix';
@@ -14,7 +14,7 @@ import { parseCsv } from '../core/csv';
 import { drillThroughRows } from '../core/drillthrough';
 import { EventEmitter, ALL_EVENTS } from './events';
 import type { CellData } from './cell';
-import { GridRenderer, type Zone } from '../grid/renderer';
+import { GridRenderer, type Zone, type ColumnRef } from '../grid/renderer';
 import { exportMatrix, type ExportType, type ExportParams } from '../export';
 
 export interface ProPivotConfig {
@@ -90,6 +90,14 @@ export class ProPivot {
           exportTo: (type) => this.exportTo(type as ExportType),
           toggleSort: (uniqueName) => this.toggleSort(uniqueName),
           sortByMeasure: (uniqueName) => this.sortByMeasure(uniqueName),
+          setColumnWidth: (ref, width) => this.setColumnWidth(ref, width),
+          reorderColumn: (uniqueName, toZone, toIndex) => this.reorderColumn(uniqueName, toZone, toIndex),
+          setColumnDisplay: (ref, display) => this.setColumnDisplay(ref, display),
+          setColumnCaption: (ref, caption) => this.setColumnCaption(ref, caption),
+          addCondition: (cond) => this.addCondition(cond),
+          removeCondition: (id) => this.removeCondition(id),
+          getConditions: () => this.getAllConditions(),
+          setTopN: (measureUniqueName, mode, quantity) => this.setTopN(measureUniqueName, mode, quantity),
         },
       });
     }
@@ -315,6 +323,119 @@ export class ProPivot {
       case 'available': break;
     }
     this.refresh();
+  }
+
+  // ---------- column properties (resize / reorder / display / caption) ----------
+
+  /** Resolve a ColumnRef to its slice entry (Measure or Hierarchy). */
+  private resolveColumn(ref: ColumnRef): Measure | Hierarchy | undefined {
+    const slice = this.report.slice ?? (this.report.slice = {});
+    if (ref.kind === 'measure') {
+      // Re-derive the stable slot key the same way normalize does, so duplicate
+      // uniqueNames (sum AND average of the same field) resolve to the right slot.
+      const active = (slice.measures ?? []).filter((m) => m.active !== false);
+      const count = new Map<string, number>();
+      for (const m of active) count.set(m.uniqueName, (count.get(m.uniqueName) ?? 0) + 1);
+      const seen = new Map<string, number>();
+      for (const m of active) {
+        let key = m.uniqueName;
+        if ((count.get(m.uniqueName) ?? 0) > 1) {
+          const i = seen.get(m.uniqueName) ?? 0;
+          seen.set(m.uniqueName, i + 1);
+          key = `${m.uniqueName}#${i}`;
+        }
+        if (key === ref.key) return m;
+      }
+      return (slice.measures ?? []).find((m) => m.uniqueName === ref.uniqueName);
+    }
+    return [...(slice.rows ?? []), ...(slice.columns ?? [])].find((h) => h.uniqueName === ref.uniqueName);
+  }
+
+  /** Set a column's pixel width (drag-resize). Presentation only — no recompute. */
+  setColumnWidth(ref: ColumnRef, width: number): void {
+    const entry = this.resolveColumn(ref);
+    if (!entry) return;
+    entry.width = Math.max(24, Math.round(width));
+    this.render();
+    this.emitter.emit('columnresize', { ref, width: entry.width });
+  }
+
+  /** Set (or clear with null) a column's display format. Presentation only. */
+  setColumnDisplay(ref: ColumnRef, display: DisplayFormat | null): void {
+    const entry = this.resolveColumn(ref);
+    if (!entry) return;
+    if (display) entry.display = display; else delete entry.display;
+    this.render();
+    this.emitter.emit('columnpropertychange', { ref, property: 'display', value: display });
+  }
+
+  /** Rename a column's heading/caption. */
+  setColumnCaption(ref: ColumnRef, caption: string): void {
+    const entry = this.resolveColumn(ref);
+    if (!entry) return;
+    entry.caption = caption;
+    this.render();
+    this.emitter.emit('columnpropertychange', { ref, property: 'caption', value: caption });
+  }
+
+  /**
+   * Reorder a column to `toZone` at `toIndex` (within a zone or across zones),
+   * preserving the column's object (width / display / filter / aggregation ride
+   * along). Recomputes the cube since order/zone change the layout.
+   */
+  reorderColumn(uniqueName: string, toZone: Zone, toIndex: number): void {
+    const slice = this.report.slice ?? (this.report.slice = {});
+    slice.rows = slice.rows ?? [];
+    slice.columns = slice.columns ?? [];
+    slice.reportFilters = slice.reportFilters ?? [];
+    slice.measures = slice.measures ?? [];
+
+    // Detach the existing entry from whichever zone holds it.
+    let fromZone: Zone | null = null;
+    let hier: Hierarchy | undefined;
+    let meas: Measure | undefined;
+    const detach = <T extends { uniqueName: string }>(arr: T[]): T | undefined => {
+      const i = arr.findIndex((x) => x.uniqueName === uniqueName);
+      return i >= 0 ? arr.splice(i, 1)[0] : undefined;
+    };
+    if ((hier = detach(slice.rows))) fromZone = 'rows';
+    else if ((hier = detach(slice.columns))) fromZone = 'columns';
+    else if ((hier = detach(slice.reportFilters))) fromZone = 'filters';
+    else if ((meas = detach(slice.measures))) fromZone = 'measures';
+
+    const caption = this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
+    const clampIndex = (arr: unknown[]) => Math.max(0, Math.min(toIndex, arr.length));
+
+    switch (toZone) {
+      case 'rows':
+      case 'columns':
+      case 'filters': {
+        const entry: Hierarchy = hier ?? { uniqueName, caption };
+        const arr = toZone === 'rows' ? slice.rows : toZone === 'columns' ? slice.columns : slice.reportFilters;
+        arr.splice(clampIndex(arr), 0, entry);
+        break;
+      }
+      case 'measures': {
+        const entry: Measure = meas ?? { uniqueName, caption, aggregation: 'sum', active: true };
+        slice.measures.splice(clampIndex(slice.measures), 0, entry);
+        break;
+      }
+      case 'available':
+        break; // detached and not re-inserted
+    }
+    this.refresh();
+    this.emitter.emit('columnreorder', { uniqueName, fromZone, toZone, toIndex });
+  }
+
+  /** Top/Bottom-N filter on the first row hierarchy, ranked by a measure. */
+  setTopN(measureUniqueName: string, mode: 'top' | 'bottom' | 'off', quantity: number): void {
+    const slice = this.report.slice ?? (this.report.slice = {});
+    const target = (slice.rows ?? [])[0];
+    if (!target) return;
+    if (mode === 'off') delete target.filter;
+    else target.filter = { type: mode, measure: measureUniqueName, quantity: Math.max(1, Math.round(quantity)) };
+    this.refresh();
+    this.emitter.emit('columnpropertychange', { ref: { kind: 'measure', uniqueName: measureUniqueName }, property: 'topN', value: { mode, quantity } });
   }
 
   // ---------- conditions ----------
