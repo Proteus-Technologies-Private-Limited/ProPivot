@@ -1,0 +1,387 @@
+{
+  "rowFields": [
+    "region",
+    "category"
+  ],
+  "colFields": [
+    "year"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "sum",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": false,
+      "children": [
+        {
+          "path": [
+            "East",
+            "Furniture"
+          ],
+          "label": "Furniture",
+          "field": "category",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": true,
+          "children": []
+        },
+        {
+          "path": [
+            "East",
+            "Tech"
+          ],
+          "label": "Tech",
+          "field": "category",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "path": [
+        "North"
+      ],
+      "label": "North",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": false,
+      "children": [
+        {
+          "path": [
+            "North",
+            "Furniture"
+          ],
+          "label": "Furniture",
+          "field": "category",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": true,
+          "children": []
+        },
+        {
+          "path": [
+            "North",
+            "Tech"
+          ],
+          "label": "Tech",
+          "field": "category",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": false,
+      "children": [
+        {
+          "path": [
+            "West",
+            "Furniture"
+          ],
+          "label": "Furniture",
+          "field": "category",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": true,
+          "children": []
+        },
+        {
+          "path": [
+            "West",
+            "Tech"
+          ],
+          "label": "Tech",
+          "field": "category",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": true,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "2023"
+      ],
+      "label": "2023",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "2024"
+      ],
+      "label": "2024",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "East␞2023␞sales",
+      2700
+    ],
+    [
+      "East␞2024␞sales",
+      3350
+    ],
+    [
+      "East␞␞sales",
+      6050
+    ],
+    [
+      "East␟Furniture␞2023␞sales",
+      600
+    ],
+    [
+      "East␟Furniture␞2024␞sales",
+      750
+    ],
+    [
+      "East␟Furniture␞␞sales",
+      1350
+    ],
+    [
+      "East␟Tech␞2023␞sales",
+      2100
+    ],
+    [
+      "East␟Tech␞2024␞sales",
+      2600
+    ],
+    [
+      "East␟Tech␞␞sales",
+      4700
+    ],
+    [
+      "North␞2023␞sales",
+      900
+    ],
+    [
+      "North␞2024␞sales",
+      5000
+    ],
+    [
+      "North␞␞sales",
+      5900
+    ],
+    [
+      "North␟Furniture␞2023␞sales",
+      900
+    ],
+    [
+      "North␟Furniture␞␞sales",
+      900
+    ],
+    [
+      "North␟Tech␞2024␞sales",
+      5000
+    ],
+    [
+      "North␟Tech␞␞sales",
+      5000
+    ],
+    [
+      "West␞2023␞sales",
+      4200
+    ],
+    [
+      "West␞2024␞sales",
+      5700
+    ],
+    [
+      "West␞␞sales",
+      9900
+    ],
+    [
+      "West␟Furniture␞2023␞sales",
+      1200
+    ],
+    [
+      "West␟Furniture␞2024␞sales",
+      1500
+    ],
+    [
+      "West␟Furniture␞␞sales",
+      2700
+    ],
+    [
+      "West␟Tech␞2023␞sales",
+      3000
+    ],
+    [
+      "West␟Tech␞2024␞sales",
+      4200
+    ],
+    [
+      "West␟Tech␞␞sales",
+      7200
+    ],
+    [
+      "␞2023␞sales",
+      7800
+    ],
+    [
+      "␞2024␞sales",
+      14050
+    ],
+    [
+      "␞␞sales",
+      21850
+    ]
+  ],
+  "text": [
+    [
+      "East␞2023␞sales",
+      "2 700"
+    ],
+    [
+      "East␞2024␞sales",
+      "3 350"
+    ],
+    [
+      "East␞␞sales",
+      "6 050"
+    ],
+    [
+      "East␟Furniture␞2023␞sales",
+      "600"
+    ],
+    [
+      "East␟Furniture␞2024␞sales",
+      "750"
+    ],
+    [
+      "East␟Furniture␞␞sales",
+      "1 350"
+    ],
+    [
+      "East␟Tech␞2023␞sales",
+      "2 100"
+    ],
+    [
+      "East␟Tech␞2024␞sales",
+      "2 600"
+    ],
+    [
+      "East␟Tech␞␞sales",
+      "4 700"
+    ],
+    [
+      "North␞2023␞sales",
+      "900"
+    ],
+    [
+      "North␞2024␞sales",
+      "5 000"
+    ],
+    [
+      "North␞␞sales",
+      "5 900"
+    ],
+    [
+      "North␟Furniture␞2023␞sales",
+      "900"
+    ],
+    [
+      "North␟Furniture␞␞sales",
+      "900"
+    ],
+    [
+      "North␟Tech␞2024␞sales",
+      "5 000"
+    ],
+    [
+      "North␟Tech␞␞sales",
+      "5 000"
+    ],
+    [
+      "West␞2023␞sales",
+      "4 200"
+    ],
+    [
+      "West␞2024␞sales",
+      "5 700"
+    ],
+    [
+      "West␞␞sales",
+      "9 900"
+    ],
+    [
+      "West␟Furniture␞2023␞sales",
+      "1 200"
+    ],
+    [
+      "West␟Furniture␞2024␞sales",
+      "1 500"
+    ],
+    [
+      "West␟Furniture␞␞sales",
+      "2 700"
+    ],
+    [
+      "West␟Tech␞2023␞sales",
+      "3 000"
+    ],
+    [
+      "West␟Tech␞2024␞sales",
+      "4 200"
+    ],
+    [
+      "West␟Tech␞␞sales",
+      "7 200"
+    ],
+    [
+      "␞2023␞sales",
+      "7 800"
+    ],
+    [
+      "␞2024␞sales",
+      "14 050"
+    ],
+    [
+      "␞␞sales",
+      "21 850"
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      21850
+    ]
+  ]
+}

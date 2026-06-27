@@ -1,0 +1,183 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [
+    "year"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "difference",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "North"
+      ],
+      "label": "North",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "2023"
+      ],
+      "label": "2023",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "2024"
+      ],
+      "label": "2024",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "East␞2023␞sales",
+      "__NaN__"
+    ],
+    [
+      "East␞2024␞sales",
+      650
+    ],
+    [
+      "East␞␞sales",
+      "__NaN__"
+    ],
+    [
+      "North␞2023␞sales",
+      "__NaN__"
+    ],
+    [
+      "North␞2024␞sales",
+      4100
+    ],
+    [
+      "North␞␞sales",
+      "__NaN__"
+    ],
+    [
+      "West␞2023␞sales",
+      "__NaN__"
+    ],
+    [
+      "West␞2024␞sales",
+      1500
+    ],
+    [
+      "West␞␞sales",
+      "__NaN__"
+    ],
+    [
+      "␞2023␞sales",
+      "__NaN__"
+    ],
+    [
+      "␞2024␞sales",
+      6250
+    ],
+    [
+      "␞␞sales",
+      "__NaN__"
+    ]
+  ],
+  "text": [
+    [
+      "East␞2023␞sales",
+      ""
+    ],
+    [
+      "East␞2024␞sales",
+      "650"
+    ],
+    [
+      "East␞␞sales",
+      ""
+    ],
+    [
+      "North␞2023␞sales",
+      ""
+    ],
+    [
+      "North␞2024␞sales",
+      "4 100"
+    ],
+    [
+      "North␞␞sales",
+      ""
+    ],
+    [
+      "West␞2023␞sales",
+      ""
+    ],
+    [
+      "West␞2024␞sales",
+      "1 500"
+    ],
+    [
+      "West␞␞sales",
+      ""
+    ],
+    [
+      "␞2023␞sales",
+      ""
+    ],
+    [
+      "␞2024␞sales",
+      "6 250"
+    ],
+    [
+      "␞␞sales",
+      ""
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      "__NaN__"
+    ]
+  ]
+}

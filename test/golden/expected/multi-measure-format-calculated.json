@@ -1,0 +1,400 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [
+    "category"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "sum",
+      "format": "cur",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    },
+    {
+      "uniqueName": "qty",
+      "aggregation": "sum",
+      "caption": "qty",
+      "calculated": false,
+      "key": "qty"
+    },
+    {
+      "uniqueName": "aov",
+      "formula": "sum('sales')/sum('qty')",
+      "caption": "Avg Price",
+      "format": "cur",
+      "aggregation": "none",
+      "calculated": true,
+      "key": "aov"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "North"
+      ],
+      "label": "North",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "Furniture"
+      ],
+      "label": "Furniture",
+      "field": "category",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "Tech"
+      ],
+      "label": "Tech",
+      "field": "category",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "East␞Furniture␞aov",
+      79.41176470588235
+    ],
+    [
+      "East␞Furniture␞qty",
+      17
+    ],
+    [
+      "East␞Furniture␞sales",
+      1350
+    ],
+    [
+      "East␞Tech␞aov",
+      293.75
+    ],
+    [
+      "East␞Tech␞qty",
+      16
+    ],
+    [
+      "East␞Tech␞sales",
+      4700
+    ],
+    [
+      "East␞␞aov",
+      183.33333333333334
+    ],
+    [
+      "East␞␞qty",
+      33
+    ],
+    [
+      "East␞␞sales",
+      6050
+    ],
+    [
+      "North␞Furniture␞aov",
+      90
+    ],
+    [
+      "North␞Furniture␞qty",
+      10
+    ],
+    [
+      "North␞Furniture␞sales",
+      900
+    ],
+    [
+      "North␞Tech␞aov",
+      312.5
+    ],
+    [
+      "North␞Tech␞qty",
+      16
+    ],
+    [
+      "North␞Tech␞sales",
+      5000
+    ],
+    [
+      "North␞␞aov",
+      226.92307692307693
+    ],
+    [
+      "North␞␞qty",
+      26
+    ],
+    [
+      "North␞␞sales",
+      5900
+    ],
+    [
+      "West␞Furniture␞aov",
+      103.84615384615384
+    ],
+    [
+      "West␞Furniture␞qty",
+      26
+    ],
+    [
+      "West␞Furniture␞sales",
+      2700
+    ],
+    [
+      "West␞Tech␞aov",
+      300
+    ],
+    [
+      "West␞Tech␞qty",
+      24
+    ],
+    [
+      "West␞Tech␞sales",
+      7200
+    ],
+    [
+      "West␞␞aov",
+      198
+    ],
+    [
+      "West␞␞qty",
+      50
+    ],
+    [
+      "West␞␞sales",
+      9900
+    ],
+    [
+      "␞Furniture␞aov",
+      93.39622641509433
+    ],
+    [
+      "␞Furniture␞qty",
+      53
+    ],
+    [
+      "␞Furniture␞sales",
+      4950
+    ],
+    [
+      "␞Tech␞aov",
+      301.7857142857143
+    ],
+    [
+      "␞Tech␞qty",
+      56
+    ],
+    [
+      "␞Tech␞sales",
+      16900
+    ],
+    [
+      "␞␞aov",
+      200.45871559633028
+    ],
+    [
+      "␞␞qty",
+      109
+    ],
+    [
+      "␞␞sales",
+      21850
+    ]
+  ],
+  "text": [
+    [
+      "East␞Furniture␞aov",
+      "$79"
+    ],
+    [
+      "East␞Furniture␞qty",
+      "17"
+    ],
+    [
+      "East␞Furniture␞sales",
+      "$1,350"
+    ],
+    [
+      "East␞Tech␞aov",
+      "$294"
+    ],
+    [
+      "East␞Tech␞qty",
+      "16"
+    ],
+    [
+      "East␞Tech␞sales",
+      "$4,700"
+    ],
+    [
+      "East␞␞aov",
+      "$183"
+    ],
+    [
+      "East␞␞qty",
+      "33"
+    ],
+    [
+      "East␞␞sales",
+      "$6,050"
+    ],
+    [
+      "North␞Furniture␞aov",
+      "$90"
+    ],
+    [
+      "North␞Furniture␞qty",
+      "10"
+    ],
+    [
+      "North␞Furniture␞sales",
+      "$900"
+    ],
+    [
+      "North␞Tech␞aov",
+      "$313"
+    ],
+    [
+      "North␞Tech␞qty",
+      "16"
+    ],
+    [
+      "North␞Tech␞sales",
+      "$5,000"
+    ],
+    [
+      "North␞␞aov",
+      "$227"
+    ],
+    [
+      "North␞␞qty",
+      "26"
+    ],
+    [
+      "North␞␞sales",
+      "$5,900"
+    ],
+    [
+      "West␞Furniture␞aov",
+      "$104"
+    ],
+    [
+      "West␞Furniture␞qty",
+      "26"
+    ],
+    [
+      "West␞Furniture␞sales",
+      "$2,700"
+    ],
+    [
+      "West␞Tech␞aov",
+      "$300"
+    ],
+    [
+      "West␞Tech␞qty",
+      "24"
+    ],
+    [
+      "West␞Tech␞sales",
+      "$7,200"
+    ],
+    [
+      "West␞␞aov",
+      "$198"
+    ],
+    [
+      "West␞␞qty",
+      "50"
+    ],
+    [
+      "West␞␞sales",
+      "$9,900"
+    ],
+    [
+      "␞Furniture␞aov",
+      "$93"
+    ],
+    [
+      "␞Furniture␞qty",
+      "53"
+    ],
+    [
+      "␞Furniture␞sales",
+      "$4,950"
+    ],
+    [
+      "␞Tech␞aov",
+      "$302"
+    ],
+    [
+      "␞Tech␞qty",
+      "56"
+    ],
+    [
+      "␞Tech␞sales",
+      "$16,900"
+    ],
+    [
+      "␞␞aov",
+      "$200"
+    ],
+    [
+      "␞␞qty",
+      "109"
+    ],
+    [
+      "␞␞sales",
+      "$21,850"
+    ]
+  ],
+  "grand": [
+    [
+      "aov",
+      200.45871559633028
+    ],
+    [
+      "qty",
+      109
+    ],
+    [
+      "sales",
+      21850
+    ]
+  ]
+}

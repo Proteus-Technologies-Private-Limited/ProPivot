@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build output (published to npm via the build step; not committed)
+dist/
+
+# Test artifacts (see CLAUDE.md)
+test-script/output/
+
+# Internal integration / migration notes — not part of the public library.
+integration-doc/
+
+# Local tooling / editor state
+.claude/
+*.log
+*.tsbuildinfo
+.DS_Store
+coverage/
+.vscode/
+.idea/

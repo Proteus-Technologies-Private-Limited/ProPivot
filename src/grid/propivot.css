@@ -1,0 +1,207 @@
+/* ProPivot base theme. Override via CSS variables on .pp-root. */
+.pp-root {
+  --pp-border: #e0e0e0;
+  --pp-header-bg: #f5f6f8;
+  --pp-total-bg: #eef1f5;
+  --pp-grand-bg: #e3e8ef;
+  --pp-selected-bg: #cfe3ff;
+  --pp-text: #1f2430;
+  --pp-accent: #2f6fdb;
+  font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: var(--pp-text);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pp-border);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.pp-grid-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.pp-scroll { overflow: auto; flex: 1 1 auto; min-height: 0; }
+
+.pp-table { border-collapse: collapse; width: max-content; min-width: 100%; }
+.pp-table th, .pp-table td {
+  border: 1px solid var(--pp-border);
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.pp-table thead th {
+  background: var(--pp-header-bg);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: center;
+  font-weight: 600;
+}
+.pp-corner { background: var(--pp-header-bg); text-align: left; position: sticky; left: 0; z-index: 3; }
+.pp-rowh {
+  background: var(--pp-header-bg);
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  font-weight: 500;
+}
+.pp-cell { text-align: right; }
+.pp-total, .pp-total-row > * { background: var(--pp-total-bg); font-weight: 500; }
+.pp-grand, .pp-grand-row > * { background: var(--pp-grand-bg); font-weight: 600; }
+.pp-alt > .pp-cell { background-color: rgba(0, 0, 0, 0.015); }
+.pp-selected { outline: 2px solid var(--pp-accent); outline-offset: -2px; background: var(--pp-selected-bg) !important; }
+
+.pp-toggle { cursor: pointer; display: inline-block; width: 14px; color: var(--pp-accent); user-select: none; }
+
+/* Sortable headers (click to sort) */
+.pp-sortable { cursor: pointer; user-select: none; }
+.pp-sortable:hover { color: var(--pp-accent); }
+
+/* Toolbar */
+.pp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding: 6px 10px;
+  background: #fff;
+  border-bottom: 1px solid var(--pp-border);
+}
+.pp-tb-group { display: flex; align-items: center; gap: 4px; }
+.pp-tb-label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; margin-right: 2px; }
+.pp-tb-btn {
+  border: 1px solid var(--pp-border);
+  background: #fff;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pp-tb-btn:hover { border-color: var(--pp-accent); color: var(--pp-accent); }
+
+/* Drill-through modal */
+.pp-drill { min-width: 60vw; max-width: 90vw; }
+.pp-drill-scroll { max-height: 60vh; overflow: auto; border: 1px solid var(--pp-border); border-radius: 5px; }
+
+/* Field list / configurator */
+.pp-fieldlist {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--pp-border);
+  flex-wrap: wrap;
+}
+.pp-zone {
+  flex: 1 1 120px;
+  min-width: 120px;
+  border: 1px dashed var(--pp-border);
+  border-radius: 4px;
+  background: #fff;
+  padding: 4px;
+}
+.pp-zone.pp-dragover { border-color: var(--pp-accent); background: #f0f6ff; }
+.pp-zone-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+.pp-zone-body { display: flex; flex-direction: column; gap: 4px; min-height: 24px; }
+.pp-chip {
+  background: var(--pp-header-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: 3px;
+  padding: 3px 6px;
+  cursor: grab;
+  font-size: 12px;
+}
+.pp-chip:active { cursor: grabbing; }
+
+/* Measure header gear (opens the aggregation modal) — hover-revealed so the
+   heading stays clean. */
+.pp-measureh { position: relative; }
+.pp-gear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 6px;
+  padding: 0 2px;
+  color: #6b7280;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.pp-measureh:hover .pp-gear { opacity: .75; }
+.pp-gear:hover { opacity: 1; color: var(--pp-accent); }
+
+/* Centered modal (measure configuration) */
+.pp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pp-modal {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 18px 20px;
+  min-width: 300px;
+  font-size: 13px;
+}
+.pp-modal h3 { margin: 0 0 12px; font-size: 15px; }
+.pp-modal label { display: block; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+.pp-modal select { width: 100%; padding: 7px; border: 1px solid var(--pp-border); border-radius: 5px; }
+.pp-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.pp-modal-actions button { padding: 7px 14px; border-radius: 5px; border: 1px solid var(--pp-border); background: #fff; cursor: pointer; }
+.pp-modal-actions .primary { background: var(--pp-accent); color: #fff; border-color: var(--pp-accent); }
+
+/* Report-filter area */
+.pp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--pp-border);
+}
+.pp-filters-label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; }
+.pp-filter-btn {
+  border: 1px solid var(--pp-border);
+  background: #fff;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pp-filter-btn:hover { border-color: var(--pp-accent); }
+.pp-filter-btn b { font-weight: 600; }
+
+/* Popups (measure aggregation + filter member picker) */
+.pp-popup {
+  position: fixed;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  padding: 10px;
+  min-width: 200px;
+  font-size: 13px;
+}
+.pp-popup-title { font-weight: 600; margin-bottom: 8px; }
+.pp-popup label { display: block; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+.pp-popup select { width: 100%; padding: 6px; border: 1px solid var(--pp-border); border-radius: 5px; }
+.pp-popup-tools { display: flex; gap: 12px; margin-bottom: 6px; }
+.pp-popup-tools a { color: var(--pp-accent); text-decoration: none; font-size: 12px; }
+.pp-popup-list { max-height: 240px; overflow: auto; border: 1px solid var(--pp-border); border-radius: 5px; padding: 4px; }
+.pp-popup-item { display: flex; align-items: center; gap: 6px; padding: 2px 4px; text-transform: none; color: inherit; font-size: 13px; }
+.pp-popup-item:hover { background: var(--pp-header-bg); }
+.pp-popup-apply {
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--pp-accent);
+  background: var(--pp-accent);
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}

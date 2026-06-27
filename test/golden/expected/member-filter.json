@@ -1,0 +1,148 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [
+    "category"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "sum",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "Furniture"
+      ],
+      "label": "Furniture",
+      "field": "category",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "Tech"
+      ],
+      "label": "Tech",
+      "field": "category",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "East␞Furniture␞sales",
+      1350
+    ],
+    [
+      "East␞Tech␞sales",
+      4700
+    ],
+    [
+      "East␞␞sales",
+      6050
+    ],
+    [
+      "West␞Furniture␞sales",
+      2700
+    ],
+    [
+      "West␞Tech␞sales",
+      7200
+    ],
+    [
+      "West␞␞sales",
+      9900
+    ],
+    [
+      "␞Furniture␞sales",
+      4050
+    ],
+    [
+      "␞Tech␞sales",
+      11900
+    ],
+    [
+      "␞␞sales",
+      15950
+    ]
+  ],
+  "text": [
+    [
+      "East␞Furniture␞sales",
+      "1 350"
+    ],
+    [
+      "East␞Tech␞sales",
+      "4 700"
+    ],
+    [
+      "East␞␞sales",
+      "6 050"
+    ],
+    [
+      "West␞Furniture␞sales",
+      "2 700"
+    ],
+    [
+      "West␞Tech␞sales",
+      "7 200"
+    ],
+    [
+      "West␞␞sales",
+      "9 900"
+    ],
+    [
+      "␞Furniture␞sales",
+      "4 050"
+    ],
+    [
+      "␞Tech␞sales",
+      "11 900"
+    ],
+    [
+      "␞␞sales",
+      "15 950"
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      15950
+    ]
+  ]
+}

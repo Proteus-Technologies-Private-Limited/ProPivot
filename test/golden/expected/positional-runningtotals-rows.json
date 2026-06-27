@@ -1,0 +1,184 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [
+    "year"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "runningtotals",
+      "positionalAxis": "rows",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "North"
+      ],
+      "label": "North",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "2023"
+      ],
+      "label": "2023",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "2024"
+      ],
+      "label": "2024",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "East␞2023␞sales",
+      2700
+    ],
+    [
+      "East␞2024␞sales",
+      3350
+    ],
+    [
+      "East␞␞sales",
+      6050
+    ],
+    [
+      "North␞2023␞sales",
+      3600
+    ],
+    [
+      "North␞2024␞sales",
+      8350
+    ],
+    [
+      "North␞␞sales",
+      11950
+    ],
+    [
+      "West␞2023␞sales",
+      7800
+    ],
+    [
+      "West␞2024␞sales",
+      14050
+    ],
+    [
+      "West␞␞sales",
+      21850
+    ],
+    [
+      "␞2023␞sales",
+      7800
+    ],
+    [
+      "␞2024␞sales",
+      14050
+    ],
+    [
+      "␞␞sales",
+      21850
+    ]
+  ],
+  "text": [
+    [
+      "East␞2023␞sales",
+      "2 700"
+    ],
+    [
+      "East␞2024␞sales",
+      "3 350"
+    ],
+    [
+      "East␞␞sales",
+      "6 050"
+    ],
+    [
+      "North␞2023␞sales",
+      "3 600"
+    ],
+    [
+      "North␞2024␞sales",
+      "8 350"
+    ],
+    [
+      "North␞␞sales",
+      "11 950"
+    ],
+    [
+      "West␞2023␞sales",
+      "7 800"
+    ],
+    [
+      "West␞2024␞sales",
+      "14 050"
+    ],
+    [
+      "West␞␞sales",
+      "21 850"
+    ],
+    [
+      "␞2023␞sales",
+      "7 800"
+    ],
+    [
+      "␞2024␞sales",
+      "14 050"
+    ],
+    [
+      "␞␞sales",
+      "21 850"
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      21850
+    ]
+  ]
+}

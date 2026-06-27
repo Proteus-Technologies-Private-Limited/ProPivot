@@ -1,0 +1,75 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "sum",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [],
+  "cells": [
+    [
+      "East␞␞sales",
+      6050
+    ],
+    [
+      "West␞␞sales",
+      9900
+    ],
+    [
+      "␞␞sales",
+      15950
+    ]
+  ],
+  "text": [
+    [
+      "East␞␞sales",
+      "6 050"
+    ],
+    [
+      "West␞␞sales",
+      "9 900"
+    ],
+    [
+      "␞␞sales",
+      "15 950"
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      15950
+    ]
+  ]
+}

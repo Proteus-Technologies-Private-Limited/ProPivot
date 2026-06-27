@@ -1,0 +1,183 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [
+    "year"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "percentofcolumn",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "North"
+      ],
+      "label": "North",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "2023"
+      ],
+      "label": "2023",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "2024"
+      ],
+      "label": "2024",
+      "field": "year",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "East␞2023␞sales",
+      0.34615384615384615
+    ],
+    [
+      "East␞2024␞sales",
+      0.23843416370106763
+    ],
+    [
+      "East␞␞sales",
+      0.2768878718535469
+    ],
+    [
+      "North␞2023␞sales",
+      0.11538461538461539
+    ],
+    [
+      "North␞2024␞sales",
+      0.35587188612099646
+    ],
+    [
+      "North␞␞sales",
+      0.2700228832951945
+    ],
+    [
+      "West␞2023␞sales",
+      0.5384615384615384
+    ],
+    [
+      "West␞2024␞sales",
+      0.40569395017793597
+    ],
+    [
+      "West␞␞sales",
+      0.45308924485125857
+    ],
+    [
+      "␞2023␞sales",
+      1
+    ],
+    [
+      "␞2024␞sales",
+      1
+    ],
+    [
+      "␞␞sales",
+      1
+    ]
+  ],
+  "text": [
+    [
+      "East␞2023␞sales",
+      "0.35"
+    ],
+    [
+      "East␞2024␞sales",
+      "0.24"
+    ],
+    [
+      "East␞␞sales",
+      "0.28"
+    ],
+    [
+      "North␞2023␞sales",
+      "0.12"
+    ],
+    [
+      "North␞2024␞sales",
+      "0.36"
+    ],
+    [
+      "North␞␞sales",
+      "0.27"
+    ],
+    [
+      "West␞2023␞sales",
+      "0.54"
+    ],
+    [
+      "West␞2024␞sales",
+      "0.41"
+    ],
+    [
+      "West␞␞sales",
+      "0.45"
+    ],
+    [
+      "␞2023␞sales",
+      "1"
+    ],
+    [
+      "␞2024␞sales",
+      "1"
+    ],
+    [
+      "␞␞sales",
+      "1"
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      1
+    ]
+  ]
+}

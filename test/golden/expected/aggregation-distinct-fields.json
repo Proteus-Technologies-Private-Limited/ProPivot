@@ -1,0 +1,180 @@
+{
+  "rowFields": [
+    "region"
+  ],
+  "colFields": [],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "sum",
+      "caption": "Sum Sales",
+      "calculated": false,
+      "key": "sales"
+    },
+    {
+      "uniqueName": "qty",
+      "aggregation": "average",
+      "caption": "Avg Qty",
+      "calculated": false,
+      "key": "qty"
+    },
+    {
+      "uniqueName": "cost",
+      "aggregation": "max",
+      "caption": "Max Cost",
+      "calculated": false,
+      "key": "cost"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "North"
+      ],
+      "label": "North",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "colTree": [],
+  "cells": [
+    [
+      "East␞␞cost",
+      1850
+    ],
+    [
+      "East␞␞qty",
+      8.25
+    ],
+    [
+      "East␞␞sales",
+      6050
+    ],
+    [
+      "North␞␞cost",
+      3300
+    ],
+    [
+      "North␞␞qty",
+      13
+    ],
+    [
+      "North␞␞sales",
+      5900
+    ],
+    [
+      "West␞␞cost",
+      2800
+    ],
+    [
+      "West␞␞qty",
+      12.5
+    ],
+    [
+      "West␞␞sales",
+      9900
+    ],
+    [
+      "␞␞cost",
+      3300
+    ],
+    [
+      "␞␞qty",
+      10.9
+    ],
+    [
+      "␞␞sales",
+      21850
+    ]
+  ],
+  "text": [
+    [
+      "East␞␞cost",
+      "1 850"
+    ],
+    [
+      "East␞␞qty",
+      "8.25"
+    ],
+    [
+      "East␞␞sales",
+      "6 050"
+    ],
+    [
+      "North␞␞cost",
+      "3 300"
+    ],
+    [
+      "North␞␞qty",
+      "13"
+    ],
+    [
+      "North␞␞sales",
+      "5 900"
+    ],
+    [
+      "West␞␞cost",
+      "2 800"
+    ],
+    [
+      "West␞␞qty",
+      "12.5"
+    ],
+    [
+      "West␞␞sales",
+      "9 900"
+    ],
+    [
+      "␞␞cost",
+      "3 300"
+    ],
+    [
+      "␞␞qty",
+      "10.9"
+    ],
+    [
+      "␞␞sales",
+      "21 850"
+    ]
+  ],
+  "grand": [
+    [
+      "cost",
+      3300
+    ],
+    [
+      "qty",
+      10.9
+    ],
+    [
+      "sales",
+      21850
+    ]
+  ]
+}

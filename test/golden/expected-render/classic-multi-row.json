@@ -1,0 +1,245 @@
+{
+  "head": [
+    [
+      {
+        "tag": "th",
+        "text": "",
+        "cls": "pp-corner",
+        "cs": 2
+      },
+      {
+        "tag": "th",
+        "text": "2023",
+        "cls": "pp-colh"
+      },
+      {
+        "tag": "th",
+        "text": "2024",
+        "cls": "pp-colh"
+      },
+      {
+        "tag": "th",
+        "text": "Grand Total",
+        "cls": "pp-colh pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "region",
+        "cls": "pp-corner pp-sortable"
+      },
+      {
+        "tag": "th",
+        "text": "category",
+        "cls": "pp-corner pp-sortable"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
+        "cls": "pp-measureh"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
+        "cls": "pp-measureh"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
+        "cls": "pp-measureh pp-grand"
+      }
+    ]
+  ],
+  "body": [
+    [
+      {
+        "tag": "th",
+        "text": "East",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Total",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "600",
+        "cls": "pp-cell pp-total"
+      },
+      {
+        "tag": "td",
+        "text": "2 600",
+        "cls": "pp-cell pp-total"
+      },
+      {
+        "tag": "td",
+        "text": "3 200",
+        "cls": "pp-cell pp-total pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "East",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Furniture",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "600",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "600",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "East",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Tech",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "2 600",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "2 600",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "West",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Total",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "1 200",
+        "cls": "pp-cell pp-total"
+      },
+      {
+        "tag": "td",
+        "text": "9 000",
+        "cls": "pp-cell pp-total"
+      },
+      {
+        "tag": "td",
+        "text": "10 200",
+        "cls": "pp-cell pp-total pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "West",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Furniture",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "1 200",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "1 200",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "West",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Tech",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "9 000",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "9 000",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "Grand Total",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "td",
+        "text": "1 800",
+        "cls": "pp-cell pp-total pp-grand"
+      },
+      {
+        "tag": "td",
+        "text": "11 600",
+        "cls": "pp-cell pp-total pp-grand"
+      },
+      {
+        "tag": "td",
+        "text": "13 400",
+        "cls": "pp-cell pp-total pp-grand"
+      }
+    ]
+  ]
+}

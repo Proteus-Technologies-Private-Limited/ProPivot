@@ -1,0 +1,90 @@
+{
+  "head": [
+    [
+      {
+        "tag": "th",
+        "text": "region",
+        "cls": "pp-corner",
+        "rs": 2
+      },
+      {
+        "tag": "th",
+        "text": "2023",
+        "cls": "pp-colh"
+      },
+      {
+        "tag": "th",
+        "text": "All Regions",
+        "cls": "pp-colh pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
+        "cls": "pp-measureh"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button>",
+        "cls": "pp-measureh pp-grand"
+      }
+    ]
+  ],
+  "body": [
+    [
+      {
+        "tag": "th",
+        "text": "<span>— none —</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
+      },
+      {
+        "tag": "td",
+        "text": "",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "<span>West</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
+      },
+      {
+        "tag": "td",
+        "text": "1 200",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "1 200",
+        "cls": "pp-cell pp-grand"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "<span>All Regions</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
+      },
+      {
+        "tag": "td",
+        "text": "400",
+        "cls": "pp-cell pp-total pp-grand"
+      },
+      {
+        "tag": "td",
+        "text": "400",
+        "cls": "pp-cell pp-total pp-grand"
+      }
+    ]
+  ]
+}

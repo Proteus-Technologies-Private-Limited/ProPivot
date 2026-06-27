@@ -1,0 +1,442 @@
+{
+  "rowFields": [
+    "Order Date (Year)",
+    "Order Date (Month)",
+    "Order Date (Day)"
+  ],
+  "colFields": [
+    "region"
+  ],
+  "measuresAxis": "columns",
+  "measures": [
+    {
+      "uniqueName": "sales",
+      "aggregation": "sum",
+      "caption": "sales",
+      "calculated": false,
+      "key": "sales"
+    }
+  ],
+  "rowTree": [
+    {
+      "path": [
+        "2023"
+      ],
+      "label": "2023",
+      "field": "Order Date (Year)",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": false,
+      "children": [
+        {
+          "path": [
+            "2023",
+            "January"
+          ],
+          "label": "January",
+          "field": "Order Date (Month)",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": false,
+          "children": [
+            {
+              "path": [
+                "2023",
+                "January",
+                "15"
+              ],
+              "label": "15",
+              "field": "Order Date (Day)",
+              "depth": 2,
+              "expanded": true,
+              "isLeaf": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "path": [
+            "2023",
+            "February"
+          ],
+          "label": "February",
+          "field": "Order Date (Month)",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": false,
+          "children": [
+            {
+              "path": [
+                "2023",
+                "February",
+                "20"
+              ],
+              "label": "20",
+              "field": "Order Date (Day)",
+              "depth": 2,
+              "expanded": true,
+              "isLeaf": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "path": [
+            "2023",
+            "March"
+          ],
+          "label": "March",
+          "field": "Order Date (Month)",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": false,
+          "children": [
+            {
+              "path": [
+                "2023",
+                "March",
+                "5"
+              ],
+              "label": "5",
+              "field": "Order Date (Day)",
+              "depth": 2,
+              "expanded": true,
+              "isLeaf": true,
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "2024"
+      ],
+      "label": "2024",
+      "field": "Order Date (Year)",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": false,
+      "children": [
+        {
+          "path": [
+            "2024",
+            "January"
+          ],
+          "label": "January",
+          "field": "Order Date (Month)",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": false,
+          "children": [
+            {
+              "path": [
+                "2024",
+                "January",
+                "10"
+              ],
+              "label": "10",
+              "field": "Order Date (Day)",
+              "depth": 2,
+              "expanded": true,
+              "isLeaf": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "path": [
+            "2024",
+            "February"
+          ],
+          "label": "February",
+          "field": "Order Date (Month)",
+          "depth": 1,
+          "expanded": true,
+          "isLeaf": false,
+          "children": [
+            {
+              "path": [
+                "2024",
+                "February",
+                "28"
+              ],
+              "label": "28",
+              "field": "Order Date (Day)",
+              "depth": 2,
+              "expanded": true,
+              "isLeaf": true,
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "colTree": [
+    {
+      "path": [
+        "East"
+      ],
+      "label": "East",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West"
+      ],
+      "label": "West",
+      "field": "region",
+      "depth": 0,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    }
+  ],
+  "cells": [
+    [
+      "2023␞East␞sales",
+      50
+    ],
+    [
+      "2023␞West␞sales",
+      250
+    ],
+    [
+      "2023␞␞sales",
+      300
+    ],
+    [
+      "2023␟February␞West␞sales",
+      150
+    ],
+    [
+      "2023␟February␞␞sales",
+      150
+    ],
+    [
+      "2023␟February␟20␞West␞sales",
+      150
+    ],
+    [
+      "2023␟February␟20␞␞sales",
+      150
+    ],
+    [
+      "2023␟January␞West␞sales",
+      100
+    ],
+    [
+      "2023␟January␞␞sales",
+      100
+    ],
+    [
+      "2023␟January␟15␞West␞sales",
+      100
+    ],
+    [
+      "2023␟January␟15␞␞sales",
+      100
+    ],
+    [
+      "2023␟March␞East␞sales",
+      50
+    ],
+    [
+      "2023␟March␞␞sales",
+      50
+    ],
+    [
+      "2023␟March␟5␞East␞sales",
+      50
+    ],
+    [
+      "2023␟March␟5␞␞sales",
+      50
+    ],
+    [
+      "2024␞East␞sales",
+      75
+    ],
+    [
+      "2024␞West␞sales",
+      200
+    ],
+    [
+      "2024␞␞sales",
+      275
+    ],
+    [
+      "2024␟February␞East␞sales",
+      75
+    ],
+    [
+      "2024␟February␞␞sales",
+      75
+    ],
+    [
+      "2024␟February␟28␞East␞sales",
+      75
+    ],
+    [
+      "2024␟February␟28␞␞sales",
+      75
+    ],
+    [
+      "2024␟January␞West␞sales",
+      200
+    ],
+    [
+      "2024␟January␞␞sales",
+      200
+    ],
+    [
+      "2024␟January␟10␞West␞sales",
+      200
+    ],
+    [
+      "2024␟January␟10␞␞sales",
+      200
+    ],
+    [
+      "␞East␞sales",
+      125
+    ],
+    [
+      "␞West␞sales",
+      450
+    ],
+    [
+      "␞␞sales",
+      575
+    ]
+  ],
+  "text": [
+    [
+      "2023␞East␞sales",
+      "50"
+    ],
+    [
+      "2023␞West␞sales",
+      "250"
+    ],
+    [
+      "2023␞␞sales",
+      "300"
+    ],
+    [
+      "2023␟February␞West␞sales",
+      "150"
+    ],
+    [
+      "2023␟February␞␞sales",
+      "150"
+    ],
+    [
+      "2023␟February␟20␞West␞sales",
+      "150"
+    ],
+    [
+      "2023␟February␟20␞␞sales",
+      "150"
+    ],
+    [
+      "2023␟January␞West␞sales",
+      "100"
+    ],
+    [
+      "2023␟January␞␞sales",
+      "100"
+    ],
+    [
+      "2023␟January␟15␞West␞sales",
+      "100"
+    ],
+    [
+      "2023␟January␟15␞␞sales",
+      "100"
+    ],
+    [
+      "2023␟March␞East␞sales",
+      "50"
+    ],
+    [
+      "2023␟March␞␞sales",
+      "50"
+    ],
+    [
+      "2023␟March␟5␞East␞sales",
+      "50"
+    ],
+    [
+      "2023␟March␟5␞␞sales",
+      "50"
+    ],
+    [
+      "2024␞East␞sales",
+      "75"
+    ],
+    [
+      "2024␞West␞sales",
+      "200"
+    ],
+    [
+      "2024␞␞sales",
+      "275"
+    ],
+    [
+      "2024␟February␞East␞sales",
+      "75"
+    ],
+    [
+      "2024␟February␞␞sales",
+      "75"
+    ],
+    [
+      "2024␟February␟28␞East␞sales",
+      "75"
+    ],
+    [
+      "2024␟February␟28␞␞sales",
+      "75"
+    ],
+    [
+      "2024␟January␞West␞sales",
+      "200"
+    ],
+    [
+      "2024␟January␞␞sales",
+      "200"
+    ],
+    [
+      "2024␟January␟10␞West␞sales",
+      "200"
+    ],
+    [
+      "2024␟January␟10␞␞sales",
+      "200"
+    ],
+    [
+      "␞East␞sales",
+      "125"
+    ],
+    [
+      "␞West␞sales",
+      "450"
+    ],
+    [
+      "␞␞sales",
+      "575"
+    ]
+  ],
+  "grand": [
+    [
+      "sales",
+      575
+    ]
+  ]
+}

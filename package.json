@@ -1,0 +1,73 @@
+{
+  "name": "@proteus/propivot",
+  "version": "0.1.0",
+  "description": "ProPivot — a 100% client-side pivot grid engine for Angular, React, and Android (WebView). Handles large datasets with 17 aggregations, calculated measures, conditional formatting, virtualized rendering, and five export formats.",
+  "license": "MIT",
+  "author": "Proteus Technologies Private Limited",
+  "homepage": "https://proteus-technologies-private-limited.github.io/ProPivot/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Proteus-Technologies-Private-Limited/ProPivot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Proteus-Technologies-Private-Limited/ProPivot/issues"
+  },
+  "keywords": [
+    "pivot",
+    "pivot-table",
+    "pivot-grid",
+    "data-grid",
+    "aggregation",
+    "olap",
+    "analytics",
+    "angular",
+    "react",
+    "client-side"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    },
+    "./global": "./dist/propivot.global.js",
+    "./propivot.css": "./dist/propivot.css"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:golden": "vitest run test/golden",
+    "golden:update": "UPDATE_GOLDENS=1 vitest run test/golden"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "happy-dom": "^20.10.6",
+    "react": "^18.3.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

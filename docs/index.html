@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPivot — a 100% client-side pivot grid engine</title>
+  <meta name="description" content="ProPivot is a 100% client-side pivot grid engine for Angular, React, and Android (WebView). 17 aggregations, calculated measures, virtualized rendering, drag-drop field list, and five export formats. MIT licensed." />
+  <link rel="stylesheet" href="./assets/propivot.css" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #111834;
+      --panel: #ffffff;
+      --ink: #1a2233;
+      --ink-soft: #5b6478;
+      --line: #e6e9f0;
+      --accent: #6366f1;
+      --accent-2: #14b8a6;
+      --accent-ink: #4338ca;
+      --code-bg: #0e1530;
+      --radius: 14px;
+      --maxw: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); background: #f7f8fb;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.55; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent-ink); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+
+    /* ---------- nav ---------- */
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      backdrop-filter: saturate(140%) blur(8px);
+      background: rgba(11,16,32,.72); border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    nav .container { display: flex; align-items: center; gap: 18px; height: 58px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-weight: 750; color: #fff; letter-spacing: -.01em; }
+    .brand .dot { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 14px rgba(99,102,241,.5); }
+    nav .links { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+    nav .links a { color: #c9d0e3; font-size: 14px; font-weight: 550; }
+    nav .links a:hover { color: #fff; text-decoration: none; }
+    .gh-btn { background: #fff; color: #0b1020 !important; padding: 7px 14px; border-radius: 8px; font-weight: 650; }
+    .gh-btn:hover { background: #e8eaf2; text-decoration: none !important; }
+
+    /* ---------- hero ---------- */
+    .hero {
+      background:
+        radial-gradient(1100px 460px at 78% -8%, rgba(20,184,166,.22), transparent 60%),
+        radial-gradient(900px 420px at 8% 0%, rgba(99,102,241,.32), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg-soft));
+      color: #eef1fb; padding: 78px 0 92px; border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .pill {
+      display: inline-flex; gap: 8px; align-items: center; font-size: 12.5px; font-weight: 600;
+      color: #c7cdf0; background: rgba(99,102,241,.14); border: 1px solid rgba(99,102,241,.4);
+      padding: 5px 12px; border-radius: 999px; margin-bottom: 22px;
+    }
+    .hero h1 { font-size: clamp(34px, 5.2vw, 58px); line-height: 1.04; margin: 0 0 16px; letter-spacing: -.025em; font-weight: 800; }
+    .hero h1 .grad { background: linear-gradient(100deg, #a5b4fc, #5eead4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p.lead { font-size: clamp(16px, 2vw, 20px); color: #b9c1de; max-width: 720px; margin: 0 0 30px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 30px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-weight: 650; font-size: 15px; border: 1px solid transparent; cursor: pointer; }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), #4f46e5); color: #fff; box-shadow: 0 10px 28px rgba(79,70,229,.45); }
+    .btn.primary:hover { text-decoration: none; filter: brightness(1.07); }
+    .btn.ghost { background: rgba(255,255,255,.06); color: #eef1fb; border-color: rgba(255,255,255,.18); }
+    .btn.ghost:hover { background: rgba(255,255,255,.12); text-decoration: none; }
+    .install { display: inline-flex; align-items: center; gap: 12px; background: rgba(6,10,24,.7); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 11px 14px; font-size: 14.5px; color: #dfe4f6; }
+    .install .muted { color: #6f7aa3; }
+    .copy { margin-left: 4px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #cdd4ee; border-radius: 7px; padding: 4px 9px; font-size: 12px; cursor: pointer; }
+    .copy:hover { background: rgba(255,255,255,.16); }
+
+    /* ---------- sections ---------- */
+    section { padding: 66px 0; }
+    section h2 { font-size: clamp(24px, 3.2vw, 34px); letter-spacing: -.02em; margin: 0 0 8px; font-weight: 780; }
+    section .sub { color: var(--ink-soft); font-size: 16px; margin: 0 0 34px; max-width: 680px; }
+    .eyebrow { color: var(--accent-ink); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px; }
+
+    /* ---------- feature grid ---------- */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(20,28,60,.10); border-color: #d4d9e8; }
+    .card .ic { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 20px; margin-bottom: 14px; background: linear-gradient(135deg, rgba(99,102,241,.16), rgba(20,184,166,.16)); }
+    .card h3 { margin: 0 0 6px; font-size: 16.5px; letter-spacing: -.01em; }
+    .card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+
+    /* ---------- code ---------- */
+    .alt { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+    pre.code { background: var(--code-bg); color: #e7ecff; border-radius: 12px; padding: 18px 20px; overflow: auto; font-size: 13.5px; line-height: 1.65; border: 1px solid #1c264d; margin: 0; }
+    pre.code .c { color: #7c88b8; } /* comment */
+    pre.code .k { color: #c4b5fd; } /* keyword */
+    pre.code .s { color: #6ee7b7; } /* string */
+    pre.code .p { color: #5eead4; } /* property/name */
+    .label { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; margin: 0 0 10px; }
+
+    /* ---------- demo ---------- */
+    .demo-wrap { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: 0 16px 50px rgba(20,28,60,.08); }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin-bottom: 14px; }
+    .ctl { display: flex; flex-direction: column; gap: 4px; }
+    .ctl label { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-soft); font-weight: 700; }
+    select, input[type=number] { padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; background: #fff; color: var(--ink); }
+    .demo-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+    .demo-btns button { padding: 7px 12px; cursor: pointer; border: 1px solid var(--line); background: #fff; border-radius: 7px; font-size: 13px; color: var(--ink); font-weight: 600; }
+    .demo-btns button:hover { border-color: var(--accent); color: var(--accent-ink); }
+    .stats { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-soft); margin: 4px 2px 12px; }
+    .stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    #pivot { height: 520px; width: 100%; background: #fff; border-radius: 8px; border: 1px solid var(--line); }
+    .demo-note { font-size: 12.5px; color: var(--ink-soft); margin-top: 12px; }
+
+    /* ---------- footer ---------- */
+    footer { background: var(--bg); color: #aeb6d4; padding: 40px 0; border-top: 1px solid rgba(255,255,255,.06); }
+    footer .container { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+    footer a { color: #d3d9f0; }
+    .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .badge-row img { height: 20px; }
+
+    @media (max-width: 880px) {
+      .features { grid-template-columns: 1fr 1fr; }
+      .two { grid-template-columns: 1fr; }
+      nav .links a:not(.gh-btn) { display: none; }
+    }
+    @media (max-width: 560px) {
+      .features { grid-template-columns: 1fr; }
+      .demo-btns { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <span class="brand"><span class="dot"></span> ProPivot</span>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#usage">Usage</a>
+        <a href="#demo">Live demo</a>
+        <a class="gh-btn" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <span class="pill">⚡ 100% client-side · no server round-trips</span>
+      <h1>The pivot grid engine that runs <span class="grad">entirely in the browser</span>.</h1>
+      <p class="lead">
+        ProPivot is a dependency-light pivot table for <b>Angular</b>, <b>React</b>, and <b>Android</b>
+        (WebView). Columnar engine, 17 aggregations, calculated measures, virtualized rendering, drag-drop
+        field list, and five export formats — shipped as a drop-in replacement you adopt with a single line.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#demo">▶ Try the live demo</a>
+        <a class="btn ghost" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">View on GitHub</a>
+      </div>
+      <div class="install">
+        <span class="muted">$</span> <span>npm install @proteus/propivot</span>
+        <button class="copy" onclick="navigator.clipboard&&navigator.clipboard.writeText('npm install @proteus/propivot')">copy</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="features" class="container">
+    <p class="eyebrow">Features</p>
+    <h2>Everything a pivot needs, nothing it doesn't.</h2>
+    <p class="sub">A framework-agnostic core behind a stable facade — the same engine powers the headless API, the Web Worker, and the virtualized grid.</p>
+    <div class="features">
+      <div class="card"><div class="ic">🧮</div><h3>17 aggregations</h3><p>Sum, average, median, distinct-count, stdev, plus the positional family — <code>difference</code>, <code>%difference</code>, <code>runningtotals</code> — along a configurable row/column axis.</p></div>
+      <div class="card"><div class="ic">∑</div><h3>Calculated measures</h3><p>Formula parser + evaluator: <code>sum('sales')/sum('qty')</code>. Mix calculated and native measures freely; each measure aggregates independently.</p></div>
+      <div class="card"><div class="ic">🎨</div><h3>Conditional formatting</h3><p>Both <code>#value#</code> and <code>#value</code> dialects. Color cells by threshold; bring your own classes via <code>customizeCell</code>.</p></div>
+      <div class="card"><div class="ic">⚡</div><h3>Virtualized grid</h3><p>Viewport-only DOM with frozen headers handles high-cardinality data smoothly. Compact, flat, and classic layouts.</p></div>
+      <div class="card"><div class="ic">🖱️</div><h3>Drag-drop field list</h3><p>Move fields between Rows / Columns / Measures / Filters, change a measure's aggregation, sort by measure, Top-N filter — all at runtime.</p></div>
+      <div class="card"><div class="ic">📤</div><h3>Five exports</h3><p>CSV, HTML, real <code>.xlsx</code>, dependency-free <code>.pdf</code>, and an <code>.svg</code> image of the grid (rasterizes to PNG in-browser).</p></div>
+      <div class="card"><div class="ic">🧵</div><h3>Optional Web Worker</h3><p>Offload aggregation off the main thread behind one async interface — falls back automatically when workers aren't available.</p></div>
+      <div class="card"><div class="ic">🔌</div><h3>Angular &amp; React</h3><p>First-class <code>&lt;pro-pivot&gt;</code> Angular wrapper and a React component. Or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code>.</p></div>
+      <div class="card"><div class="ic">✅</div><h3>Golden-tested</h3><p>A two-layer golden suite pins both the computed cell matrix and the rendered grid, so the compatibility contract can't silently drift.</p></div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="container">
+      <p class="eyebrow">Framework-agnostic</p>
+      <h2>Drop it into any stack.</h2>
+      <p class="sub">The same engine and grid run from an ES module bundler or a plain <code>&lt;script&gt;</code> tag — no build assumptions, no server.</p>
+      <div class="two">
+        <div>
+          <p class="label">npm / ESM (Angular, React, Vue, vanilla)</p>
+<pre class="code"><span class="k">import</span> { ProPivot } <span class="k">from</span> <span class="s">'@proteus/propivot'</span>;
+<span class="k">import</span> <span class="s">'@proteus/propivot/propivot.css'</span>;
+
+<span class="k">new</span> ProPivot({ container: <span class="s">'#pivot'</span>, report, reportcomplete });</pre>
+        </div>
+        <div>
+          <p class="label">browser global (no bundler)</p>
+<pre class="code">&lt;link rel=<span class="s">"stylesheet"</span> href=<span class="s">"propivot.css"</span> /&gt;
+&lt;script src=<span class="s">"propivot.global.js"</span>&gt;&lt;/script&gt;
+&lt;script&gt;
+  <span class="k">const</span> pivot = <span class="k">new</span> window.<span class="p">ProPivot</span>({ container: <span class="s">'#pivot'</span>, report });
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="usage" class="container">
+    <p class="eyebrow">Usage</p>
+    <h2>A report is just an object.</h2>
+    <p class="sub">Describe the slice, measures, formats, and conditions declaratively. ProPivot does the rest.</p>
+<pre class="code"><span class="k">const</span> pivot = <span class="k">new</span> ProPivot({
+  container: <span class="s">'#pivot'</span>,
+  toolbar: <span class="k">true</span>,
+  report: {
+    dataSource: { type: <span class="s">'json'</span>, data, mapping },
+    slice: {
+      rows: [{ uniqueName: <span class="s">'region'</span> }, { uniqueName: <span class="s">'category'</span> }],
+      columns: [{ uniqueName: <span class="s">'year'</span> }],
+      measures: [
+        { uniqueName: <span class="s">'sales'</span>, aggregation: <span class="s">'sum'</span>, format: <span class="s">'cur'</span> },
+        { uniqueName: <span class="s">'aov'</span>, formula: <span class="s">"sum('sales')/sum('qty')"</span>, caption: <span class="s">'Avg Price'</span> },
+        { uniqueName: <span class="s">'sales'</span>, aggregation: <span class="s">'runningtotals'</span>, positionalAxis: <span class="s">'rows'</span> },
+      ],
+    },
+    formats: [{ name: <span class="s">'cur'</span>, currencySymbol: <span class="s">'$'</span>, decimalPlaces: <span class="s">0</span> }],
+    conditions: [{ formula: <span class="s">'#value &gt; 100000'</span>, measure: <span class="s">'sales'</span>, format: { backgroundColor: <span class="s">'#c5e1a5'</span> } }],
+  },
+  reportcomplete: () =&gt; console.log(<span class="s">'ready'</span>),
+});</pre>
+  </section>
+
+  <section id="demo" class="alt">
+    <div class="container">
+      <p class="eyebrow">Live demo</p>
+      <h2>Pivot real data, right here.</h2>
+      <p class="sub">This grid is the actual library running in your browser on a generated dataset — no server, no iframe. Change the controls, drag fields, double-click a cell to drill through, export.</p>
+      <div class="demo-wrap">
+        <div class="controls">
+          <div class="ctl">
+            <label>Rows</label>
+            <select id="rows">
+              <option value="region,category">Region › Category</option>
+              <option value="region">Region</option>
+              <option value="orderDate">Order Date (Year › Qtr › Month)</option>
+              <option value="customer">Customer (high cardinality)</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label>Columns</label>
+            <select id="cols"><option value="year">Year</option><option value="">(none)</option></select>
+          </div>
+          <div class="ctl">
+            <label>Sales aggregation</label>
+            <select id="agg">
+              <option value="sum">Sum</option><option value="average">Average</option>
+              <option value="distinctcount">Distinct Count</option><option value="median">Median</option>
+              <option value="percentofcolumn">% of Column</option>
+              <option value="runningtotals">Running Totals</option><option value="difference">Difference</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label>Layout</label>
+            <select id="layout"><option value="compact">Compact</option><option value="flat">Flat</option><option value="classic">Classic</option></select>
+          </div>
+          <div class="demo-btns">
+            <button id="expand">Expand</button>
+            <button id="collapse">Collapse</button>
+            <button id="csv">CSV</button>
+            <button id="excel">Excel</button>
+            <button id="pdf">PDF</button>
+            <button id="image">Image</button>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div id="pivot"></div>
+        <p class="demo-note">Tip: hover a measure-column header and click ⚙ to change that measure's aggregation; double-click a value cell to drill through. Conditional formatting highlights large/small sales.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div>
+        <strong style="color:#fff;">ProPivot</strong> — © 2026 Proteus Technologies Private Limited ·
+        <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot/blob/main/LICENSE">MIT License</a>
+      </div>
+      <div>
+        <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub</a> ·
+        <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot/blob/main/docs/Architecture.md">Architecture</a> ·
+        <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot/blob/main/docs/Golden%20Tests.md">Golden tests</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./assets/propivot.global.js"></script>
+  <script>
+    (function () {
+      var PP = window.ProPivot;
+      var $ = function (id) { return document.getElementById(id); };
+      if (!PP) { $('pivot').innerHTML = '<p style="padding:20px;color:#b71c1c">Demo bundle failed to load.</p>'; return; }
+
+      var REGIONS = ['West', 'East', 'North', 'South'];
+      var CATEGORIES = ['Furniture', 'Office', 'Technology'];
+      var SEGMENTS = ['Consumer', 'Corporate', 'Home Office'];
+      var YEARS = [2023, 2024, 2025];
+      var QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
+      var data = [];
+      function pad(n) { return String(n).padStart(2, '0'); }
+      function generate(rows) {
+        data = [];
+        for (var i = 0; i < rows; i++) {
+          var year = YEARS[(Math.random() * YEARS.length) | 0];
+          var month = (Math.random() * 12) | 0;
+          var day = 1 + ((Math.random() * 28) | 0);
+          data.push({
+            region: REGIONS[(Math.random() * REGIONS.length) | 0],
+            category: CATEGORIES[(Math.random() * CATEGORIES.length) | 0],
+            segment: SEGMENTS[(Math.random() * SEGMENTS.length) | 0],
+            customer: 'Cust-' + String(1 + ((Math.random() * 800) | 0)).padStart(4, '0'),
+            orderDate: year + '-' + pad(month + 1) + '-' + pad(day),
+            year: year,
+            quarter: QUARTERS[(month / 3) | 0],
+            sales: Math.round(Math.random() * 6000),
+            qty: 1 + ((Math.random() * 60) | 0),
+          });
+        }
+      }
+      generate(5000);
+
+      var mapping = {
+        region: { type: 'string', caption: 'Region' },
+        category: { type: 'string', caption: 'Category' },
+        segment: { type: 'string', caption: 'Segment' },
+        customer: { type: 'string', caption: 'Customer' },
+        orderDate: { type: 'year/quarter/month/day', caption: 'Order Date' },
+        year: { type: 'number', caption: 'Year' },
+        quarter: { type: 'string', caption: 'Quarter' },
+        sales: { type: 'number', caption: 'Sales' },
+        qty: { type: 'number', caption: 'Quantity' },
+      };
+      function toH(csv) { return csv ? csv.split(',').map(function (f) { return { uniqueName: f }; }) : []; }
+
+      function buildReport() {
+        var agg = $('agg').value;
+        var isPosOrPct = ['percentofcolumn', 'runningtotals', 'difference'].indexOf(agg) >= 0;
+        return {
+          dataSource: { type: 'json', data: data, mapping: mapping },
+          slice: {
+            rows: toH($('rows').value),
+            columns: toH($('cols').value),
+            measures: [
+              { uniqueName: 'sales', aggregation: agg, caption: 'Sales', format: agg === 'percentofcolumn' ? 'pct' : 'cur' },
+              { uniqueName: 'qty', aggregation: 'average', caption: 'Avg Qty', format: 'num' },
+              { uniqueName: 'aov', formula: "sum('sales')/sum('qty')", caption: 'Avg Price', format: 'cur' },
+            ],
+          },
+          formats: [
+            { name: 'cur', currencySymbol: '$', thousandsSeparator: ',', decimalPlaces: 0 },
+            { name: 'pct', isPercent: true, decimalPlaces: 1 },
+            { name: 'num', thousandsSeparator: ',', decimalPlaces: 1 },
+          ],
+          conditions: isPosOrPct ? [] : [
+            { formula: '#value > 120000', measure: 'sales', format: { backgroundColor: '#c5e1a5', color: '#1b5e20' } },
+            { formula: '#value < 20000', measure: 'sales', format: { color: '#b71c1c' } },
+          ],
+          options: { grid: { type: $('layout').value } },
+        };
+      }
+
+      var pivot = null;
+      function rebuild() {
+        if (pivot) pivot.dispose();
+        var t0 = performance.now();
+        pivot = new PP({
+          container: '#pivot',
+          toolbar: true,
+          report: buildReport(),
+          reportcomplete: function () {
+            var ms = (performance.now() - t0).toFixed(1);
+            $('stats').innerHTML =
+              '<span>Source rows: <b>' + data.length.toLocaleString() + '</b></span>' +
+              '<span>Build + render: <b>' + ms + ' ms</b></span>' +
+              '<span>Aggregation: <b>' + $('agg').value + '</b></span>' +
+              '<span>Layout: <b>' + $('layout').value + '</b></span>';
+          },
+        });
+      }
+
+      $('expand').onclick = function () { pivot && pivot.expandAllData(); };
+      $('collapse').onclick = function () { pivot && pivot.collapseAllData(); };
+      $('csv').onclick = function () { pivot && pivot.exportTo('csv', { filename: 'propivot' }); };
+      $('excel').onclick = function () { pivot && pivot.exportTo('excel', { filename: 'propivot', excelSheetName: 'Report' }); };
+      $('pdf').onclick = function () { pivot && pivot.exportTo('pdf', { filename: 'propivot', pageOrientation: 'landscape' }); };
+      $('image').onclick = function () { pivot && pivot.exportTo('image', { filename: 'propivot' }); };
+      ['rows', 'cols', 'agg', 'layout'].forEach(function (id) { $(id).addEventListener('change', rebuild); });
+      rebuild();
+    })();
+  </script>
+</body>
+</html>

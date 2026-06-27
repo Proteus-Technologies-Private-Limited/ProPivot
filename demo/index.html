@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPivot — interactive demo</title>
+  <!-- Built CSS + browser-global bundle. Run `npm run build` first. -->
+  <link rel="stylesheet" href="../dist/propivot.css" />
+  <style>
+    :root { --line:#e2e6ea; --accent:#2f6fdb; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; color:#1f2430; background:#f6f7f9; }
+    header { padding: 14px 20px; background:#fff; border-bottom:1px solid var(--line); }
+    h1 { font-size: 17px; margin: 0; }
+    h1 small { color:#6b7280; font-weight: 400; font-size: 12px; margin-left: 8px; }
+    .wrap { padding: 16px 20px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:14px; }
+    .controls { display:flex; flex-wrap:wrap; gap:14px 18px; align-items:flex-end; }
+    .ctl { display:flex; flex-direction:column; gap:4px; }
+    .ctl label { font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:#6b7280; font-weight:600; }
+    select, input[type=number] { padding:6px 8px; border:1px solid var(--line); border-radius:5px; font-size:13px; background:#fff; }
+    .btns { display:flex; gap:8px; flex-wrap:wrap; }
+    button { padding:7px 12px; cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:5px; font-size:13px; }
+    button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    button:hover { border-color:var(--accent); }
+    label.chk { display:flex; align-items:center; gap:6px; font-size:13px; text-transform:none; letter-spacing:0; color:#1f2430; font-weight:400; }
+    .stats { display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:#374151; }
+    .stats b { color:#111827; font-variant-numeric: tabular-nums; }
+    #pivot { height: 560px; width: 100%; background:#fff; border-radius:8px; }
+    .hint { font-size:12px; color:#6b7280; margin-top:6px; }
+    code { background:#eef1f5; padding:1px 5px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ProPivot <small>interactive demo — engine + virtualized grid (v<span id="ver"></span>)</small></h1>
+  </header>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="controls">
+        <div class="ctl">
+          <label>Rows</label>
+          <select id="rows">
+            <option value="region,category">Region › Category</option>
+            <option value="orderDate">Order Date ▸ NEW (Year › Quarter › Month › Day)</option>
+            <option value="region,orderDate">Region › Order Date hierarchy</option>
+            <option value="customer">Customer (high cardinality → virtualized)</option>
+            <option value="region,category,customer">Region › Category › Customer</option>
+            <option value="segment">Segment</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Columns</label>
+          <select id="cols">
+            <option value="year">Year</option>
+            <option value="">(none)</option>
+            <option value="year,quarter">Year › Quarter</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Sales aggregation</label>
+          <select id="agg">
+            <option value="sum">Sum</option>
+            <option value="average">Average</option>
+            <option value="count">Count</option>
+            <option value="distinctcount">Distinct Count</option>
+            <option value="min">Min</option>
+            <option value="max">Max</option>
+            <option value="median">Median</option>
+            <option value="stdevs">Sample StdDev</option>
+            <option value="percent">% of Grand Total</option>
+            <option value="percentofcolumn">% of Column</option>
+            <option value="percentofrow">% of Row</option>
+            <option value="index">Index</option>
+            <option value="runningtotals">Running Totals ▸ NEW</option>
+            <option value="difference">Difference ▸ NEW</option>
+            <option value="%difference">% Difference ▸ NEW</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Layout</label>
+          <select id="layout">
+            <option value="compact">Compact (pivot)</option>
+            <option value="flat">Flat ▸ NEW</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Top-N rows (by sales)</label>
+          <input type="number" id="topn" min="0" value="0" style="width:90px" />
+        </div>
+        <div class="ctl">
+          <label>Sort rows by sales</label>
+          <select id="sort">
+            <option value="">Member order</option>
+            <option value="desc">Sales ↓ ▸ NEW</option>
+            <option value="asc">Sales ↑ ▸ NEW</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>&nbsp;</label>
+          <label class="chk"><input type="checkbox" id="grand" checked /> Grand totals</label>
+        </div>
+        <div class="ctl">
+          <label>&nbsp;</label>
+          <label class="chk"><input type="checkbox" id="worker" /> Web Worker ▸ NEW</label>
+        </div>
+      </div>
+
+      <div class="btns" style="margin-top:12px">
+        <button class="primary" id="apply">Apply</button>
+        <button id="expand">Expand all</button>
+        <button id="collapse">Collapse all</button>
+        <button id="csv">Export CSV</button>
+        <button id="excel">Export Excel</button>
+        <button id="pdf">Export PDF</button>
+        <button id="html">Export HTML</button>
+        <button id="regen">Regenerate data</button>
+      </div>
+      <div class="hint">
+        <b>Try:</b> drag fields between Field-List zones (incl. <b>Filters</b> — the bar below
+        gets a member picker). <b>Hover a measure column header and click the ⚙ button</b> to
+        change <i>that</i> measure's aggregation in a modal (each measure is independent).
+        Switch <b>Layout → Flat</b> to
+        show each row field as its own column (the pivot is preserved).
+        <b>Click a measure header</b> to sort rows by it (▼/▲); in Flat layout click a row-field
+        header to sort its members. <b>Double-click any value cell</b> to drill through to the underlying rows. The
+        <b>toolbar</b> above the grid has Fields / Export / Fullscreen. Conditional formatting
+        highlights large/small <code>sales</code>; calculated measure
+        <code>Avg Price = sum('sales')/sum('qty')</code> is always shown.
+      </div>
+    </div>
+
+    <div class="panel stats" id="stats"></div>
+    <div id="pivot"></div>
+  </div>
+
+  <script src="../dist/propivot.global.js"></script>
+  <script>
+    const PP = window.ProPivot;
+    document.getElementById('ver').textContent = PP.version;
+
+    const REGIONS = ['West', 'East', 'North', 'South'];
+    const CATEGORIES = ['Furniture', 'Office', 'Technology'];
+    const SEGMENTS = ['Consumer', 'Corporate', 'Home Office'];
+    const YEARS = [2023, 2024, 2025];
+    const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+    let data = [];
+    function generate(rows) {
+      data = [];
+      const pad = (n) => String(n).padStart(2, '0');
+      for (let i = 0; i < rows; i++) {
+        const year = YEARS[(Math.random() * YEARS.length) | 0];
+        const month = (Math.random() * 12) | 0;
+        const day = 1 + ((Math.random() * 28) | 0);
+        data.push({
+          region: REGIONS[(Math.random() * REGIONS.length) | 0],
+          category: CATEGORIES[(Math.random() * CATEGORIES.length) | 0],
+          segment: SEGMENTS[(Math.random() * SEGMENTS.length) | 0],
+          customer: 'Cust-' + String(1 + ((Math.random() * 1500) | 0)).padStart(4, '0'),
+          orderDate: `${year}-${pad(month + 1)}-${pad(day)}`,
+          year,
+          quarter: QUARTERS[(month / 3) | 0],
+          sales: Math.round(Math.random() * 6000),
+          qty: 1 + ((Math.random() * 60) | 0),
+        });
+      }
+    }
+    generate(20000);
+
+    const mapping = {
+      region: { type: 'string', caption: 'Region' },
+      category: { type: 'string', caption: 'Category' },
+      segment: { type: 'string', caption: 'Segment' },
+      customer: { type: 'string', caption: 'Customer' },
+      orderDate: { type: 'year/quarter/month/day', caption: 'Order Date' },
+      year: { type: 'number', caption: 'Year' },
+      quarter: { type: 'string', caption: 'Quarter' },
+      sales: { type: 'number', caption: 'Sales' },
+      qty: { type: 'number', caption: 'Quantity' },
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const fieldsToHierarchies = (csv) => csv ? csv.split(',').map((f) => ({ uniqueName: f })) : [];
+
+    function buildReport() {
+      const agg = $('agg').value;
+      const rowFields = $('rows').value;
+      const firstRowField = rowFields.split(',')[0];
+      const topn = parseInt($('topn').value, 10) || 0;
+
+      const rows = fieldsToHierarchies(rowFields);
+      if (topn > 0 && rows.length) {
+        rows[0] = { uniqueName: firstRowField, filter: { type: 'top', measure: 'sales', quantity: topn } };
+      }
+
+      // 'segment' is a report filter unless it is being used as a row field.
+      const rowSet = new Set(rowFields.split(','));
+      const reportFilters = rowSet.has('segment') ? [] : [{ uniqueName: 'segment' }];
+
+      const isPct = agg === 'percent' || agg === 'percentofcolumn' || agg === 'percentofrow';
+      return {
+        dataSource: { type: 'json', data, mapping },
+        slice: {
+          rows,
+          columns: fieldsToHierarchies($('cols').value),
+          measures: [
+            { uniqueName: 'sales', aggregation: agg, caption: 'Sales', format: isPct ? 'pct' : 'cur' },
+            { uniqueName: 'qty', aggregation: 'average', caption: 'Avg Qty', format: 'num' },
+            { uniqueName: 'aov', formula: "sum('sales')/sum('qty')", caption: 'Avg Price', format: 'cur' },
+          ],
+          reportFilters,
+          sorting: $('sort').value ? { row: { measure: 'sales', type: $('sort').value } } : undefined,
+        },
+        formats: [
+          { name: 'cur', currencySymbol: '$', thousandsSeparator: ',', decimalPlaces: 0 },
+          { name: 'pct', isPercent: true, decimalPlaces: 1 },
+          { name: 'num', thousandsSeparator: ',', decimalPlaces: 1 },
+        ],
+        conditions: [
+          { formula: '#value > 200000', measure: 'sales', format: { backgroundColor: '#c5e1a5', color: '#1b5e20' } },
+          { formula: '#value < 50000', measure: 'sales', format: { color: '#b71c1c' } },
+        ],
+        options: { grid: { type: $('layout').value, showGrandTotals: $('grand').checked ? 'on' : 'off' } },
+      };
+    }
+
+    let pivot = null;
+    function rebuild() {
+      const useWorker = $('worker').checked;
+      if (pivot) pivot.dispose();
+      const t0 = performance.now();
+      pivot = new PP({
+        container: '#pivot',
+        toolbar: true,
+        worker: useWorker,
+        workerUrl: useWorker ? new URL('../dist/propivot.worker.js', location.href).href : undefined,
+        report: buildReport(),
+        reportcomplete: () => {
+          const ms = (performance.now() - t0).toFixed(1);
+          renderStats(ms, useWorker);
+        },
+        cellclick: (cell) => console.log('cellclick', cell),
+      });
+    }
+
+    function renderStats(ms, useWorker) {
+      const report = pivot.getReport();
+      $('stats').innerHTML =
+        `<span>Source rows: <b>${data.length.toLocaleString()}</b></span>` +
+        `<span>Build + render: <b>${ms} ms</b></span>` +
+        `<span>Engine: <b>${useWorker ? 'Web Worker' : 'main thread'}</b></span>` +
+        `<span>Rows axis: <b>${($('rows').value).replace(/,/g, ' › ')}</b></span>` +
+        `<span>Aggregation: <b>${$('agg').value}</b></span>` +
+        `<span>Layout: <b>${$('layout').value}</b></span>`;
+    }
+
+    $('apply').onclick = rebuild;
+    $('expand').onclick = () => pivot && pivot.expandAllData();
+    $('collapse').onclick = () => pivot && pivot.collapseAllData();
+    $('csv').onclick = () => pivot && pivot.exportTo('csv', { filename: 'propivot-demo' });
+    $('excel').onclick = () => pivot && pivot.exportTo('excel', { filename: 'propivot-demo', excelSheetName: 'Report' });
+    $('pdf').onclick = () => pivot && pivot.exportTo('pdf', { filename: 'propivot-demo', pageOrientation: 'landscape' });
+    $('html').onclick = () => pivot && pivot.exportTo('html', { filename: 'propivot-demo' });
+    $('regen').onclick = () => { generate(20000); rebuild(); };
+    // Re-apply automatically when any control changes.
+    ['rows', 'cols', 'agg', 'layout', 'topn', 'sort', 'grand', 'worker'].forEach((id) =>
+      $(id).addEventListener('change', rebuild));
+
+    rebuild();
+  </script>
+</body>
+</html>
