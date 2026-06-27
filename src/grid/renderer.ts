@@ -536,7 +536,10 @@ export class GridRenderer {
       b.className = 'pp-tab';
       b.dataset.tab = d.id;
       b.textContent = d.label;
-      b.addEventListener('click', () => activate(d.id));
+      // Re-clamp position after switching: panes differ in height (e.g. the
+      // Filter pane is taller than Properties), and without re-placing, the
+      // taller pane can push the Apply button off-screen.
+      b.addEventListener('click', () => { activate(d.id); this.placePopup(pop, ev); });
       tabsBar.appendChild(b);
       const pane = document.createElement('div');
       pane.className = 'pp-tab-pane';
@@ -818,8 +821,11 @@ export class GridRenderer {
 
     const pop = document.createElement('div');
     pop.className = 'pp-popup pp-filter-popup';
-    pop.style.left = `${ev.clientX}px`;
-    pop.style.top = `${ev.clientY}px`;
+    // Positioned after it is in the DOM so placePopup can measure it and keep it
+    // (and its Apply button) fully on-screen.
+    pop.style.left = '0px';
+    pop.style.top = '0px';
+    pop.style.visibility = 'hidden';
 
     const title = document.createElement('div');
     title.className = 'pp-popup-title';
@@ -861,9 +867,15 @@ export class GridRenderer {
       this.opts.controller.setFilter(uniqueName, checked.length === members.length ? null : checked);
       this.closeEditor();
     });
-    pop.appendChild(apply);
+    // Wrap in an actions row so the sticky-bottom rule keeps Apply visible.
+    const actions = document.createElement('div');
+    actions.className = 'pp-popup-actions';
+    actions.appendChild(apply);
+    pop.appendChild(actions);
 
     document.body.appendChild(pop);
+    this.placePopup(pop, ev);
+    pop.style.visibility = '';
     this.editor = pop;
     this.editorOutside = (e: MouseEvent) => { if (!pop.contains(e.target as Node)) this.closeEditor(); };
     setTimeout(() => document.addEventListener('mousedown', this.editorOutside!), 0);

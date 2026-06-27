@@ -190,6 +190,19 @@
   padding: 10px;
   min-width: 200px;
   font-size: 13px;
+  /* Never exceed the viewport — keeps the Apply button reachable (scroll within
+   * the popup as a last resort) even when the member list is long. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+/* Keep the action row (Apply) pinned to the bottom while the popup scrolls, so
+ * it is always visible regardless of how tall the content is. */
+.pp-popup-actions, .pp-tab-pane > .pp-popup-actions {
+  position: sticky;
+  bottom: -10px;
+  background: #fff;
+  padding-top: 6px;
+  margin-bottom: -4px;
 }
 .pp-popup-title { font-weight: 600; margin-bottom: 8px; }
 .pp-popup label { display: block; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
