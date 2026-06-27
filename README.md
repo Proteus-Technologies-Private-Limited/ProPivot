@@ -107,11 +107,16 @@ position, conditional-format styling, localization, `customizeCell`).
 
 Done: virtualized rendering, compact / flat / classic layouts, positional
 difference-family along a configurable row/column axis, Top/Bottom-N, sort-by-measure,
-Web Worker engine, all five exports (csv/html/excel/pdf/image), and a two-layer golden
-test suite (engine matrix + render-layer DOM).
+Web Worker engine, **opt-in DuckDB-WASM accelerator** (parity-tested vs the built-in
+engine), all five exports (csv/html/excel/pdf/image), and a two-layer golden test suite
+(engine matrix + render-layer DOM).
+
+```ts
+// Opt-in accelerator for large data (browser-only; loads duckdb-wasm from a CDN).
+new ProPivot({ container: '#pivot', accelerator: 'duckdb', duckdb: { threshold: 100_000 }, report });
+```
 
 Next:
-- Opt-in DuckDB-WASM/Arrow accelerator behind the engine boundary.
 - PNG image export pinned in CI (the browser SVG→PNG path is feature-gated today).
 
 ## License

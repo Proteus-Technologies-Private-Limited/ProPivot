@@ -9,6 +9,7 @@ import type { CellMatrix, AxisNode } from '../core/matrix';
 import { compileConditions } from '../core/conditions';
 import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import { LocalEngine, WorkerEngine, type PivotEngine } from '../core/engine';
+import { DuckDBEngine } from '../core/accel/duckdb';
 import { parseCsv } from '../core/csv';
 import { drillThroughRows } from '../core/drillthrough';
 import { EventEmitter, ALL_EVENTS } from './events';
@@ -29,6 +30,10 @@ export interface ProPivotConfig {
   /** Offload aggregation to a Web Worker (docs/Architecture.md). Requires workerUrl. */
   worker?: boolean;
   workerUrl?: string;
+  /** Opt-in DuckDB-WASM accelerator for large datasets (browser-only; loads from CDN). */
+  accelerator?: 'duckdb';
+  /** Tuning for the DuckDB accelerator. */
+  duckdb?: { threshold?: number; moduleUrl?: string };
   [event: string]: unknown; // inline event handlers
 }
 
@@ -93,6 +98,13 @@ export class ProPivot {
   }
 
   private createEngine(config: ProPivotConfig): PivotEngine {
+    if (config.accelerator === 'duckdb') {
+      try {
+        return new DuckDBEngine(config.duckdb);
+      } catch (e) {
+        console.warn('[ProPivot] DuckDB engine init failed; using main-thread engine.', e);
+      }
+    }
     if (config.worker && typeof Worker !== 'undefined' && config.workerUrl) {
       try {
         return new WorkerEngine(config.workerUrl);
@@ -103,6 +115,11 @@ export class ProPivot {
       console.warn('[ProPivot] worker:true requires workerUrl; using main-thread engine.');
     }
     return new LocalEngine();
+  }
+
+  /** Which engine path produced the last compute: 'duckdb' or 'builtin' (main-thread/worker). */
+  getComputePath(): string {
+    return (this.engine.lastPath as string | undefined) ?? 'builtin';
   }
 
   // ---------- report / lifecycle ----------

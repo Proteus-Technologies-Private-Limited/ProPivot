@@ -13,23 +13,23 @@ import { resolveFormats, formatNumber } from './format';
 import { pathKey, US, GS, type AxisNode, type CellMatrix } from './matrix';
 import type { NumberFormat, FilterSpec } from './types';
 
-interface BaseDesc { key: string; agg: string; field: string; }
+export interface BaseDesc { key: string; agg: string; field: string; }
 interface CalcDesc { measure: NormalMeasure; ast: AstNode; }
 
 const POSITIONAL = new Set(['difference', '%difference', 'runningtotals']);
 
-export function buildMatrix(store: ColumnStore, normal: NormalReport): CellMatrix {
-  const { rowFields, colFields, measures, measuresAxis, grid } = normal;
-  const datePattern = normal.options.datePattern;
+/** Base aggregations a report needs, plus the keying helpers. Shared by the built-in
+ *  TS scan and any external base provider (e.g. the opt-in DuckDB accelerator), so the
+ *  two paths agree on exactly which `(field, aggregation)` base cells to produce. */
+export interface BasePlan {
+  baseList: BaseDesc[];
+  calcs: CalcDesc[];
+  /** Cell key a non-calculated measure draws its base value from. */
+  measureBaseKey: (m: NormalMeasure) => string;
+}
 
-  // ---- 1. Filters -> selection (member filters + Top/Bottom-N) ----
-  const selection = applyFilters(store, normal);
-
-  // NOTE: grid.type (compact | flat | classic) is a RENDERING concern only — it
-  // changes how the ROW fields are laid out (one nested column vs one column per
-  // field). The cube below is identical for all three. (docs/Architecture.md)
-
-  // ---- 2. Base aggregation descriptors ----
+/** Plan the base aggregation descriptors for a report (docs/Architecture.md §2). */
+export function planBase(measures: NormalMeasure[]): BasePlan {
   const baseList: BaseDesc[] = [];
   const baseSeen = new Set<string>();
   const addBase = (key: string, agg: string, field: string) => {
@@ -54,8 +54,14 @@ export function buildMatrix(store: ColumnStore, normal: NormalReport): CellMatri
       addBase(measureBaseKey(m), baseAggOf(m), m.uniqueName);
     }
   }
+  return { baseList, calcs, measureBaseKey };
+}
 
-  // ---- 3. GROUPING SETS scan ----
+/** Built-in GROUPING-SETS scan that fills the base-cell map on the main thread. */
+function scanBaseCells(
+  store: ColumnStore, normal: NormalReport, selection: number[], baseList: BaseDesc[], datePattern?: string,
+): Map<string, number> {
+  const { rowFields, colFields, grid } = normal;
   const cellBase = new Map<string, number>();
   const R = rowFields.length;
   const C = colFields.length;
@@ -93,6 +99,21 @@ export function buildMatrix(store: ColumnStore, normal: NormalReport): CellMatri
       }
     }
   }
+  return cellBase;
+}
+
+/**
+ * Assemble the full cell matrix from already-computed base cells (derive measures,
+ * axis trees, sort, positional pass, formatting). This is shared by the LocalEngine
+ * and the DuckDB accelerator so the OUTPUT is identical regardless of who produced the
+ * base cells — only the grouping-sets aggregation in step 3 differs between paths.
+ */
+export function assembleMatrix(
+  store: ColumnStore, normal: NormalReport, selection: number[], plan: BasePlan,
+  cellBase: Map<string, number>, datePattern?: string,
+): CellMatrix {
+  const { rowFields, colFields, measures, measuresAxis } = normal;
+  const { calcs, measureBaseKey } = plan;
 
   // ---- 4. Derive measure cell values ----
   const cells = new Map<string, number>();
@@ -151,6 +172,26 @@ export function buildMatrix(store: ColumnStore, normal: NormalReport): CellMatri
   }
 
   return { rowTree, colTree, rowFields, colFields, measures, measuresAxis, cells, text, grand };
+}
+
+export function buildMatrix(store: ColumnStore, normal: NormalReport): CellMatrix {
+  const datePattern = normal.options.datePattern;
+
+  // ---- 1. Filters -> selection (member filters + Top/Bottom-N) ----
+  const selection = applyFilters(store, normal);
+
+  // NOTE: grid.type (compact | flat | classic) is a RENDERING concern only — it
+  // changes how the ROW fields are laid out (one nested column vs one column per
+  // field). The cube below is identical for all three. (docs/Architecture.md)
+
+  // ---- 2. Base aggregation descriptors ----
+  const plan = planBase(normal.measures);
+
+  // ---- 3. GROUPING SETS scan (main-thread) ----
+  const cellBase = scanBaseCells(store, normal, selection, plan.baseList, datePattern);
+
+  // ---- 4–7. Derive, trees, positional, formatting ----
+  return assembleMatrix(store, normal, selection, plan, cellBase, datePattern);
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +317,7 @@ function applySortByMeasure(
 // ---------------------------------------------------------------------------
 // Filters (member + Top/Bottom-N)
 
-function applyFilters(store: ColumnStore, normal: NormalReport): number[] {
+export function applyFilters(store: ColumnStore, normal: NormalReport): number[] {
   const datePattern = normal.options.datePattern;
   const memberFilters: Array<{ field: string; members: Set<string>; negation: boolean }> = [];
   const rankFilters: Array<{ field: string; spec: FilterSpec }> = [];

@@ -137,7 +137,8 @@
       <span class="brand"><span class="dot"></span> ProPivot</span>
       <div class="links">
         <a href="#features">Features</a>
-        <a href="#usage">Usage</a>
+        <a href="./demo.html">2M demo</a>
+        <a href="./gallery.html">Gallery</a>
         <a href="#demo">Live demo</a>
         <a class="gh-btn" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
       </div>
@@ -151,11 +152,12 @@
       <p class="lead">
         ProPivot is a dependency-light pivot table for <b>Angular</b>, <b>React</b>, and <b>Android</b>
         (WebView). Columnar engine, 17 aggregations, calculated measures, virtualized rendering, drag-drop
-        field list, and five export formats — shipped as a drop-in replacement you adopt with a single line.
+        field list, five export formats — and an opt-in <b>DuckDB-WASM</b> accelerator for millions of rows.
       </p>
       <div class="cta">
-        <a class="btn primary" href="#demo">▶ Try the live demo</a>
-        <a class="btn ghost" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">View on GitHub</a>
+        <a class="btn primary" href="./demo.html">▶ Pivot 2,000,000 rows</a>
+        <a class="btn ghost" href="./gallery.html">Feature gallery</a>
+        <a class="btn ghost" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub</a>
       </div>
       <div class="install">
         <span class="muted">$</span> <span>npm install @proteus/propivot</span>
@@ -176,6 +178,7 @@
       <div class="card"><div class="ic">🖱️</div><h3>Drag-drop field list</h3><p>Move fields between Rows / Columns / Measures / Filters, change a measure's aggregation, sort by measure, Top-N filter — all at runtime.</p></div>
       <div class="card"><div class="ic">📤</div><h3>Five exports</h3><p>CSV, HTML, real <code>.xlsx</code>, dependency-free <code>.pdf</code>, and an <code>.svg</code> image of the grid (rasterizes to PNG in-browser).</p></div>
       <div class="card"><div class="ic">🧵</div><h3>Optional Web Worker</h3><p>Offload aggregation off the main thread behind one async interface — falls back automatically when workers aren't available.</p></div>
+      <div class="card"><div class="ic">🦆</div><h3>DuckDB-WASM accelerator</h3><p>Opt-in: offload aggregation of <b>millions of rows</b> to in-browser DuckDB SQL <code>GROUPING SETS</code>, with automatic, result-identical fallback to the built-in engine.</p></div>
       <div class="card"><div class="ic">🔌</div><h3>Angular &amp; React</h3><p>First-class <code>&lt;pro-pivot&gt;</code> Angular wrapper and a React component. Or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code>.</p></div>
       <div class="card"><div class="ic">✅</div><h3>Golden-tested</h3><p>A two-layer golden suite pins both the computed cell matrix and the rendered grid, so the compatibility contract can't silently drift.</p></div>
     </div>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPivot — 2,000,000-row live demo</title>
+  <meta name="description" content="Pivot 2 million rows entirely in the browser with ProPivot — built-in columnar engine, optional Web Worker, and an opt-in DuckDB-WASM accelerator." />
+  <link rel="stylesheet" href="./assets/propivot.css" />
+  <style>
+    :root { --bg:#0b1020; --ink:#1a2233; --ink-soft:#5b6478; --line:#e6e9f0; --accent:#6366f1; --accent-ink:#4338ca; --accent2:#14b8a6; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#f7f8fb; }
+    a { color:var(--accent-ink); text-decoration:none; }
+    .top { background:rgba(11,16,32,.95); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:14px; }
+    .top .dot { width:20px; height:20px; border-radius:6px; background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+    .top b { font-weight:750; letter-spacing:-.01em; }
+    .top .links { margin-left:auto; display:flex; gap:18px; }
+    .top .links a { color:#c9d0e3; font-size:14px; }
+    .top .links a:hover { color:#fff; }
+    .wrap { max-width:1180px; margin:0 auto; padding:22px 20px 60px; }
+    h1 { font-size:26px; letter-spacing:-.02em; margin:6px 0 4px; }
+    .sub { color:var(--ink-soft); margin:0 0 20px; max-width:760px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:0 12px 40px rgba(20,28,60,.06); }
+    .controls { display:flex; flex-wrap:wrap; gap:12px 16px; align-items:flex-end; }
+    .ctl { display:flex; flex-direction:column; gap:4px; }
+    .ctl label { font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); font-weight:700; }
+    select, input { padding:7px 9px; border:1px solid var(--line); border-radius:7px; font-size:13px; background:#fff; color:var(--ink); }
+    button { padding:8px 14px; border:1px solid var(--line); background:#fff; border-radius:7px; font-size:13px; font-weight:650; cursor:pointer; color:var(--ink); }
+    button.primary { background:linear-gradient(135deg,var(--accent),#4f46e5); color:#fff; border-color:transparent; }
+    button:hover { filter:brightness(1.03); }
+    .stat-row { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 6px; }
+    .stat { background:#f3f5fb; border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-width:140px; }
+    .stat .k { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); font-weight:700; }
+    .stat .v { font-size:20px; font-weight:750; font-variant-numeric:tabular-nums; margin-top:2px; }
+    .stat .v.path-duckdb { color:#0e7a5f; }
+    .stat .v.path-builtin { color:var(--accent-ink); }
+    #pivot { height:560px; width:100%; background:#fff; border:1px solid var(--line); border-radius:10px; margin-top:12px; }
+    .note { font-size:12.5px; color:var(--ink-soft); margin-top:12px; }
+    .busy { opacity:.55; pointer-events:none; }
+    .tag { display:inline-block; font-size:11px; font-weight:700; color:#0e7a5f; background:#d7f3ea; border-radius:999px; padding:2px 9px; margin-left:8px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <span class="dot"></span><b>ProPivot</b>
+    <div class="links">
+      <a href="./index.html">Home</a>
+      <a href="./gallery.html">Gallery</a>
+      <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1>Two million rows, pivoted in your browser <span class="tag" id="ver"></span></h1>
+    <p class="sub">
+      The dataset below is generated in your browser and aggregated 100% client-side — no server. Pick an
+      engine: the built-in columnar engine (optionally on a Web Worker so the UI never freezes), or the opt-in
+      <b>DuckDB-WASM</b> accelerator that runs SQL <code>GROUPING SETS</code> over the data.
+    </p>
+
+    <div class="panel" id="panel">
+      <div class="controls">
+        <div class="ctl">
+          <label>Rows</label>
+          <select id="rows">
+            <option value="250000">250,000</option>
+            <option value="500000">500,000</option>
+            <option value="1000000">1,000,000</option>
+            <option value="2000000" selected>2,000,000</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Engine</label>
+          <select id="engine">
+            <option value="worker" selected>Built-in (Web Worker)</option>
+            <option value="local">Built-in (main thread)</option>
+            <option value="duckdb">DuckDB-WASM accelerator</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Row fields</label>
+          <select id="rowfields">
+            <option value="region,category">Region › Category</option>
+            <option value="region,category,segment">Region › Category › Segment</option>
+            <option value="customer">Customer (high cardinality)</option>
+            <option value="region">Region</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Columns</label>
+          <select id="colfields"><option value="year">Year</option><option value="year,quarter">Year › Quarter</option><option value="">(none)</option></select>
+        </div>
+        <div class="ctl">
+          <label>Sales aggregation</label>
+          <select id="agg">
+            <option value="sum">Sum</option><option value="average">Average</option>
+            <option value="distinctcount">Distinct Count</option><option value="median">Median</option>
+            <option value="percentofcolumn">% of Column</option><option value="runningtotals">Running Totals</option>
+          </select>
+        </div>
+        <button class="primary" id="run">Build pivot</button>
+        <button id="regen">Regenerate data</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="k">Source rows</div><div class="v" id="s-rows">—</div></div>
+        <div class="stat"><div class="k">Data load</div><div class="v" id="s-load">—</div></div>
+        <div class="stat"><div class="k">Aggregate + render</div><div class="v" id="s-compute">—</div></div>
+        <div class="stat"><div class="k">Engine path</div><div class="v" id="s-path">—</div></div>
+      </div>
+
+      <div id="pivot"></div>
+      <p class="note" id="note">
+        Tip: drag fields in the Field List, click a measure header to sort, double-click a cell to drill through.
+        <b>DuckDB-WASM</b> downloads its WebAssembly runtime from a CDN on first use (a few MB) and loads the rows
+        into an in-memory database; if it can't load, ProPivot automatically falls back to the built-in engine — the
+        result is identical either way.
+      </p>
+    </div>
+  </div>
+
+  <script src="./assets/propivot.global.js"></script>
+  <script>
+    (function () {
+      var PP = window.ProPivot;
+      var $ = function (id) { return document.getElementById(id); };
+      $('ver').textContent = 'v' + PP.version;
+
+      var REGIONS = ['West','East','North','South','Central'];
+      var CATS = ['Furniture','Office','Technology'];
+      var SEGS = ['Consumer','Corporate','Home Office'];
+      var YEARS = [2021,2022,2023,2024,2025];
+      var QS = ['Q1','Q2','Q3','Q4'];
+      var data = [];
+      var dataRows = 0;
+
+      function generate(n) {
+        var t0 = performance.now();
+        data = new Array(n);
+        for (var i = 0; i < n; i++) {
+          var m = i % 12;
+          data[i] = {
+            region: REGIONS[i % 5], category: CATS[i % 3], segment: SEGS[i % 3],
+            customer: 'Cust-' + (1 + (i % 4000)),
+            year: YEARS[i % 5], quarter: QS[(m / 3) | 0],
+            sales: ((i * 7919) % 9000) + 100, qty: (i % 60) + 1,
+          };
+        }
+        dataRows = n;
+        return performance.now() - t0;
+      }
+
+      var mapping = {
+        region:{type:'string',caption:'Region'}, category:{type:'string',caption:'Category'},
+        segment:{type:'string',caption:'Segment'}, customer:{type:'string',caption:'Customer'},
+        year:{type:'number',caption:'Year'}, quarter:{type:'string',caption:'Quarter'},
+        sales:{type:'number',caption:'Sales'}, qty:{type:'number',caption:'Quantity'},
+      };
+      function toH(csv){ return csv ? csv.split(',').map(function(f){return {uniqueName:f};}) : []; }
+
+      function buildReport() {
+        var agg = $('agg').value;
+        var isPct = agg === 'percentofcolumn';
+        return {
+          dataSource:{ type:'json', data:data, mapping:mapping },
+          slice:{
+            rows: toH($('rowfields').value),
+            columns: toH($('colfields').value),
+            measures:[
+              { uniqueName:'sales', aggregation:agg, caption:'Sales', format: isPct?'pct':'cur' },
+              { uniqueName:'qty', aggregation:'average', caption:'Avg Qty', format:'num' },
+              { uniqueName:'aov', formula:"sum('sales')/sum('qty')", caption:'Avg Price', format:'cur' },
+            ],
+          },
+          formats:[
+            { name:'cur', currencySymbol:'$', thousandsSeparator:',', decimalPlaces:0 },
+            { name:'pct', isPercent:true, decimalPlaces:1 },
+            { name:'num', thousandsSeparator:',', decimalPlaces:1 },
+          ],
+          options:{ grid:{ type:'compact' } },
+        };
+      }
+
+      var pivot = null;
+      function rebuild() {
+        var engine = $('engine').value;
+        var wantRows = parseInt($('rows').value, 10);
+        $('panel').classList.add('busy');
+        $('s-compute').textContent = '…'; $('s-path').textContent = '…'; $('s-load').textContent = '…';
+
+        // (Re)generate data if size changed.
+        var loadMs = 0;
+        if (dataRows !== wantRows) loadMs = generate(wantRows);
+        $('s-rows').textContent = dataRows.toLocaleString();
+        $('s-load').textContent = loadMs ? loadMs.toFixed(0) + ' ms (gen)' : 'cached';
+
+        if (pivot) pivot.dispose();
+        var cfg = {
+          container:'#pivot', toolbar:true, report:buildReport(),
+          reportcomplete: function () {
+            var ms = (performance.now() - t0).toFixed(0);
+            $('s-compute').textContent = ms + ' ms';
+            var path = pivot.getComputePath ? pivot.getComputePath() : 'builtin';
+            var el = $('s-path');
+            el.textContent = path === 'duckdb' ? 'DuckDB-WASM' : (engine === 'worker' ? 'Web Worker' : 'main thread');
+            el.className = 'v ' + (path === 'duckdb' ? 'path-duckdb' : 'path-builtin');
+            $('panel').classList.remove('busy');
+          },
+          dataerror: function () { $('panel').classList.remove('busy'); },
+        };
+        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js', location.href).href; }
+        else if (engine === 'duckdb') { cfg.accelerator = 'duckdb'; cfg.duckdb = { threshold: 1 }; }
+
+        var t0 = performance.now();
+        pivot = new PP(cfg);
+      }
+
+      $('run').onclick = rebuild;
+      $('regen').onclick = function () { dataRows = 0; rebuild(); };
+      $('rows').addEventListener('change', rebuild);
+      $('engine').addEventListener('change', rebuild);
+      ['rowfields','colfields','agg'].forEach(function (id) { $(id).addEventListener('change', rebuild); });
+      rebuild();
+    })();
+  </script>
+</body>
+</html>

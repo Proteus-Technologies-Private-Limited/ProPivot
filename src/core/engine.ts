@@ -15,6 +15,8 @@ export interface PivotEngine {
   /** Raw rows for getData/export (main-thread copy). */
   rawRows(): Array<Record<string, unknown>>;
   dispose(): void;
+  /** Set by accelerating engines to report which path ran ('duckdb' | 'builtin'). */
+  readonly lastPath?: string;
 }
 
 /** Synchronous, main-thread engine (default). */

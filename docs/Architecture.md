@@ -86,14 +86,23 @@ aggregations side by side.
 
 ## 5. Engine boundary
 
-`engine.ts` exposes a single async `PivotEngine` interface with two implementations:
+`engine.ts` exposes a single async `PivotEngine` interface with three implementations:
 
 - **`LocalEngine`** — runs the store + planner on the main thread (default).
 - **`WorkerEngine`** — offloads ingestion and compute to a Web Worker, transferring the
   serialized matrix back via structured clone. Falls back to `LocalEngine` automatically
   when `Worker` is unavailable or no worker URL is provided.
+- **`DuckDBEngine`** (opt-in, `accelerator: 'duckdb'`) — for large datasets, offloads the
+  grouping-sets *base aggregation* to **DuckDB-WASM** (loaded from a CDN at runtime, so it
+  is never bundled). It generates SQL `GROUPING SETS`, then reuses the shared
+  `assembleMatrix` so the output matches the built-in engine up to floating point —
+  verified in `test/accel-parity.test.ts` by running the same SQL under Node. It falls
+  back to `LocalEngine` below a row threshold, for unsupported reports (top/bottom-N,
+  date dimensions), or on any error, so enabling it can never change or break a result.
 
-Because the matrix is plain-data, the facade and renderer are engine-agnostic.
+Because the matrix is plain-data, the facade and renderer are engine-agnostic. The seam
+the accelerator plugs into is the planner's `planBase` → `assembleMatrix` split: only the
+base-cell computation in between differs between engines.
 
 ## 6. Rendering
 
