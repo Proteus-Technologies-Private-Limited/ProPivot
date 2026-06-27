@@ -277,7 +277,12 @@ export class GridRenderer {
         corner.className = 'pp-corner';
         corner.colSpan = rowHeaderCols;
         corner.rowSpan = multi ? colDepth : colDepth + 1;
-        if (!multi) corner.textContent = combinedCaption;
+        if (!multi) {
+          corner.textContent = combinedCaption;
+          // Compact mode nests every row field into this one corner column — give it
+          // a panel for the (first) row field so the row dimension is reachable.
+          if (matrix.rowFields.length) this.decorateHeader(corner, ctx, { ref: { kind: 'field', uniqueName: matrix.rowFields[0] }, zone: 'rows', index: 0 });
+        }
         tr.appendChild(corner);
       }
       let i = 0;
@@ -322,6 +327,7 @@ export class GridRenderer {
       const corner = document.createElement('th');
       corner.className = 'pp-corner';
       corner.textContent = combinedCaption;
+      if (matrix.rowFields.length) this.decorateHeader(corner, ctx, { ref: { kind: 'field', uniqueName: matrix.rowFields[0] }, zone: 'rows', index: 0 });
       trM.appendChild(corner);
     }
     const measureHeaders = (count: number, grand: boolean) => {
@@ -353,69 +359,24 @@ export class GridRenderer {
     cap.title = 'Click to sort rows by this measure';
     cap.addEventListener('click', (e) => { e.stopPropagation(); this.opts.controller.sortByMeasure(m.uniqueName); });
     th.appendChild(cap);
-    // A subtle gear button (revealed on hover) opens a modal to change aggregation.
-    if (!m.calculated) {
-      const gear = document.createElement('button');
-      gear.type = 'button';
-      gear.className = 'pp-gear';
-      gear.title = 'Configure aggregation';
-      gear.textContent = '⚙';
-      gear.addEventListener('click', (e) => { e.stopPropagation(); this.openMeasureModal(m); });
-      th.appendChild(gear);
-    }
+    // Aggregation now lives in the column-properties panel (the ▾ button added by
+    // decorateHeader) — no separate gear button, so the two no longer duplicate.
     this.decorateHeader(th, ctx, { ref: { kind: 'measure', uniqueName: m.uniqueName, key: m.key }, zone: 'measures', index });
     return th;
   }
 
-  // ---------- per-measure aggregation modal ----------
-
-  private openMeasureModal(measure: CellMatrix['measures'][number]): void {
-    this.closeEditor();
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'pp-modal-backdrop';
-    const dialog = document.createElement('div');
-    dialog.className = 'pp-modal';
-
-    const h = document.createElement('h3');
-    h.textContent = `Configure: ${measure.caption}`;
-    dialog.appendChild(h);
-
-    const lbl = document.createElement('label');
-    lbl.textContent = 'Aggregation';
-    dialog.appendChild(lbl);
-
-    const sel = document.createElement('select');
-    for (const a of ALL_AGGREGATIONS) {
-      const o = document.createElement('option');
-      o.value = a;
-      o.textContent = AGGREGATION_CAPTIONS[a] ?? a;
-      if (a === measure.aggregation) o.selected = true;
-      sel.appendChild(o);
-    }
-    dialog.appendChild(sel);
-
-    const actions = document.createElement('div');
-    actions.className = 'pp-modal-actions';
-    const cancel = document.createElement('button');
-    cancel.textContent = 'Cancel';
-    cancel.addEventListener('click', () => this.closeEditor());
-    const apply = document.createElement('button');
-    apply.className = 'primary';
-    apply.textContent = 'Apply';
-    apply.addEventListener('click', () => {
-      this.opts.controller.setMeasureAggregation(measure.uniqueName, sel.value);
-      this.closeEditor();
-    });
-    actions.append(cancel, apply);
-    dialog.appendChild(actions);
-
-    backdrop.appendChild(dialog);
-    backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) this.closeEditor(); });
-    document.body.appendChild(backdrop);
-    this.editor = backdrop;
-    this.editorKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeEditor(); };
-    document.addEventListener('keydown', this.editorKey);
+  /** Clamp a fixed-position popup so it stays fully inside the viewport. */
+  private placePopup(pop: HTMLElement, ev: MouseEvent): void {
+    const m = 8;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const rect = pop.getBoundingClientRect();
+    let left = ev.clientX;
+    let top = ev.clientY;
+    if (left + rect.width + m > vw) left = vw - rect.width - m;
+    if (top + rect.height + m > vh) top = vh - rect.height - m;
+    pop.style.left = `${Math.max(m, left)}px`;
+    pop.style.top = `${Math.max(m, top)}px`;
   }
 
   private closeEditor(): void {
@@ -512,8 +473,10 @@ export class GridRenderer {
 
     const pop = document.createElement('div');
     pop.className = 'pp-popup pp-colprops-popup';
-    pop.style.left = `${Math.min(ev.clientX, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 340)}px`;
-    pop.style.top = `${ev.clientY}px`;
+    // Positioned after it is in the DOM (so we can measure it) — see placePopup below.
+    pop.style.left = '0px';
+    pop.style.top = '0px';
+    pop.style.visibility = 'hidden';
 
     const title = document.createElement('div');
     title.className = 'pp-popup-title';
@@ -559,6 +522,8 @@ export class GridRenderer {
     activate(tabDefs[0].id);
 
     document.body.appendChild(pop);
+    this.placePopup(pop, ev);
+    pop.style.visibility = '';
     this.editor = pop;
     this.editorOutside = (e: MouseEvent) => { if (!pop.contains(e.target as Node)) this.closeEditor(); };
     this.editorKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeEditor(); };
@@ -1312,7 +1277,9 @@ function isDateField(ft?: FieldType): boolean {
 }
 
 function fieldRow(label: string, control: HTMLElement): HTMLElement {
-  const row = document.createElement('label');
+  // A <div> (not <label>) so clicking the row never re-targets/blurs the input and
+  // the input doesn't inherit the popup's label styling (uppercase / muted color).
+  const row = document.createElement('div');
   row.className = 'pp-field';
   const l = document.createElement('span');
   l.className = 'pp-field-label';
