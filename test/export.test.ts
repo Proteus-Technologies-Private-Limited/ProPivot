@@ -139,4 +139,45 @@ describe('export carries HTML-preview styling (PDF/SVG parity)', () => {
     // No cell-fill rectangle operators in an unstyled export.
     expect(text).not.toContain(' re f');
   });
+
+  it('HTML carries rich display markup + condition styling on cells', () => {
+    const html = exportMatrix('html', sMatrix, sNormal) as string;
+    // Conditional background folded into the cell's inline style.
+    expect(html).toMatch(/<td style="[^"]*background-color:#c5e1a5/);
+    // data_bar produces self-contained rich markup, not just text.
+    expect(html).toContain('position:absolute');
+  });
+
+  it('xlsx emits a styles part and references it from cells', () => {
+    const bytes = exportMatrix('excel', sMatrix, sNormal) as Uint8Array;
+    const ascii = Buffer.from(bytes).toString('latin1');
+    expect(ascii).toContain('xl/styles.xml');
+    // A solid fill for the conditional background (ARGB, uppercased).
+    expect(ascii).toContain('FFC5E1A5');
+    // At least one cell references a non-default style index.
+    expect(ascii).toMatch(/<c r="[A-Z]+\d+" s="[1-9]/);
+  });
+
+  it('xlsx keeps numbers live with currency / percent number-format codes', () => {
+    const moneyReport: Report = {
+      dataSource: { type: 'json', data },
+      formats: [
+        { name: 'usd', currencySymbol: '$', decimalPlaces: 2 },
+        { name: 'pct', isPercent: true, decimalPlaces: 1 },
+      ],
+      slice: {
+        rows: [{ uniqueName: 'region' }],
+        measures: [
+          { uniqueName: 'sales', aggregation: 'sum', format: 'usd' },
+          { uniqueName: 'sales', aggregation: 'average', format: 'pct' },
+        ],
+      },
+    };
+    const n = normalizeReport(moneyReport);
+    const m = buildMatrix(buildStore(data as never), n);
+    const ascii = Buffer.from(exportMatrix('excel', m, n) as Uint8Array).toString('latin1');
+    expect(ascii).toContain('<numFmts');
+    expect(ascii).toContain('&quot;$&quot;#,##0.00'); // currency code (XML-escaped quotes)
+    expect(ascii).toContain('#,##0.0%');               // percent code
+  });
 });

@@ -67,3 +67,29 @@ export function formatNumber(value: number, fmt?: Required<NumberFormat>): strin
   if (f.maxSymbols > 0 && out.length > f.maxSymbols) out = out.slice(0, f.maxSymbols);
   return out;
 }
+
+/**
+ * Excel custom number-format code mirroring `formatNumber` for a NumberFormat, so
+ * the .xlsx writer can keep numeric cells live yet show the same grouping /
+ * decimals / currency / percent as the grid. (Excel localizes the actual grouping
+ * and decimal characters, so the custom thousands/decimal separators aren't encoded
+ * literally — the numeric shape is what carries across.)
+ */
+export function excelNumberFormatCode(fmt?: NumberFormat): string {
+  const f = { ...DEFAULT_FORMAT, ...(fmt ?? {}) };
+  const intPart = f.thousandsSeparator !== '' ? '#,##0' : '0';
+  let dec = '';
+  if (f.decimalPlaces >= 0) {
+    if (f.decimalPlaces > 0) dec = '.' + '0'.repeat(f.decimalPlaces);
+  } else {
+    const cap = f.maxDecimalPlaces >= 0 ? f.maxDecimalPlaces : 2;
+    if (cap > 0) dec = '.' + '#'.repeat(cap);
+  }
+  let code = intPart + dec;
+  if (f.currencySymbol) {
+    const sym = `"${f.currencySymbol.replace(/"/g, '')}"`;
+    code = f.currencySymbolAlign === 'right' ? code + sym : sym + code;
+  }
+  if (f.isPercent) code += '%';
+  return code;
+}

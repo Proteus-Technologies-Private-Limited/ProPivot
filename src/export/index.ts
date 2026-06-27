@@ -7,7 +7,8 @@ import { pathKey, GS } from '../core/matrix';
 import { leafPaths } from '../core/planner';
 import type { NormalReport } from '../core/normalize';
 import { compileConditions, type CompiledCondition } from '../core/conditions';
-import { formatVisual, evalConditionStyle, type VisualCell } from '../core/cellStyle';
+import { formatVisual, evalConditionStyle, excelDisplayFormatCode, type VisualCell } from '../core/cellStyle';
+import { resolveFormats, excelNumberFormatCode } from '../core/format';
 import type { FieldType } from '../core/types';
 import { buildXlsx, type SheetCell } from './xlsx';
 import { buildPdf } from './pdf';
@@ -32,6 +33,11 @@ interface Table {
   rows: SheetCell[][];
 }
 
+/** Display formats whose cell text is itself a formatted number (so an Excel
+ *  numFmt derived from the display is faithful). Others fall back to the base
+ *  measure format — their grid text is non-numeric (stars, %, bars, …). */
+const NUMERIC_TEXT_DISPLAYS = new Set(['number', 'signed', 'data_bar', 'heatmap']);
+
 /** Per-measure-slot value range, to auto-scale data_bar/heatmap in exports. */
 function columnStats(matrix: CellMatrix): Map<string, { min: number; max: number }> {
   const out = new Map<string, { min: number; max: number }>();
@@ -50,7 +56,7 @@ function applyVisual(cell: SheetCell, vis: VisualCell | null, cond: Record<strin
   const align = (a?: string): 'left' | 'right' | 'center' | undefined =>
     a === 'left' || a === 'right' || a === 'center' ? a : undefined;
   let bg = vis?.bg, color = vis?.color, bold = vis?.bold, al = vis?.align;
-  if (vis) { cell.text = vis.text; if (vis.bar) cell.bar = vis.bar; }
+  if (vis) { cell.text = vis.text; if (vis.html !== undefined) cell.html = vis.html; if (vis.bar) cell.bar = vis.bar; }
   // Conditions win over display formatting.
   if (cond.backgroundColor) bg = cond.backgroundColor;
   if (cond.color) color = cond.color;
@@ -66,6 +72,18 @@ function toTable(matrix: CellMatrix, normal: NormalReport, conditions: CompiledC
   const measures = matrix.measures;
   const stats = columnStats(matrix);
   const mapping = normal.report.dataSource?.mapping ?? {};
+  // Excel number-format code per measure slot: derived from a numeric display
+  // format when the cell text is itself a formatted number, else from the
+  // measure's base NumberFormat — so currency / percent / decimals survive.
+  const formatMap = resolveFormats(normal.report.formats);
+  const measureNumFmt = (m: CellMatrix['measures'][number]): string | undefined => {
+    const d = m.display;
+    if (d && NUMERIC_TEXT_DISPLAYS.has(d.type)) {
+      const code = excelDisplayFormatCode(d);
+      if (code) return code;
+    }
+    return excelNumberFormatCode(m.format && formatMap.has(m.format) ? formatMap.get(m.format) : formatMap.get(''));
+  };
   const findHier = (field: string) =>
     [...(normal.report.slice?.rows ?? []), ...(normal.report.slice?.columns ?? [])].find((h) => h.uniqueName === field);
 
@@ -108,6 +126,7 @@ function toTable(matrix: CellMatrix, normal: NormalReport, conditions: CompiledC
           : null;
         const cond = evalConditionStyle(conditions, value, m.uniqueName, m.key, false);
         applyVisual(cell, vis, cond);
+        if (cell.num !== undefined) cell.numFmt = measureNumFmt(m);
         line.push(cell);
       }
     }
@@ -132,10 +151,32 @@ function escapeHtml(v: string): string {
   return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/** Inline `style="…"` for an exported cell, mirroring the DOM grid's cell styling. */
+function cellStyleAttr(style?: SheetCell['style']): string {
+  if (!style) return '';
+  const parts: string[] = [];
+  if (style.bg) parts.push(`background-color:${style.bg}`);
+  if (style.color) parts.push(`color:${style.color}`);
+  if (style.bold) parts.push('font-weight:600');
+  if (style.align) parts.push(`text-align:${style.align}`);
+  return parts.length ? ` style="${parts.join(';')}"` : '';
+}
+
 function toHtml(t: Table): string {
   const head = `<tr>${t.header.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
-  const body = t.rows.map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c.text)}</td>`).join('')}</tr>`).join('');
-  return `<table border="1" cellspacing="0">${head}${body}</table>`;
+  const body = t.rows.map((r) => `<tr>${r.map((c) => {
+    // Rich display formats (data bars, status tags, …) carry self-contained markup;
+    // otherwise fall back to escaped text. Either way apply the shared cell style so
+    // colors / bold / alignment from display & conditional formatting survive.
+    const inner = c.html !== undefined ? c.html : escapeHtml(c.text);
+    return `<td${cellStyleAttr(c.style)}>${inner}</td>`;
+  }).join('')}</tr>`).join('');
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+table.propivot{border-collapse:collapse;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px}
+table.propivot th,table.propivot td{border:1px solid #d1d5db;padding:4px 8px}
+table.propivot th{background:#f3f4f6;font-weight:600;text-align:left}
+</style></head><body><table class="propivot" cellspacing="0">${head}${body}</table></body></html>`;
 }
 
 function download(content: string | Uint8Array, filename: string, mime: string): void {

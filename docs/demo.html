@@ -49,6 +49,7 @@
         <a href="./index.html#features">Features</a>
         <a class="active" href="./demo.html">2M demo</a>
         <a href="./gallery.html">Gallery</a>
+        <a href="./upload.html">Your data</a>
         <a href="./features.html">Examples</a>
         <a href="./docs.html">Docs</a>
         <a class="ppnav-gh" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
@@ -125,7 +126,7 @@
     </div>
   </div>
 
-  <script src="./assets/propivot.global.js?v=c0ca88e2"></script>
+  <script src="./assets/propivot.global.js?v=b72678eb"></script>
   <script>
     (function () {
       var PP = window.ProPivot;
@@ -214,7 +215,7 @@
           },
           dataerror: function () { $('panel').classList.remove('busy'); },
         };
-        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js?v=178e24f3', location.href).href; }
+        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js?v=f807010a', location.href).href; }
         else if (engine === 'duckdb') { cfg.accelerator = 'duckdb'; cfg.duckdb = { threshold: 1 }; }
 
         var t0 = performance.now();

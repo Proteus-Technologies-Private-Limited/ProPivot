@@ -194,6 +194,51 @@ export function formatNumberValue(v: unknown, fmt: DisplayFormat): string {
   return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`;
 }
 
+// Currency symbols for the Excel writer (deterministic — no Intl/locale variance).
+const EXCEL_CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹', KRW: '₩', RUB: '₽',
+  BRL: 'R$', ZAR: 'R', AUD: 'A$', CAD: 'C$', NZD: 'NZ$', HKD: 'HK$', SGD: 'S$',
+  CHF: 'CHF', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł', THB: '฿', TRY: '₺',
+  MXN: '$', IDR: 'Rp', MYR: 'RM', PHP: '₱', VND: '₫', ILS: '₪', AED: 'AED',
+};
+function excelCurrencySymbol(code?: string): string {
+  const c = (code || 'USD').trim().toUpperCase();
+  return EXCEL_CURRENCY_SYMBOLS[c] || c;
+}
+
+/**
+ * Excel custom number-format code mirroring `formatNumberValue` for a numeric
+ * DisplayFormat, or `null` when the format has no faithful Excel equivalent
+ * (e.g. `compact`). Lets the .xlsx writer keep cells numeric while showing the
+ * same currency / percent / decimals as the grid.
+ */
+export function excelDisplayFormatCode(fmt: DisplayFormat): string | null {
+  const dp = fmt.decimals;
+  const grp = '#,##0';
+  const fixed = (n?: number, fallback = '.00') => (n != null ? (n > 0 ? '.' + '0'.repeat(n) : '') : fallback);
+  const prefix = fmt.prefix ? `"${fmt.prefix.replace(/"/g, '')}"` : '';
+  const suffix = fmt.suffix ? `"${fmt.suffix.replace(/"/g, '')}"` : '';
+  let core: string | null;
+  switch (fmt.numberStyle || 'decimal') {
+    case 'currency':
+    case 'accounting':
+      core = `"${excelCurrencySymbol(fmt.currency)}"${grp}${fixed(dp)}`;
+      break;
+    case 'percent':
+      core = `${grp}${fixed(dp)}%`;
+      break;
+    case 'scientific':
+      core = `0${fixed(dp)}E+00`;
+      break;
+    case 'compact':
+      core = null; // no faithful Excel equivalent — fall back to the base format
+      break;
+    default: // decimal
+      core = grp + (dp != null ? fixed(dp, '') : '.####');
+  }
+  return core == null ? null : prefix + core + suffix;
+}
+
 function transformCase(s: string, mode: DisplayFormat['textCase']): string {
   switch (mode) {
     case 'upper': return s.toUpperCase();

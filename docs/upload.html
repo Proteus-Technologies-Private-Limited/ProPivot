@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPivot — load your own CSV / JSON and pivot it</title>
+  <meta name="description" content="Upload your own CSV or JSON file and build a pivot table by dragging fields — entirely in your browser with ProPivot. Includes a downloadable sample file to edit and re-upload." />
+  <link rel="stylesheet" href="./assets/propivot.css?v=b72678eb" />
+  <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
+  <style>
+    :root { --bg:#0b1020; --ink:#1a2233; --ink-soft:#5b6478; --line:#e6e9f0; --accent:#6366f1; --accent-ink:#4338ca; --accent2:#14b8a6; --ok:#0e7a5f; --err:#b91c1c; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#f7f8fb; }
+    a { color:var(--accent-ink); text-decoration:none; }
+    .wrap { max-width:1180px; margin:0 auto; padding:22px 20px 60px; }
+    h1 { font-size:26px; letter-spacing:-.02em; margin:6px 0 4px; }
+    .sub { color:var(--ink-soft); margin:0 0 20px; max-width:760px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:0 12px 40px rgba(20,28,60,.06); margin-bottom:16px; }
+    .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+    .spread { justify-content:space-between; }
+    button { padding:8px 14px; border:1px solid var(--line); background:#fff; border-radius:7px; font-size:13px; font-weight:650; cursor:pointer; color:var(--ink); }
+    button.primary { background:linear-gradient(135deg,var(--accent),#4f46e5); color:#fff; border-color:transparent; }
+    button:hover { filter:brightness(1.03); border-color:var(--accent); }
+    .muted { color:var(--ink-soft); font-size:12.5px; }
+    #drop { border:2px dashed #c5ccd6; border-radius:12px; padding:30px; text-align:center; color:var(--ink-soft); background:#fbfcfe; transition:.15s border-color,.15s background; cursor:pointer; }
+    #drop.over { border-color:var(--accent); background:#eef2ff; color:var(--ink); }
+    #drop .big { font-size:15px; margin-bottom:4px; color:var(--ink); font-weight:650; }
+    .status { margin-top:12px; font-size:13px; }
+    .status.ok { color:var(--ok); } .status.err { color:var(--err); } .status.muted { color:var(--ink-soft); }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .chip { font-size:12px; padding:2px 9px; border-radius:999px; background:#f3f5fb; border:1px solid var(--line); }
+    .chip b { font-weight:700; }
+    .chip.num b { color:#1d4ed8; } .chip.date b { color:#7c3aed; } .chip.str b { color:#0e7a5f; }
+    ol { margin:10px 0 0; padding-left:20px; font-size:13px; color:#374151; }
+    ol li { margin:3px 0; }
+    code { background:#eef1f5; padding:1px 5px; border-radius:4px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    #pivot { height:600px; width:100%; background:#fff; border:1px solid var(--line); border-radius:10px; }
+    .hidden { display:none; }
+    .hl { display:inline-block; font-size:11px; font-weight:700; color:#0e7a5f; background:#d7f3ea; border-radius:999px; padding:2px 9px; margin-left:8px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <header class="ppnav">
+    <div class="ppnav-inner">
+      <a class="ppnav-brand" href="./index.html"><span class="ppnav-dot"></span> ProPivot</a>
+      <nav class="ppnav-links">
+        <a href="./index.html#features">Features</a>
+        <a href="./demo.html">2M demo</a>
+        <a href="./gallery.html">Gallery</a>
+        <a class="active" href="./upload.html">Your data</a>
+        <a href="./features.html">Examples</a>
+        <a href="./docs.html">Docs</a>
+        <a class="ppnav-gh" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h1>Pivot your own data <span class="hl">no upload to a server</span></h1>
+    <p class="sub">Drop in a <b>CSV</b> or <b>JSON</b> file and build a pivot by dragging fields between zones — the file is parsed and aggregated entirely in your browser. New here? Download a sample, edit it, and upload it back.</p>
+
+    <div class="panel">
+      <div class="row spread">
+        <div class="row">
+          <button class="primary" id="pick">Choose CSV / JSON file</button>
+          <input type="file" id="file" accept=".csv,.json,text/csv,application/json" class="hidden" />
+          <span class="muted">…or drag a file onto the box below.</span>
+        </div>
+        <div class="row">
+          <button id="sampleCsv">⬇ Sample CSV</button>
+          <button id="sampleJson">⬇ Sample JSON</button>
+        </div>
+      </div>
+
+      <div id="drop" style="margin-top:12px">
+        <div class="big">Drop your .csv or .json file here</div>
+        <div class="muted">Headers in row 1 (CSV). Types are auto-detected: numbers aggregate; ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
+      </div>
+
+      <div class="status muted" id="status">Showing the built-in sample below. Download it, edit it, and upload it back — or drop your own file.</div>
+      <div class="chips" id="chips"></div>
+
+      <ol>
+        <li>Open the <b>Fields</b> button in the grid toolbar (or use the field list), then drag a text field (e.g. <code>Region</code>) into <b>Rows</b>.</li>
+        <li>Drag a number field (e.g. <code>Sales</code>) into <b>Measures</b> — it sums by default; click its column header <b>▾</b> to change the aggregation, format, or add conditional formatting.</li>
+        <li>Drag another field into <b>Columns</b> to cross-tab, or into <b>Report Filters</b> to slice.</li>
+        <li><b>Export</b> to Excel / PDF / HTML / CSV from the toolbar — colors, currency, and percent formatting are preserved.</li>
+      </ol>
+    </div>
+
+    <div id="pivot"></div>
+  </div>
+
+  <script src="./assets/propivot.global.js?v=b72678eb"></script>
+  <script>
+    var PP = window.ProPivot;
+    var $ = function (id) { return document.getElementById(id); };
+
+    // ── Minimal, robust CSV parser (RFC-4180-ish: quotes, escaped quotes, CRLF, BOM) ──
+    function parseCSV(text) {
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+      var rows = [], field = '', row = [], inQ = false;
+      for (var i = 0; i < text.length; i++) {
+        var c = text[i];
+        if (inQ) {
+          if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+          else field += c;
+        } else if (c === '"') inQ = true;
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); rows.push(row); field = ''; row = []; }
+        else if (c === '\r') { /* swallow */ }
+        else field += c;
+      }
+      if (field.length || row.length) { row.push(field); rows.push(row); }
+      if (!rows.length) throw new Error('The CSV file is empty.');
+      var header = rows.shift().map(function (h) { return h.trim(); });
+      if (!header.some(Boolean)) throw new Error('No header row found.');
+      return rows.filter(function (r) { return r.some(function (v) { return v !== '' && v != null; }); })
+        .map(function (r) { var o = {}; header.forEach(function (h, i) { o[h] = r[i] != null ? r[i] : ''; }); return o; });
+    }
+
+    // ── Value-based type inference → ProPivot mapping ──
+    var ISO_DATE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/;
+    var NUMERIC = /^-?\s*\$?\s*[\d,]*\.?\d+%?$/;
+    function toNumber(v) { var n = Number(String(v).replace(/[$,%\s]/g, '')); return isFinite(n) ? n : null; }
+
+    function inferAndCoerce(data) {
+      var cols = Object.keys(data[0] || {});
+      var mapping = {}, types = {};
+      cols.forEach(function (col) {
+        var nNum = 0, nDate = 0, nNon = 0;
+        data.forEach(function (r) {
+          var v = r[col];
+          if (v === '' || v == null) return;
+          nNon++;
+          var s = String(v).trim();
+          if (ISO_DATE.test(s)) nDate++;
+          else if (NUMERIC.test(s) && toNumber(s) != null) nNum++;
+        });
+        var t = nNon === 0 ? 'string' : nDate === nNon ? 'year/month/day' : nNum === nNon ? 'number' : 'string';
+        types[col] = t; mapping[col] = { type: t, caption: col };
+      });
+      data.forEach(function (r) { cols.forEach(function (col) {
+        if (types[col] === 'number') { var n = toNumber(r[col]); r[col] = n == null ? null : n; }
+      }); });
+      return { mapping: mapping, types: types };
+    }
+
+    function starterReport(data, mapping, types) {
+      var cols = Object.keys(mapping);
+      var firstText = cols.filter(function (c) { return types[c] !== 'number'; })[0];
+      var firstNum = cols.filter(function (c) { return types[c] === 'number'; })[0];
+      return {
+        dataSource: { type: 'json', data: data, mapping: mapping },
+        slice: {
+          rows: firstText ? [{ uniqueName: firstText }] : [],
+          columns: [],
+          measures: firstNum ? [{ uniqueName: firstNum, aggregation: 'sum' }] : [],
+        },
+        options: { grid: { type: 'compact', showGrandTotals: 'on' } },
+      };
+    }
+
+    var pivot = null;
+    function loadData(data) {
+      if (!Array.isArray(data) || !data.length) throw new Error('No rows found in the file.');
+      if (typeof data[0] !== 'object' || data[0] == null) throw new Error('Expected an array of row objects.');
+      var inf = inferAndCoerce(data);
+      renderChips(inf.types, data.length);
+      if (pivot) pivot.dispose();
+      pivot = new PP({ container: '#pivot', toolbar: true, report: starterReport(data, inf.mapping, inf.types) });
+    }
+
+    function renderChips(types, n) {
+      var cls = function (t) { return t === 'number' ? 'num' : (t.indexOf('/') >= 0 || t.indexOf('date') >= 0) ? 'date' : 'str'; };
+      var lbl = function (t) { return t === 'number' ? 'number' : (t.indexOf('/') >= 0 || t.indexOf('date') >= 0) ? 'date' : 'text'; };
+      $('chips').innerHTML = '<span class="chip">' + n.toLocaleString() + ' rows</span>' +
+        Object.keys(types).map(function (c) { return '<span class="chip ' + cls(types[c]) + '">' + c + ' · <b>' + lbl(types[c]) + '</b></span>'; }).join('');
+    }
+
+    function setStatus(msg, kind) { var el = $('status'); el.textContent = msg; el.className = 'status ' + (kind || 'muted'); }
+
+    function handleFile(file) {
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var text = String(reader.result);
+          var isJson = /\.json$/i.test(file.name) || text.trim().charAt(0) === '[' || text.trim().charAt(0) === '{';
+          var data;
+          if (isJson) {
+            var parsed = JSON.parse(text);
+            data = Array.isArray(parsed) ? parsed : (parsed.data || parsed.rows || null);
+            if (!data) throw new Error('JSON must be an array of objects (or { "data": [...] }).');
+          } else {
+            data = parseCSV(text);
+          }
+          loadData(data);
+          setStatus('Loaded “' + file.name + '” — ' + data.length.toLocaleString() + ' rows. Drag fields in the list to pivot.', 'ok');
+        } catch (err) {
+          console.error(err);
+          setStatus('Could not load file: ' + (err && err.message ? err.message : err), 'err');
+        }
+      };
+      reader.onerror = function () { setStatus('Failed to read the file.', 'err'); };
+      reader.readAsText(file);
+    }
+
+    $('pick').onclick = function () { $('file').click(); };
+    $('file').onchange = function (e) { handleFile(e.target.files[0]); };
+
+    var drop = $('drop');
+    drop.onclick = function () { $('file').click(); };
+    ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+
+    // ── Sample file the user can download, edit and re-upload ──
+    var SAMPLE = [
+      { Region: 'West',  Category: 'Furniture',  Date: '2024-01-15', Sales: 1200.5,  Quantity: 4 },
+      { Region: 'West',  Category: 'Technology', Date: '2024-02-03', Sales: 3400,    Quantity: 2 },
+      { Region: 'East',  Category: 'Furniture',  Date: '2024-01-22', Sales: 800,     Quantity: 6 },
+      { Region: 'East',  Category: 'Office',     Date: '2024-03-11', Sales: 240.75,  Quantity: 12 },
+      { Region: 'North', Category: 'Technology', Date: '2024-02-19', Sales: 5600,    Quantity: 3 },
+      { Region: 'North', Category: 'Office',     Date: '2024-03-28', Sales: 410,     Quantity: 9 },
+      { Region: 'South', Category: 'Furniture',  Date: '2024-01-30', Sales: 1500,    Quantity: 5 },
+      { Region: 'South', Category: 'Technology', Date: '2024-02-25', Sales: 2750.25, Quantity: 1 },
+      { Region: 'West',  Category: 'Office',     Date: '2024-03-05', Sales: 320,     Quantity: 8 },
+      { Region: 'East',  Category: 'Technology', Date: '2024-03-17', Sales: 4100,    Quantity: 2 },
+      { Region: 'North', Category: 'Furniture',  Date: '2024-01-09', Sales: 990,     Quantity: 7 },
+      { Region: 'South', Category: 'Office',     Date: '2024-02-14', Sales: 530.5,   Quantity: 10 }
+    ];
+    function download(content, filename, mime) {
+      var blob = new Blob([content], { type: mime });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+    function toCsv(rows) {
+      var cols = Object.keys(rows[0]);
+      var esc = function (v) { var s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      return [cols.join(',')].concat(rows.map(function (r) { return cols.map(function (c) { return esc(r[c]); }).join(','); })).join('\n');
+    }
+    $('sampleCsv').onclick = function () { download(toCsv(SAMPLE), 'propivot-sample.csv', 'text/csv;charset=utf-8'); };
+    $('sampleJson').onclick = function () { download(JSON.stringify(SAMPLE, null, 2), 'propivot-sample.json', 'application/json'); };
+
+    if (!PP) {
+      setStatus('Demo bundle failed to load. Run "npm run build" and reload.', 'err');
+    } else {
+      loadData(JSON.parse(JSON.stringify(SAMPLE)));
+    }
+  </script>
+</body>
+</html>
