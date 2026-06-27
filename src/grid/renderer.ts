@@ -6,14 +6,21 @@
 // user change a measure's aggregation by clicking its column header.
 
 import type { CellMatrix, AxisNode } from '../core/matrix';
-import { pathKey } from '../core/matrix';
+import { pathKey, GS } from '../core/matrix';
 import type { NormalReport } from '../core/normalize';
 import { totalsEnabled } from '../core/normalize';
 import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import type { CompiledCondition } from '../core/conditions';
+import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy } from '../core/types';
+import { formatVisual, evalConditionStyle, formatsForType } from '../core/cellStyle';
 import { CellBuilder, type CellData } from '../facade/cell';
 
 export type Zone = 'rows' | 'columns' | 'measures' | 'filters' | 'available';
+
+/** Identifies a grid column for the column-properties / resize / display APIs. */
+export type ColumnRef =
+  | { kind: 'measure'; uniqueName: string; key: string }
+  | { kind: 'field'; uniqueName: string };
 
 export interface PivotController {
   allFields(): Array<{ uniqueName: string; caption: string }>;
@@ -31,6 +38,22 @@ export interface PivotController {
   toggleSort(uniqueName: string): void;
   /** Toggle sorting rows by a measure (measure-header click). */
   sortByMeasure(uniqueName: string): void;
+  /** Set a column's pixel width (drag-resize). */
+  setColumnWidth(ref: ColumnRef, width: number): void;
+  /** Reorder a column to a zone + index (drag-reorder, within or across zones). */
+  reorderColumn(uniqueName: string, toZone: Zone, toIndex: number): void;
+  /** Set (or clear with null) a column's display format. */
+  setColumnDisplay(ref: ColumnRef, display: DisplayFormat | null): void;
+  /** Rename a column's heading/caption. */
+  setColumnCaption(ref: ColumnRef, caption: string): void;
+  /** Add a conditional-format rule. */
+  addCondition(condition: Condition): void;
+  /** Remove a conditional-format rule by id. */
+  removeCondition(id: number): void;
+  /** All conditions (used to populate the column-properties panel). */
+  getConditions(): Condition[];
+  /** Apply a Top/Bottom-N filter to a row hierarchy ranked by a measure. */
+  setTopN(measureUniqueName: string, mode: 'top' | 'bottom' | 'off', quantity: number): void;
 }
 
 export interface RendererOptions {
@@ -90,6 +113,8 @@ export class GridRenderer {
   private editor: HTMLElement | null = null;
   private editorOutside?: (e: MouseEvent) => void;
   private editorKey?: (e: KeyboardEvent) => void;
+  /** Per-measure-slot value range, used to auto-scale data_bar / heatmap. */
+  private colStats = new Map<string, { min: number; max: number }>();
 
   constructor(container: HTMLElement, private opts: RendererOptions) {
     this.root = container;
@@ -143,6 +168,10 @@ export class GridRenderer {
     const measures = matrix.measures;
     const showColGrand = totalsEnabled(ctx.normal.grid.showGrandTotals, 'columns') && matrix.colTree.length > 0;
 
+    this.computeColStats(matrix);
+    const colgroup = this.buildColgroup(ctx, colLeaves, measures, showColGrand, rowHeaderCols, multi);
+    if (colgroup) table.appendChild(colgroup);
+
     table.appendChild(this.buildHead(matrix, ctx, colLeaves, showColGrand, rowHeaderCols, multi));
 
     const tbody = document.createElement('tbody');
@@ -164,6 +193,48 @@ export class GridRenderer {
     };
     scroll.addEventListener('scroll', this.onScroll);
     this.paintBody();
+  }
+
+  /** Min/max per measure slot across the matrix, to auto-scale data_bar/heatmap. */
+  private computeColStats(matrix: CellMatrix): void {
+    this.colStats.clear();
+    const needs = matrix.measures.some((m) => {
+      const t = m.display?.type;
+      return t === 'data_bar' || t === 'progress' || t === 'heatmap' || t === 'percent_ring';
+    });
+    if (!needs) return;
+    for (const [k, v] of matrix.cells) {
+      if (!Number.isFinite(v)) continue;
+      const mk = k.slice(k.lastIndexOf(GS) + 1);
+      const cur = this.colStats.get(mk);
+      if (!cur) this.colStats.set(mk, { min: v, max: v });
+      else { if (v < cur.min) cur.min = v; if (v > cur.max) cur.max = v; }
+    }
+  }
+
+  /** A <colgroup> carrying per-column widths so they survive row virtualization. */
+  private buildColgroup(
+    ctx: RenderContext, colLeaves: AxisNode[], measures: CellMatrix['measures'],
+    showColGrand: boolean, rowHeaderCols: number, multi: boolean,
+  ): HTMLElement | null {
+    const rowFields = ctx.normal.rowFields;
+    const measureSpan = Math.max(1, measures.length);
+    const colCount = rowHeaderCols + colLeaves.length * measureSpan + (showColGrand ? measureSpan : 0);
+    const cg = document.createElement('colgroup');
+    const addCol = (w?: number) => {
+      const col = document.createElement('col');
+      if (w && w > 0) col.style.width = `${w}px`;
+      cg.appendChild(col);
+    };
+    // Row-header columns.
+    if (multi) for (let j = 0; j < rowHeaderCols; j++) addCol(hierarchyOf(ctx, rowFields[j])?.width);
+    else addCol(rowFields.length ? hierarchyOf(ctx, rowFields[0])?.width : undefined);
+    // Value columns (per leaf, then grand) — one per measure slot.
+    const measureCols = () => { for (const m of measures.length ? measures : [null]) addCol(m?.width); };
+    for (let i = 0; i < colLeaves.length; i++) measureCols();
+    if (showColGrand) measureCols();
+    // Guard: only emit when it matches the body column count.
+    return cg.childElementCount === colCount ? cg : null;
   }
 
   // ---------- virtualized body ----------
@@ -217,7 +288,8 @@ export class GridRenderer {
         const th = document.createElement('th');
         th.className = 'pp-colh';
         th.colSpan = span * measureSpan;
-        th.textContent = label;
+        this.renderMember(th, ctx, matrix.colFields[d], label);
+        this.decorateHeader(th, ctx, { ref: { kind: 'field', uniqueName: matrix.colFields[d] }, zone: 'columns', index: d, resizable: false });
         tr.appendChild(th);
         i += span;
       }
@@ -243,6 +315,7 @@ export class GridRenderer {
           th.title = 'Click to sort';
           th.addEventListener('click', () => this.opts.controller.toggleSort(f));
         }
+        this.decorateHeader(th, ctx, { ref: { kind: 'field', uniqueName: f }, zone: 'rows', index: matrix.rowFields.indexOf(f) });
         trM.appendChild(th);
       }
     } else if (colDepth === 0) {
@@ -259,7 +332,7 @@ export class GridRenderer {
           trM.appendChild(th);
           continue;
         }
-        for (const m of measures) trM.appendChild(this.measureHeader(m, grand, ctx));
+        for (let mi = 0; mi < measures.length; mi++) trM.appendChild(this.measureHeader(measures[mi], grand, ctx, mi));
       }
     };
     measureHeaders(colLeaves.length, false);
@@ -268,7 +341,7 @@ export class GridRenderer {
     return thead;
   }
 
-  private measureHeader(m: CellMatrix['measures'][number], grand: boolean, ctx: RenderContext): HTMLElement {
+  private measureHeader(m: CellMatrix['measures'][number], grand: boolean, ctx: RenderContext, index: number): HTMLElement {
     const th = document.createElement('th');
     th.className = 'pp-measureh' + (grand ? ' pp-grand' : '');
     // The heading stays clean — caption only (clicking it sorts rows by this measure).
@@ -290,6 +363,7 @@ export class GridRenderer {
       gear.addEventListener('click', (e) => { e.stopPropagation(); this.openMeasureModal(m); });
       th.appendChild(gear);
     }
+    this.decorateHeader(th, ctx, { ref: { kind: 'measure', uniqueName: m.uniqueName, key: m.key }, zone: 'measures', index });
     return th;
   }
 
@@ -348,6 +422,375 @@ export class GridRenderer {
     if (this.editor) { this.editor.remove(); this.editor = null; }
     if (this.editorOutside) { document.removeEventListener('mousedown', this.editorOutside); this.editorOutside = undefined; }
     if (this.editorKey) { document.removeEventListener('keydown', this.editorKey); this.editorKey = undefined; }
+    if (this.resizeMove) { document.removeEventListener('mousemove', this.resizeMove); this.resizeMove = undefined; }
+    if (this.resizeUp) { document.removeEventListener('mouseup', this.resizeUp); this.resizeUp = undefined; }
+  }
+
+  // ---------- column controls (resize / reorder / properties) ----------
+
+  /** Add resize handle, drag-reorder, and a properties button to a header cell. */
+  private decorateHeader(
+    th: HTMLElement, ctx: RenderContext,
+    o: { ref: ColumnRef; zone: Zone; index: number; resizable?: boolean },
+  ): void {
+    const cp = ctx.normal.columnProps;
+    if (!cp.enabled) return;
+
+    if (cp.edit) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pp-colprops';
+      btn.title = 'Column properties';
+      btn.textContent = '▾';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); this.openColumnPropsEditor(e as MouseEvent, ctx, o.ref); });
+      th.appendChild(btn);
+    }
+
+    if (cp.reorder) {
+      th.draggable = true;
+      th.classList.add('pp-draggable');
+      th.addEventListener('dragstart', (e) => {
+        e.dataTransfer?.setData('text/plain', o.ref.uniqueName);
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+      });
+      th.addEventListener('dragover', (e) => { e.preventDefault(); th.classList.add('pp-col-dragover'); });
+      th.addEventListener('dragleave', () => th.classList.remove('pp-col-dragover'));
+      th.addEventListener('drop', (e) => {
+        e.preventDefault();
+        th.classList.remove('pp-col-dragover');
+        const name = e.dataTransfer?.getData('text/plain');
+        if (name && name !== o.ref.uniqueName) this.opts.controller.reorderColumn(name, o.zone, o.index);
+      });
+    }
+
+    if (o.resizable !== false && cp.resize) {
+      const handle = document.createElement('span');
+      handle.className = 'pp-resize';
+      handle.title = 'Drag to resize';
+      handle.addEventListener('click', (e) => e.stopPropagation());
+      handle.addEventListener('mousedown', (e) => this.startResize(e as MouseEvent, th, o.ref));
+      handle.draggable = false;
+      th.appendChild(handle);
+    }
+  }
+
+  private resizeMove?: (e: MouseEvent) => void;
+  private resizeUp?: (e: MouseEvent) => void;
+
+  private startResize(e: MouseEvent, th: HTMLElement, ref: ColumnRef): void {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = th.getBoundingClientRect().width || 80;
+    this.resizeMove = (ev: MouseEvent) => {
+      const w = Math.max(24, startW + (ev.clientX - startX));
+      th.style.width = `${w}px`;
+    };
+    this.resizeUp = (ev: MouseEvent) => {
+      if (this.resizeMove) document.removeEventListener('mousemove', this.resizeMove);
+      if (this.resizeUp) document.removeEventListener('mouseup', this.resizeUp);
+      this.resizeMove = undefined; this.resizeUp = undefined;
+      const w = Math.max(24, startW + (ev.clientX - startX));
+      this.opts.controller.setColumnWidth(ref, w);
+    };
+    document.addEventListener('mousemove', this.resizeMove);
+    document.addEventListener('mouseup', this.resizeUp);
+  }
+
+  // ---------- column-properties panel ----------
+
+  private openColumnPropsEditor(ev: MouseEvent, ctx: RenderContext, ref: ColumnRef): void {
+    if (!ctx.normal.columnProps.edit) return;
+    this.closeEditor();
+
+    const isMeasure = ref.kind === 'measure';
+    const measure = isMeasure ? (this.body?.measures.find((m) => m.key === ref.key) ?? null) : null;
+    const field = isMeasure ? (measure?.uniqueName ?? ref.uniqueName) : ref.uniqueName;
+    const caption = isMeasure ? (measure?.caption ?? ref.uniqueName) : captionOf(ctx, field);
+    const fieldType: FieldType = isMeasure ? 'number' : (fieldTypeOf(ctx, field) ?? 'string');
+    const currentDisplay: DisplayFormat | undefined = isMeasure ? measure?.display : hierarchyOf(ctx, field)?.display;
+
+    const pop = document.createElement('div');
+    pop.className = 'pp-popup pp-colprops-popup';
+    pop.style.left = `${Math.min(ev.clientX, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 340)}px`;
+    pop.style.top = `${ev.clientY}px`;
+
+    const title = document.createElement('div');
+    title.className = 'pp-popup-title';
+    title.textContent = caption;
+    pop.appendChild(title);
+
+    // Tabs.
+    const tabsBar = document.createElement('div');
+    tabsBar.className = 'pp-tabs';
+    const panes = document.createElement('div');
+    panes.className = 'pp-tab-panes';
+    const tabDefs: Array<{ id: string; label: string; build: (p: HTMLElement) => void }> = [];
+
+    tabDefs.push({ id: 'props', label: 'Properties', build: (p) => this.buildPropsPane(p, ctx, ref, measure, caption) });
+    tabDefs.push({ id: 'display', label: 'Display', build: (p) => this.buildDisplayPane(p, ctx, ref, fieldType, currentDisplay) });
+    if (isMeasure) tabDefs.push({ id: 'cond', label: 'Conditional', build: (p) => this.buildConditionsPane(p, ctx, ref) });
+    tabDefs.push({ id: 'filter', label: 'Filter', build: (p) => this.buildFilterPane(p, ctx, ref, field) });
+
+    const paneEls: Record<string, HTMLElement> = {};
+    let active = '';
+    const activate = (id: string) => {
+      active = id;
+      for (const d of tabDefs) {
+        paneEls[d.id].style.display = d.id === id ? '' : 'none';
+        tabsBar.querySelector(`[data-tab="${d.id}"]`)?.classList.toggle('pp-tab-active', d.id === id);
+      }
+    };
+    for (const d of tabDefs) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pp-tab';
+      b.dataset.tab = d.id;
+      b.textContent = d.label;
+      b.addEventListener('click', () => activate(d.id));
+      tabsBar.appendChild(b);
+      const pane = document.createElement('div');
+      pane.className = 'pp-tab-pane';
+      d.build(pane);
+      paneEls[d.id] = pane;
+      panes.appendChild(pane);
+    }
+    pop.append(tabsBar, panes);
+    activate(tabDefs[0].id);
+
+    document.body.appendChild(pop);
+    this.editor = pop;
+    this.editorOutside = (e: MouseEvent) => { if (!pop.contains(e.target as Node)) this.closeEditor(); };
+    this.editorKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeEditor(); };
+    setTimeout(() => { if (this.editorOutside) document.addEventListener('mousedown', this.editorOutside); }, 0);
+    document.addEventListener('keydown', this.editorKey);
+  }
+
+  private buildPropsPane(
+    p: HTMLElement, ctx: RenderContext, ref: ColumnRef,
+    measure: CellMatrix['measures'][number] | null, caption: string,
+  ): void {
+    p.appendChild(fieldRow('Heading', (() => {
+      const wrap = document.createElement('div');
+      wrap.className = 'pp-field-inline';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = caption;
+      const apply = primaryBtn('Apply', () => this.opts.controller.setColumnCaption(ref, input.value));
+      wrap.append(input, apply);
+      return wrap;
+    })()));
+
+    if (ref.kind === 'measure' && measure && !measure.calculated) {
+      p.appendChild(fieldRow('Aggregation', (() => {
+        const sel = document.createElement('select');
+        for (const a of ALL_AGGREGATIONS) {
+          const o = document.createElement('option');
+          o.value = a; o.textContent = AGGREGATION_CAPTIONS[a] ?? a;
+          if (a === measure.aggregation) o.selected = true;
+          sel.appendChild(o);
+        }
+        sel.addEventListener('change', () => this.opts.controller.setMeasureAggregation(measure.uniqueName, sel.value));
+        return sel;
+      })()));
+    }
+
+    if (ctx.normal.columnProps.resize) {
+      p.appendChild(fieldRow('Width (px)', (() => {
+        const wrap = document.createElement('div');
+        wrap.className = 'pp-field-inline';
+        const input = document.createElement('input');
+        input.type = 'number'; input.min = '24'; input.placeholder = 'auto';
+        const cur = ref.kind === 'measure' ? measure?.width : hierarchyOf(ctx, ref.uniqueName)?.width;
+        if (cur) input.value = String(cur);
+        const apply = primaryBtn('Apply', () => { const w = Number(input.value); if (w > 0) this.opts.controller.setColumnWidth(ref, w); });
+        wrap.append(input, apply);
+        return wrap;
+      })()));
+    }
+  }
+
+  private buildDisplayPane(
+    p: HTMLElement, ctx: RenderContext, ref: ColumnRef, fieldType: FieldType, current?: DisplayFormat,
+  ): void {
+    const allowed = formatsForType(fieldType);
+    const inputs = new Map<string, HTMLInputElement | HTMLSelectElement>();
+    const sel = document.createElement('select');
+    for (const t of allowed) {
+      const o = document.createElement('option');
+      o.value = t; o.textContent = DISPLAY_LABELS[t] ?? t;
+      if (current?.type === t) o.selected = true;
+      sel.appendChild(o);
+    }
+    p.appendChild(fieldRow('Format', sel));
+
+    const opts = document.createElement('div');
+    opts.className = 'pp-display-opts';
+    p.appendChild(opts);
+
+    const preview = document.createElement('div');
+    preview.className = 'pp-display-preview';
+    const sample = document.createElement('input');
+    sample.type = 'text';
+    sample.className = 'pp-sample';
+    sample.value = isNumericField(fieldType) ? '1234.5' : isDateField(fieldType) ? '2024-01-15' : 'Sample';
+    const previewOut = document.createElement('span');
+    previewOut.className = 'pp-preview-out';
+    preview.append(labelSpan('Preview'), sample, previewOut);
+
+    const read = (): DisplayFormat => {
+      const fmt: DisplayFormat = { type: sel.value as DisplayFormatType };
+      for (const [k, ctrl] of inputs) {
+        const v = ctrl.value;
+        if (v === '' || v == null) continue;
+        if (NUMERIC_OPT_KEYS.has(k)) (fmt as unknown as Record<string, unknown>)[k] = Number(v);
+        else if (k === 'showValue' || k === 'hideValue' || k === 'showFlag') (fmt as unknown as Record<string, unknown>)[k] = (ctrl as HTMLInputElement).checked;
+        else if (k === 'thresholds' || k === 'colors') (fmt as unknown as Record<string, unknown>)[k] = v.split(',').map((s) => s.trim()).filter(Boolean).map((s) => (k === 'thresholds' ? Number(s) : s));
+        else if (k === 'rules') (fmt as unknown as Record<string, unknown>).rules = parseRules(v);
+        else if (k === 'map') (fmt as unknown as Record<string, unknown>).map = parseMap(v);
+        else (fmt as unknown as Record<string, unknown>)[k] = v;
+      }
+      return fmt;
+    };
+
+    const refreshPreview = () => {
+      const fmt = read();
+      const raw = sample.value;
+      const num = Number(raw);
+      const vis = formatVisual({
+        value: Number.isFinite(num) && raw.trim() !== '' ? num : undefined,
+        raw, baseText: raw, display: fmt, fieldType, now: 0,
+      });
+      previewOut.innerHTML = vis.html !== undefined ? vis.html : escapeHtml(vis.text);
+      previewOut.removeAttribute('style');
+      if (!vis.rich) {
+        if (vis.color) previewOut.style.color = vis.color;
+        if (vis.bg) previewOut.style.backgroundColor = vis.bg;
+        if (vis.bold) previewOut.style.fontWeight = '600';
+      }
+    };
+
+    const renderOpts = () => {
+      opts.innerHTML = '';
+      inputs.clear();
+      const keys = FIELD_FOR_TYPE[sel.value] ?? [];
+      for (const key of keys) {
+        const ctrl = makeOptControl(key, current);
+        if (!ctrl) continue;
+        inputs.set(key, ctrl);
+        ctrl.addEventListener('change', refreshPreview);
+        ctrl.addEventListener('input', refreshPreview);
+        opts.appendChild(fieldRow(OPT_LABELS[key] ?? key, ctrl));
+      }
+      refreshPreview();
+    };
+    sel.addEventListener('change', renderOpts);
+    sample.addEventListener('input', refreshPreview);
+    renderOpts();
+
+    p.appendChild(preview);
+
+    const actions = document.createElement('div');
+    actions.className = 'pp-popup-actions';
+    actions.append(
+      primaryBtn('Apply', () => this.opts.controller.setColumnDisplay(ref, sel.value === 'text' ? null : read())),
+      plainBtn('Clear', () => this.opts.controller.setColumnDisplay(ref, null)),
+    );
+    p.appendChild(actions);
+  }
+
+  private buildConditionsPane(p: HTMLElement, ctx: RenderContext, ref: ColumnRef): void {
+    if (ref.kind !== 'measure') return;
+    const all = this.opts.controller.getConditions();
+    const mine = all.filter((c) => c.measureKey === ref.key || (!c.measureKey && (c.measure ?? '').toLowerCase() === ref.uniqueName.toLowerCase()));
+
+    const list = document.createElement('div');
+    list.className = 'pp-cond-list';
+    if (!mine.length) { const e = document.createElement('div'); e.className = 'pp-muted'; e.textContent = 'No rules yet.'; list.appendChild(e); }
+    for (const c of mine) {
+      const row = document.createElement('div');
+      row.className = 'pp-cond-item';
+      const swatch = document.createElement('span');
+      swatch.className = 'pp-cond-swatch';
+      swatch.style.background = c.format?.backgroundColor ?? '#fff';
+      swatch.style.color = c.format?.color ?? '#000';
+      swatch.textContent = 'Aa';
+      const lbl = document.createElement('span');
+      lbl.textContent = c.formula ?? '';
+      const rm = plainBtn('✕', () => { if (c.id !== undefined) this.opts.controller.removeCondition(c.id); });
+      rm.classList.add('pp-cond-rm');
+      row.append(swatch, lbl, rm);
+      list.appendChild(row);
+    }
+    p.appendChild(list);
+
+    // Add-rule form: operator + value + colors.
+    const form = document.createElement('div');
+    form.className = 'pp-cond-form';
+    const op = document.createElement('select');
+    for (const o of ['>', '>=', '<', '<=', '==', '!=']) { const e = document.createElement('option'); e.value = o; e.textContent = o; op.appendChild(e); }
+    const val = document.createElement('input'); val.type = 'number'; val.placeholder = 'value';
+    const bg = document.createElement('input'); bg.type = 'color'; bg.value = '#c5e1a5'; bg.title = 'Background';
+    const fg = document.createElement('input'); fg.type = 'color'; fg.value = '#1b5e20'; fg.title = 'Text color';
+    const add = primaryBtn('Add', () => {
+      if (val.value === '') return;
+      this.opts.controller.addCondition({
+        formula: `#value ${op.value} ${Number(val.value)}`,
+        measure: ref.uniqueName,
+        measureKey: ref.key,
+        format: { backgroundColor: bg.value, color: fg.value },
+      });
+    });
+    form.append(labelSpan('Add rule: #value'), op, val, bg, fg, add);
+    p.appendChild(form);
+  }
+
+  private buildFilterPane(p: HTMLElement, ctx: RenderContext, ref: ColumnRef, field: string): void {
+    if (ref.kind === 'measure') {
+      // Top/Bottom-N on the first row hierarchy ranked by this measure.
+      const wrap = document.createElement('div');
+      wrap.className = 'pp-field-inline';
+      const mode = document.createElement('select');
+      for (const [v, t] of [['off', 'Show all'], ['top', 'Top N'], ['bottom', 'Bottom N']] as const) { const o = document.createElement('option'); o.value = v; o.textContent = t; mode.appendChild(o); }
+      const qty = document.createElement('input'); qty.type = 'number'; qty.min = '1'; qty.value = '10';
+      const apply = primaryBtn('Apply', () => this.opts.controller.setTopN(ref.uniqueName, mode.value as 'top' | 'bottom' | 'off', Number(qty.value) || 10));
+      wrap.append(mode, qty, apply);
+      p.appendChild(fieldRow('Rank rows by this measure', wrap));
+      const note = document.createElement('div'); note.className = 'pp-muted'; note.textContent = 'Filters the first row field by this measure.';
+      p.appendChild(note);
+      return;
+    }
+    // Dimension column: distinct-value member filter.
+    const members = this.opts.controller.members(field);
+    const selected = hierarchyOf(ctx, field)?.filter?.members ?? null;
+    const selSet = new Set(selected ?? members);
+    const tools = document.createElement('div');
+    tools.className = 'pp-popup-tools';
+    const allLink = document.createElement('a'); allLink.textContent = 'All'; allLink.href = 'javascript:void(0)';
+    const noneLink = document.createElement('a'); noneLink.textContent = 'None'; noneLink.href = 'javascript:void(0)';
+    tools.append(allLink, noneLink);
+    p.appendChild(tools);
+    const listEl = document.createElement('div');
+    listEl.className = 'pp-popup-list';
+    const boxes: HTMLInputElement[] = [];
+    for (const m of members) {
+      const rowL = document.createElement('label');
+      rowL.className = 'pp-popup-item';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = m; cb.checked = selSet.has(m);
+      boxes.push(cb);
+      const sp = document.createElement('span'); sp.textContent = m || '(blank)';
+      rowL.append(cb, sp);
+      listEl.appendChild(rowL);
+    }
+    allLink.addEventListener('click', () => boxes.forEach((b) => (b.checked = true)));
+    noneLink.addEventListener('click', () => boxes.forEach((b) => (b.checked = false)));
+    p.appendChild(listEl);
+    const apply = primaryBtn('Apply', () => {
+      const checked = boxes.filter((b) => b.checked).map((b) => b.value);
+      this.opts.controller.setFilter(field, checked.length === members.length ? null : checked);
+    });
+    const actions = document.createElement('div'); actions.className = 'pp-popup-actions'; actions.appendChild(apply);
+    p.appendChild(actions);
   }
 
   // ---------- report-filter area ----------
@@ -484,7 +927,7 @@ export class GridRenderer {
         const th = document.createElement('th');
         th.className = 'pp-rowh';
         if (vr.isGrand) th.textContent = j === 0 ? b.ctx.normal.localization.grandTotal : '';
-        else if (j < vr.path.length) th.textContent = vr.path[j];
+        else if (j < vr.path.length) this.renderMember(th, b.ctx, matrix.rowFields[j], vr.path[j]);
         else if (vr.isSubtotal && j === vr.path.length) th.textContent = b.ctx.normal.localization.total;
         else th.textContent = '';
         tr.appendChild(th);
@@ -501,7 +944,8 @@ export class GridRenderer {
         th.appendChild(toggle);
       }
       const labelEl = document.createElement('span');
-      labelEl.textContent = vr.label;
+      if (vr.isGrand || R === 0) labelEl.textContent = vr.label;
+      else this.renderMember(labelEl, b.ctx, matrix.rowFields[Math.min(vr.depth, R - 1)], vr.label);
       th.appendChild(labelEl);
       tr.appendChild(th);
     }
@@ -515,6 +959,27 @@ export class GridRenderer {
     for (const leaf of colLeaves) renderGroup(leaf.path, false);
     if (showColGrand) renderGroup([], true);
     return tr;
+  }
+
+  /** Set a dimension member cell's content, applying its column display format. */
+  private renderMember(el: HTMLElement, ctx: RenderContext, field: string, label: string): void {
+    const display = hierarchyOf(ctx, field)?.display;
+    if (!display || display.type === 'text') { el.textContent = label; return; }
+    const num = Number(label);
+    const vis = formatVisual({
+      value: Number.isFinite(num) && label.trim() !== '' ? num : undefined,
+      raw: label,
+      baseText: label,
+      display,
+      fieldType: fieldTypeOf(ctx, field),
+    });
+    if (vis.html !== undefined) el.innerHTML = vis.html; else el.textContent = vis.text;
+    if (!vis.rich) {
+      if (vis.color) el.style.color = vis.color;
+      if (vis.bg) el.style.backgroundColor = vis.bg;
+      if (vis.bold) el.style.fontWeight = '600';
+      if (vis.align) el.style.textAlign = vis.align;
+    }
   }
 
   private buildValueCell(
@@ -558,13 +1023,31 @@ export class GridRenderer {
     };
 
     const measureName = measure?.uniqueName ?? matrix.measures[0]?.uniqueName ?? '';
-    for (const c of ctx.conditions) {
-      const cond = c.condition;
-      if (cond.measure && cond.measure.toLowerCase() !== measureName.toLowerCase()) continue;
-      if (cond.isTotal === true && !isTotalRow) continue;
-      if (cond.isTotal === false && isTotalRow) continue;
-      if (!Number.isNaN(value) && c.predicate(value)) Object.assign(cb.style, cond.format ?? {});
+
+    // Display format — a presentation layer over the base (number-formatted) text.
+    const display = measure?.display;
+    if (display && display.type !== 'text') {
+      const vis = formatVisual({
+        value: Number.isNaN(value) ? undefined : value,
+        raw: Number.isNaN(value) ? undefined : value,
+        baseText: text,
+        display,
+        fieldType: 'number',
+        isTotal: isTotalRow,
+        isGrand: isGrandRow,
+        columnStats: this.colStats.get(measureKey),
+      });
+      if (vis.html !== undefined) cb.text = vis.html;
+      if (!vis.rich) {
+        if (vis.color) cb.style.color = vis.color;
+        if (vis.bg) cb.style.backgroundColor = vis.bg;
+        if (vis.bold) cb.style.fontWeight = '600';
+        if (vis.align) cb.style.textAlign = vis.align;
+      }
     }
+
+    // Conditional formatting — applied after the display format so its rules win.
+    Object.assign(cb.style, evalConditionStyle(ctx.conditions, value, measureName, measureKey, isTotalRow));
 
     if (ctx.customizeCell) ctx.customizeCell(cb, data);
 
@@ -757,15 +1240,154 @@ export class GridRenderer {
 
 // ---------- helpers ----------
 
+// Column-properties panel: form-control builders + display-format option metadata.
+
+const DISPLAY_LABELS: Record<string, string> = {
+  text: 'Plain text', number: 'Number', signed: 'Signed (+/−)', data_bar: 'Data bar',
+  progress: 'Progress bar', percent_ring: 'Percent ring', heatmap: 'Heatmap', rating: 'Rating',
+  bullet: 'Bullet', sparkline: 'Sparkline', background: 'Conditional background',
+  status_tag: 'Status tag', status_dot: 'Status dot', icon_map: 'Icon map', boolean: 'Yes / No',
+  tags: 'Tags', avatar: 'Avatar', two_line: 'Two-line', date: 'Date', relative_time: 'Relative time',
+  date_range: 'Date range', countdown: 'Countdown', telephone: 'Phone', country: 'Country',
+  email: 'Email', url: 'Link', image: 'Image', file: 'File', map: 'Map', copy: 'Copyable',
+  case: 'Text case', truncate: 'Truncate', masked: 'Masked', template: 'Template',
+};
+
+const OPT_LABELS: Record<string, string> = {
+  numberStyle: 'Number style', decimals: 'Decimals', currency: 'Currency', prefix: 'Prefix',
+  suffix: 'Suffix', min: 'Min', max: 'Max', color: 'Color', scale: 'Scale', thresholds: 'Thresholds',
+  colors: 'Band colors', applyTo: 'Apply to', icon: 'Icon', showValue: 'Show value', hideValue: 'Hide value',
+  datePattern: 'Date pattern', warnDays: 'Warn days', dangerDays: 'Danger days', textCase: 'Case',
+  truncate: 'Max chars', maskLast: 'Visible chars', maskChar: 'Mask char', template: 'Template',
+  label: 'Label', showFlag: 'Show flag', countryShow: 'Show', map: 'Value map', rules: 'Rules',
+  defaultColor: 'Default color', defaultIcon: 'Default icon',
+};
+
+const FIELD_FOR_TYPE: Record<string, string[]> = {
+  number: ['numberStyle', 'decimals', 'currency', 'prefix', 'suffix'],
+  signed: ['numberStyle', 'decimals', 'prefix', 'suffix'],
+  data_bar: ['numberStyle', 'decimals', 'min', 'max', 'color'],
+  progress: ['min', 'max', 'color', 'showValue'],
+  percent_ring: ['max', 'color', 'showValue'],
+  heatmap: ['numberStyle', 'decimals', 'scale', 'thresholds', 'colors', 'applyTo'],
+  rating: ['max', 'icon', 'color'],
+  bullet: ['numberStyle', 'max', 'color'],
+  sparkline: ['color'],
+  background: ['rules', 'defaultColor'],
+  status_tag: ['map', 'defaultColor'],
+  status_dot: ['map', 'defaultColor', 'hideValue'],
+  icon_map: ['map', 'defaultIcon', 'hideValue'],
+  boolean: ['map'],
+  tags: ['map', 'defaultColor'],
+  date: ['datePattern'],
+  date_range: ['datePattern'],
+  relative_time: ['datePattern'],
+  countdown: ['datePattern', 'warnDays', 'dangerDays'],
+  case: ['textCase'],
+  truncate: ['truncate'],
+  masked: ['maskLast', 'maskChar'],
+  template: ['template'],
+  telephone: ['label', 'showFlag'],
+  country: ['countryShow'],
+  email: ['label'], url: ['label'], file: ['label'], map: ['label'],
+  avatar: [], two_line: [], image: [], copy: [], text: [],
+};
+
+const NUMERIC_OPT_KEYS = new Set(['decimals', 'min', 'max', 'truncate', 'maskLast', 'warnDays', 'dangerDays']);
+const SELECT_OPTS: Record<string, string[]> = {
+  numberStyle: ['decimal', 'currency', 'accounting', 'percent', 'scientific', 'compact'],
+  scale: ['stepped', 'gradient'],
+  applyTo: ['text', 'background'],
+  textCase: ['upper', 'lower', 'title', 'camel', 'sentence'],
+  icon: ['star', 'heart', 'circle'],
+  countryShow: ['flag_name', 'flag', 'flag_code'],
+};
+const COLOR_OPT_KEYS = new Set(['color', 'defaultColor']);
+const BOOL_OPT_KEYS = new Set(['showValue', 'hideValue', 'showFlag']);
+
+function isNumericField(ft?: FieldType): boolean { return ft === 'number' || ft === undefined; }
+function isDateField(ft?: FieldType): boolean {
+  return ft === 'date' || ft === 'date string' || ft === 'datetime' || ft === 'time'
+    || ft === 'year/month/day' || ft === 'year/quarter/month/day' || ft === 'month' || ft === 'weekday';
+}
+
+function fieldRow(label: string, control: HTMLElement): HTMLElement {
+  const row = document.createElement('label');
+  row.className = 'pp-field';
+  const l = document.createElement('span');
+  l.className = 'pp-field-label';
+  l.textContent = label;
+  row.append(l, control);
+  return row;
+}
+function labelSpan(text: string): HTMLElement { const s = document.createElement('span'); s.className = 'pp-field-label'; s.textContent = text; return s; }
+function primaryBtn(text: string, onClick: () => void): HTMLButtonElement {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-popup-apply'; b.textContent = text;
+  b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+  return b;
+}
+function plainBtn(text: string, onClick: () => void): HTMLButtonElement {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-btn'; b.textContent = text;
+  b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+  return b;
+}
+
+function makeOptControl(key: string, current?: DisplayFormat): HTMLInputElement | HTMLSelectElement | null {
+  const cur = current as unknown as Record<string, unknown> | undefined;
+  if (SELECT_OPTS[key]) {
+    const sel = document.createElement('select');
+    for (const v of SELECT_OPTS[key]) { const o = document.createElement('option'); o.value = v; o.textContent = v; if (cur?.[key] === v) o.selected = true; sel.appendChild(o); }
+    return sel;
+  }
+  const input = document.createElement('input');
+  if (BOOL_OPT_KEYS.has(key)) { input.type = 'checkbox'; input.checked = cur?.[key] !== false; return input; }
+  if (COLOR_OPT_KEYS.has(key)) { input.type = 'color'; input.value = typeof cur?.[key] === 'string' ? String(cur[key]) : '#2563eb'; return input; }
+  if (NUMERIC_OPT_KEYS.has(key)) { input.type = 'number'; if (cur?.[key] != null) input.value = String(cur[key]); return input; }
+  input.type = 'text';
+  if (key === 'thresholds' || key === 'colors') input.value = Array.isArray(cur?.[key]) ? (cur![key] as unknown[]).join(', ') : '';
+  else if (key === 'map') input.value = serializeMap(cur?.map as DisplayFormat['map']);
+  else if (key === 'rules') input.value = serializeRules(cur?.rules as DisplayFormat['rules']);
+  else if (cur?.[key] != null) input.value = String(cur[key]);
+  if (key === 'map') input.placeholder = 'open|Open|green, closed|Closed|red';
+  if (key === 'rules') input.placeholder = 'value > 1000|green, value < 0|red';
+  if (key === 'datePattern') input.placeholder = 'dd-MMM-yyyy';
+  if (key === 'template') input.placeholder = 'INV-{value}';
+  return input;
+}
+
+function parseMap(text: string): DisplayFormat['map'] {
+  return text.split(',').map((s) => s.trim()).filter(Boolean).map((entry) => {
+    const [when, label, color, icon] = entry.split('|').map((x) => x.trim());
+    const e: { when: string; label?: string; color?: string; icon?: string } = { when };
+    if (label) e.label = label; if (color) e.color = color; if (icon) e.icon = icon;
+    return e;
+  });
+}
+function serializeMap(map?: DisplayFormat['map']): string {
+  return (map ?? []).map((e) => [e.when, e.label ?? '', e.color ?? '', e.icon ?? ''].join('|').replace(/\|+$/, '')).join(', ');
+}
+function parseRules(text: string): DisplayFormat['rules'] {
+  return text.split(',').map((s) => s.trim()).filter(Boolean).map((entry) => {
+    const idx = entry.lastIndexOf('|');
+    return idx >= 0 ? { when: entry.slice(0, idx).trim(), color: entry.slice(idx + 1).trim() } : { when: entry, color: 'green' };
+  });
+}
+function serializeRules(rules?: DisplayFormat['rules']): string {
+  return (rules ?? []).map((r) => `${r.when}|${r.color}`).join(', ');
+}
+
 function size(v: string | number): string { return typeof v === 'number' ? `${v}px` : v; }
 function toKebab(s: string): string { return s.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase()); }
 function escapeHtml(v: string): string { return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function captionOf(ctx: RenderContext, field: string): string {
   return ctx.normal.report.dataSource?.mapping?.[field]?.caption ?? field;
 }
-function hierarchyOf(ctx: RenderContext, field: string): { uniqueName: string; sort?: 'asc' | 'desc' | 'unsorted' } | undefined {
+function hierarchyOf(ctx: RenderContext, field: string): Hierarchy | undefined {
   const slice = ctx.normal.report.slice;
   return [...(slice?.rows ?? []), ...(slice?.columns ?? [])].find((h) => h.uniqueName === field);
+}
+function fieldTypeOf(ctx: RenderContext, field: string): FieldType | undefined {
+  return ctx.normal.report.dataSource?.mapping?.[field]?.type;
 }
 function sortGlyph(sort?: string): string {
   return sort === 'asc' ? ' ▲' : sort === 'desc' ? ' ▼' : '';

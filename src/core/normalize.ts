@@ -2,9 +2,24 @@
 // Accepts both field spellings (`type` / `dataSourceType`) and fills defaults
 // so the planner and renderer work against a single internal model.
 
-import type { Report, Slice, Measure, Hierarchy, Options, GridOptions } from './types';
+import type { Report, Slice, Measure, Hierarchy, Options, GridOptions, ColumnPropertiesOptions } from './types';
 import { MEASURES_KEY } from './types';
 import { expandHierarchyFields } from './store';
+
+export type ResolvedColumnProps = Required<ColumnPropertiesOptions>;
+
+/** Resolve the `columnProperties` option (boolean | object) to a flat shape. */
+export function resolveColumnProps(opt: Options['columnProperties']): ResolvedColumnProps {
+  if (opt === false) return { enabled: false, edit: false, resize: false, reorder: false };
+  if (opt === true || opt === undefined) return { enabled: true, edit: true, resize: true, reorder: true };
+  const enabled = opt.enabled !== false;
+  return {
+    enabled,
+    edit: enabled && opt.edit !== false,
+    resize: enabled && opt.resize !== false,
+    reorder: enabled && opt.reorder !== false,
+  };
+}
 
 export interface ResolvedLocalization {
   grandTotal: string;
@@ -25,6 +40,8 @@ export interface NormalReport {
   options: Required<Pick<Options, never>> & Options;
   grid: GridOptions;
   localization: ResolvedLocalization;
+  /** Resolved column-properties UX flags (resize / reorder / edit / enabled). */
+  columnProps: ResolvedColumnProps;
 }
 
 /** Merge localization from options.localization and report.localization. */
@@ -126,6 +143,7 @@ export function normalizeReport(report: Report): NormalReport {
     options: { ...(report.options ?? {}) },
     grid,
     localization: resolveLocalization(report),
+    columnProps: resolveColumnProps(report.options?.columnProperties),
   };
 }
 

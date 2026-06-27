@@ -8,6 +8,10 @@
 export interface SheetCell {
   text: string;
   num?: number; // when set, the cell is written as a number
+  /** Computed presentation, so PDF/SVG match the HTML grid. Ignored by xlsx for now. */
+  style?: { bg?: string; color?: string; bold?: boolean; align?: 'left' | 'right' | 'center' };
+  /** In-cell bar (data_bar / progress) for the PDF/SVG writers to draw. */
+  bar?: { pct: number; color: string; bg?: string };
 }
 
 // ---- CRC-32 ----

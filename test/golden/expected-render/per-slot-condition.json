@@ -3,36 +3,39 @@
     [
       {
         "tag": "th",
-        "text": "",
+        "text": "region",
         "cls": "pp-corner",
-        "cs": 2
+        "rs": 2
       },
       {
         "tag": "th",
         "text": "2023<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
-        "cls": "pp-colh pp-draggable"
+        "cls": "pp-colh pp-draggable",
+        "cs": 2
       },
       {
         "tag": "th",
         "text": "2024<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
-        "cls": "pp-colh pp-draggable"
+        "cls": "pp-colh pp-draggable",
+        "cs": 2
       },
       {
         "tag": "th",
         "text": "Grand Total",
-        "cls": "pp-colh pp-grand"
+        "cls": "pp-colh pp-grand",
+        "cs": 2
       }
     ],
     [
       {
         "tag": "th",
-        "text": "region<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
-        "cls": "pp-corner pp-sortable pp-draggable"
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-draggable"
       },
       {
         "tag": "th",
-        "text": "category<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
-        "cls": "pp-corner pp-sortable pp-draggable"
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-draggable"
       },
       {
         "tag": "th",
@@ -48,6 +51,11 @@
         "tag": "th",
         "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
         "cls": "pp-measureh pp-grand pp-draggable"
+      },
+      {
+        "tag": "th",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-measureh pp-grand pp-draggable"
       }
     ]
   ],
@@ -55,13 +63,9 @@
     [
       {
         "tag": "th",
-        "text": "East",
-        "cls": "pp-rowh"
-      },
-      {
-        "tag": "th",
-        "text": "Furniture",
-        "cls": "pp-rowh"
+        "text": "<span>East</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
       },
       {
         "tag": "td",
@@ -70,29 +74,7 @@
       },
       {
         "tag": "td",
-        "text": "",
-        "cls": "pp-cell"
-      },
-      {
-        "tag": "td",
         "text": "600",
-        "cls": "pp-cell pp-grand"
-      }
-    ],
-    [
-      {
-        "tag": "th",
-        "text": "East",
-        "cls": "pp-rowh"
-      },
-      {
-        "tag": "th",
-        "text": "Tech",
-        "cls": "pp-rowh"
-      },
-      {
-        "tag": "td",
-        "text": "",
         "cls": "pp-cell"
       },
       {
@@ -103,19 +85,25 @@
       {
         "tag": "td",
         "text": "2 600",
+        "cls": "pp-cell"
+      },
+      {
+        "tag": "td",
+        "text": "3 200",
+        "cls": "pp-cell pp-grand"
+      },
+      {
+        "tag": "td",
+        "text": "1 600",
         "cls": "pp-cell pp-grand"
       }
     ],
     [
       {
         "tag": "th",
-        "text": "West",
-        "cls": "pp-rowh"
-      },
-      {
-        "tag": "th",
-        "text": "Furniture",
-        "cls": "pp-rowh"
+        "text": "<span>West</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
       },
       {
         "tag": "td",
@@ -124,30 +112,14 @@
       },
       {
         "tag": "td",
-        "text": "",
-        "cls": "pp-cell"
-      },
-      {
-        "tag": "td",
         "text": "1 200",
-        "cls": "pp-cell pp-grand"
-      }
-    ],
-    [
-      {
-        "tag": "th",
-        "text": "West",
-        "cls": "pp-rowh"
-      },
-      {
-        "tag": "th",
-        "text": "Tech",
-        "cls": "pp-rowh"
+        "cls": "pp-cell"
       },
       {
         "tag": "td",
-        "text": "",
-        "cls": "pp-cell"
+        "text": "9 000",
+        "cls": "pp-cell",
+        "style": "color: #b71c1c;"
       },
       {
         "tag": "td",
@@ -156,20 +128,22 @@
       },
       {
         "tag": "td",
-        "text": "9 000",
+        "text": "10 200",
+        "cls": "pp-cell pp-grand",
+        "style": "color: #b71c1c;"
+      },
+      {
+        "tag": "td",
+        "text": "5 100",
         "cls": "pp-cell pp-grand"
       }
     ],
     [
       {
         "tag": "th",
-        "text": "Grand Total",
-        "cls": "pp-rowh"
-      },
-      {
-        "tag": "th",
-        "text": "",
-        "cls": "pp-rowh"
+        "text": "<span>Grand Total</span>",
+        "cls": "pp-rowh",
+        "style": "padding-left: 8px;"
       },
       {
         "tag": "td",
@@ -178,12 +152,29 @@
       },
       {
         "tag": "td",
+        "text": "900",
+        "cls": "pp-cell pp-total pp-grand"
+      },
+      {
+        "tag": "td",
         "text": "11 600",
+        "cls": "pp-cell pp-total pp-grand",
+        "style": "color: #b71c1c;"
+      },
+      {
+        "tag": "td",
+        "text": "5 800",
         "cls": "pp-cell pp-total pp-grand"
       },
       {
         "tag": "td",
         "text": "13 400",
+        "cls": "pp-cell pp-total pp-grand",
+        "style": "color: #b71c1c;"
+      },
+      {
+        "tag": "td",
+        "text": "3 350",
         "cls": "pp-cell pp-total pp-grand"
       }
     ]

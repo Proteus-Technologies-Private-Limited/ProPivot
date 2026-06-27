@@ -95,6 +95,39 @@ export const renderCorpus: RenderCorpusEntry[] = [
     },
   },
   {
+    name: 'display-formats',
+    pins: 'measure data_bar + dimension status_tag display formats render rich markup',
+    report: {
+      dataSource: {
+        type: 'json', data: sales,
+        mapping: { region: { type: 'string' }, year: { type: 'number' }, sales: { type: 'number' } },
+      },
+      slice: {
+        rows: [{ uniqueName: 'region', display: { type: 'status_tag', map: [{ when: 'West', color: 'green', label: 'W' }, { when: 'East', color: 'blue', label: 'E' }] } }],
+        columns: [{ uniqueName: 'year' }],
+        measures: [{ uniqueName: 'sales', aggregation: 'sum', display: { type: 'data_bar', min: 0, max: 12000, color: 'blue' } }],
+      },
+    },
+  },
+  {
+    name: 'per-slot-condition',
+    pins: 'measureKey scopes a conditional format to one measure slot (sum, not average)',
+    report: {
+      dataSource: { type: 'json', data: sales },
+      slice: {
+        rows: [{ uniqueName: 'region' }],
+        columns: [{ uniqueName: 'year' }],
+        measures: [
+          { uniqueName: 'sales', aggregation: 'sum' },
+          { uniqueName: 'sales', aggregation: 'average' },
+        ],
+      },
+      conditions: [
+        { formula: '#value > 5000', measureKey: 'sales#0', format: { color: '#b71c1c' } },
+      ],
+    },
+  },
+  {
     name: 'customize-cell',
     pins: 'customizeCell can add a class and inline style to value cells',
     report: {

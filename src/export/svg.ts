@@ -72,16 +72,27 @@ export function buildSvg(header: string[], rows: SheetCell[][], opts: SvgOptions
   // Header band.
   out.push(`<rect x="0" y="${titleH}" width="${totalW.toFixed(0)}" height="${rowH}" fill="${HEADER_FILL}"/>`);
 
-  const drawRow = (cells: Array<{ text: string; num?: number }>, top: number, bold: boolean) => {
+  const drawRow = (cells: SheetCell[], top: number, header: boolean) => {
+    // Backgrounds + bars (data rows only) so the SVG matches the HTML grid.
+    if (!header) {
+      for (let c = 0; c < ncol; c++) {
+        const cell = cells[c];
+        if (!cell) continue;
+        if (cell.style?.bg) out.push(`<rect x="${colX[c].toFixed(1)}" y="${top.toFixed(1)}" width="${widths[c].toFixed(1)}" height="${rowH}" fill="${xmlEscape(cell.style.bg)}"/>`);
+        if (cell.bar) out.push(`<rect x="${colX[c].toFixed(1)}" y="${top.toFixed(1)}" width="${(widths[c] * Math.max(0, Math.min(1, cell.bar.pct))).toFixed(1)}" height="${rowH}" fill="${xmlEscape(cell.bar.color)}"/>`);
+      }
+    }
     for (let c = 0; c < ncol; c++) {
       const cell = cells[c] ?? { text: '' };
       const txt = fit(cell.text ?? '');
       if (!txt) continue;
-      const rightAlign = bold ? false : cell.num !== undefined;
-      const x = rightAlign ? colX[c] + widths[c] - padH : colX[c] + padH;
-      const anchor = rightAlign ? 'end' : 'start';
+      const align = cell.style?.align ?? (header ? 'left' : cell.num !== undefined ? 'right' : 'left');
+      const x = align === 'right' ? colX[c] + widths[c] - padH : align === 'center' ? colX[c] + widths[c] / 2 : colX[c] + padH;
+      const anchor = align === 'right' ? 'end' : align === 'center' ? 'middle' : 'start';
+      const bold = header || cell.style?.bold;
+      const fill = header ? TEXT : (cell.style?.color ?? TEXT);
       out.push(
-        `<text x="${x.toFixed(1)}" y="${baseline(top)}" fill="${TEXT}" text-anchor="${anchor}"` +
+        `<text x="${x.toFixed(1)}" y="${baseline(top)}" fill="${xmlEscape(fill)}" text-anchor="${anchor}"` +
           `${bold ? ' font-weight="bold"' : ''}>${xmlEscape(txt)}</text>`,
       );
     }
