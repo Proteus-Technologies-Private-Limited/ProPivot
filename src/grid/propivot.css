@@ -132,6 +132,23 @@
 .pp-measureh:hover .pp-gear { opacity: .75; }
 .pp-gear:hover { opacity: 1; color: var(--pp-accent); }
 
+/* Popups and modals are appended to <body> (so they escape the grid's
+ * overflow clip), which places them OUTSIDE .pp-root — where the palette
+ * variables are defined. Re-declare the palette on these body-level containers
+ * so their var(--pp-*) references resolve. Without this, e.g. the filter Apply
+ * button's `background: var(--pp-accent)` collapses to transparent and its white
+ * text becomes invisible (white-on-white), so the button "disappears". */
+.pp-popup, .pp-modal-backdrop {
+  --pp-border: #e0e0e0;
+  --pp-header-bg: #f5f6f8;
+  --pp-total-bg: #eef1f5;
+  --pp-grand-bg: #e3e8ef;
+  --pp-selected-bg: #cfe3ff;
+  --pp-text: #1f2430;
+  --pp-accent: #2f6fdb;
+  color: var(--pp-text);
+}
+
 /* Centered modal (measure configuration) */
 .pp-modal-backdrop {
   position: fixed;
