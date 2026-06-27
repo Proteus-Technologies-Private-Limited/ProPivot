@@ -197,7 +197,10 @@
 .pp-popup-tools { display: flex; gap: 12px; margin-bottom: 6px; }
 .pp-popup-tools a { color: var(--pp-accent); text-decoration: none; font-size: 12px; }
 .pp-popup-list { max-height: 240px; overflow: auto; border: 1px solid var(--pp-border); border-radius: 5px; padding: 4px; }
-.pp-popup-item { display: flex; align-items: center; gap: 6px; padding: 2px 4px; text-transform: none; color: inherit; font-size: 13px; }
+/* `label.pp-popup-item` to out-specify `.pp-popup label` (which would otherwise
+   force uppercase/grey/block onto the member rows). Keeps member names in their
+   real case and inline with the checkbox. */
+.pp-popup label.pp-popup-item { display: flex; align-items: center; gap: 6px; padding: 2px 4px; margin-bottom: 0; text-transform: none; color: inherit; font-size: 13px; font-weight: 400; }
 .pp-popup-item:hover { background: var(--pp-header-bg); }
 .pp-popup-apply {
   margin-top: 8px;
