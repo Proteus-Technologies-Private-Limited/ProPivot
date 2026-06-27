@@ -234,14 +234,18 @@
 .pp-popup-item:hover { background: var(--pp-header-bg); }
 .pp-popup-apply {
   margin-top: 8px;
-  width: 100%;
-  padding: 6px;
+  padding: 5px 14px;
   border: 1px solid var(--pp-accent);
   background: var(--pp-accent);
   color: #fff;
   border-radius: 5px;
   cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
 }
+.pp-popup-apply:hover { filter: brightness(1.06); }
+/* In the inline Heading/Width rows the button is compact and the input fills. */
+.pp-field-inline .pp-popup-apply { margin-top: 0; flex: 0 0 auto; }
 
 /* ── Column controls: resize handle, reorder, properties button ───────────── */
 .pp-measureh, .pp-colh, .pp-corner { position: relative; }
@@ -300,7 +304,7 @@
 .pp-display-preview { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--pp-border); border-radius: 5px; }
 .pp-display-preview .pp-sample { width: 90px; padding: 4px; border: 1px solid var(--pp-border); border-radius: 4px; }
 .pp-preview-out { flex: 1; text-align: right; }
-.pp-popup-actions { display: flex; gap: 6px; margin-top: 4px; }
+.pp-popup-actions { display: flex; gap: 6px; margin-top: 4px; justify-content: flex-end; }
 .pp-popup-actions .pp-popup-apply { margin-top: 0; }
 .pp-btn { padding: 6px 10px; border: 1px solid var(--pp-border); background: #fff; border-radius: 5px; cursor: pointer; font-size: 12px; }
 .pp-btn:hover { border-color: var(--pp-accent); color: var(--pp-accent); }
