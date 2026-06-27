@@ -1414,7 +1414,10 @@ function size(v: string | number): string { return typeof v === 'number' ? `${v}
 function toKebab(s: string): string { return s.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase()); }
 function escapeHtml(v: string): string { return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function captionOf(ctx: RenderContext, field: string): string {
-  return ctx.normal.report.dataSource?.mapping?.[field]?.caption ?? field;
+  // Prefer a caption set on the slice hierarchy (e.g. via the column-properties
+  // Heading field) so renames take effect, then the data-source mapping, then the
+  // raw field name.
+  return hierarchyOf(ctx, field)?.caption ?? ctx.normal.report.dataSource?.mapping?.[field]?.caption ?? field;
 }
 /** Build a cell's row/column tuple: one entry per member with its field + caption. */
 function tupleOf(ctx: RenderContext, fields: string[], path: string[]): CellTupleItem[] {
