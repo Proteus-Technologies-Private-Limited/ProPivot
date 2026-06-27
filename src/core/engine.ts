@@ -2,7 +2,7 @@
 // store + planner inline; a WorkerEngine offloads them to a Web Worker. Both
 // expose the same async-friendly interface so the facade is engine-agnostic.
 
-import { buildStore, type ColumnStore } from './store';
+import { buildStore, displayValue, type ColumnStore } from './store';
 import { normalizeReport } from './normalize';
 import { buildMatrix } from './planner';
 import type { CellMatrix, SerializedMatrix } from './matrix';
@@ -14,6 +14,9 @@ export interface PivotEngine {
   compute(report: Report): Promise<CellMatrix>;
   /** Raw rows for getData/export (main-thread copy). */
   rawRows(): Array<Record<string, unknown>>;
+  /** Distinct display members of a field — including expanded date-hierarchy
+   *  levels (e.g. "Date (Year)"). Sync; undefined on engines without a local store. */
+  members?(field: string): string[];
   dispose(): void;
   /** Set by accelerating engines to report which path ran ('duckdb' | 'builtin'). */
   readonly lastPath?: string;
@@ -39,6 +42,15 @@ export class LocalEngine implements PivotEngine {
 
   rawRows(): Array<Record<string, unknown>> {
     return this.store?.rawRows ?? [];
+  }
+
+  /** Distinct display members via the store, so expanded date levels resolve. */
+  members(field: string): string[] {
+    if (!this.store) return [];
+    if (!this.store.columns.has(field)) return [];
+    const seen = new Set<string>();
+    for (let i = 0; i < this.store.rowCount; i++) seen.add(displayValue(this.store, field, i));
+    return [...seen];
   }
 
   dispose(): void {

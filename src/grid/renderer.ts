@@ -13,7 +13,7 @@ import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import type { CompiledCondition } from '../core/conditions';
 import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy } from '../core/types';
 import { formatVisual, evalConditionStyle, formatsForType } from '../core/cellStyle';
-import { CellBuilder, type CellData } from '../facade/cell';
+import { CellBuilder, type CellData, type CellTupleItem } from '../facade/cell';
 
 export type Zone = 'rows' | 'columns' | 'measures' | 'filters' | 'available';
 
@@ -295,6 +295,9 @@ export class GridRenderer {
         th.colSpan = span * measureSpan;
         this.renderMember(th, ctx, matrix.colFields[d], label);
         this.decorateHeader(th, ctx, { ref: { kind: 'field', uniqueName: matrix.colFields[d] }, zone: 'columns', index: d, resizable: false });
+        const colTuplePath = colLeaves[i].path.slice(0, d + 1);
+        const colTupleIdx = i;
+        th.addEventListener('click', () => this.emitHeaderClick(ctx, 'columns', matrix.colFields, colTuplePath, -1, colTupleIdx));
         tr.appendChild(th);
         i += span;
       }
@@ -727,7 +730,7 @@ export class GridRenderer {
     }
     // Dimension column: distinct-value member filter.
     const members = this.opts.controller.members(field);
-    const selected = hierarchyOf(ctx, field)?.filter?.members ?? null;
+    const selected = (hierarchyOf(ctx, field)?.filter ?? ctx.normal.report.slice?.fieldFilters?.[field])?.members ?? null;
     const selSet = new Set(selected ?? members);
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
@@ -892,8 +895,11 @@ export class GridRenderer {
         const th = document.createElement('th');
         th.className = 'pp-rowh';
         if (vr.isGrand) th.textContent = j === 0 ? b.ctx.normal.localization.grandTotal : '';
-        else if (j < vr.path.length) this.renderMember(th, b.ctx, matrix.rowFields[j], vr.path[j]);
-        else if (vr.isSubtotal && j === vr.path.length) th.textContent = b.ctx.normal.localization.total;
+        else if (j < vr.path.length) {
+          this.renderMember(th, b.ctx, matrix.rowFields[j], vr.path[j]);
+          const rPath = vr.path.slice(0, j + 1);
+          th.addEventListener('click', () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, rPath, rowIdx, -1));
+        } else if (vr.isSubtotal && j === vr.path.length) th.textContent = b.ctx.normal.localization.total;
         else th.textContent = '';
         tr.appendChild(th);
       }
@@ -910,7 +916,10 @@ export class GridRenderer {
       }
       const labelEl = document.createElement('span');
       if (vr.isGrand || R === 0) labelEl.textContent = vr.label;
-      else this.renderMember(labelEl, b.ctx, matrix.rowFields[Math.min(vr.depth, R - 1)], vr.label);
+      else {
+        this.renderMember(labelEl, b.ctx, matrix.rowFields[Math.min(vr.depth, R - 1)], vr.label);
+        th.addEventListener('click', () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, vr.path, rowIdx, -1));
+      }
       th.appendChild(labelEl);
       tr.appendChild(th);
     }
@@ -924,6 +933,29 @@ export class GridRenderer {
     for (const leaf of colLeaves) renderGroup(leaf.path, false);
     if (showColGrand) renderGroup([], true);
     return tr;
+  }
+
+  /** Emit a `cellclick` for a clicked row/column member HEADER cell — carries the
+   *  full tuple + member + hierarchy for that axis (same payload shape as values). */
+  private emitHeaderClick(
+    ctx: RenderContext, axis: 'rows' | 'columns', fields: string[], path: string[], rowIndex: number, columnIndex: number,
+  ): void {
+    const depth = Math.max(0, path.length - 1);
+    const field = fields[Math.min(depth, fields.length - 1)];
+    const last = path[path.length - 1] ?? '';
+    this.opts.onCellClick({
+      rowIndex,
+      columnIndex,
+      rows: axis === 'rows' ? tupleOf(ctx, fields, path) : [],
+      columns: axis === 'columns' ? tupleOf(ctx, fields, path) : [],
+      hierarchy: field ? { uniqueName: field, caption: captionOf(ctx, field) } : undefined,
+      member: { name: last, caption: last },
+      label: last,
+      type: 'header',
+      level: depth,
+      rowPath: axis === 'rows' ? path : undefined,
+      colPath: axis === 'columns' ? path : undefined,
+    });
   }
 
   /** Set a dimension member cell's content, applying its column display format. */
@@ -969,11 +1001,11 @@ export class GridRenderer {
     const data: CellData = {
       rowIndex: rowIdx,
       columnIndex: colIdx,
-      rows: matrix.rowFields.map((f) => ({ uniqueName: f, caption: captionOf(ctx, f) })),
-      columns: matrix.colFields.map((f) => ({ uniqueName: f, caption: captionOf(ctx, f) })),
-      hierarchy: R ? { uniqueName: matrix.rowFields[Math.min(vr.depth, R - 1)], caption: '' } : undefined,
+      rows: tupleOf(ctx, matrix.rowFields, vr.path),
+      columns: tupleOf(ctx, matrix.colFields, cp),
+      hierarchy: R ? { uniqueName: matrix.rowFields[Math.min(vr.depth, R - 1)], caption: captionOf(ctx, matrix.rowFields[Math.min(vr.depth, R - 1)]) } : undefined,
       measure: measure ? { uniqueName: measure.uniqueName, caption: measure.caption } : undefined,
-      member: { name: vr.label },
+      member: { name: vr.label, caption: vr.label },
       label: text,
       value: Number.isNaN(value) ? undefined : value,
       type: 'value',
@@ -1348,6 +1380,16 @@ function toKebab(s: string): string { return s.replace(/[A-Z]/g, (m) => '-' + m.
 function escapeHtml(v: string): string { return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function captionOf(ctx: RenderContext, field: string): string {
   return ctx.normal.report.dataSource?.mapping?.[field]?.caption ?? field;
+}
+/** Build a cell's row/column tuple: one entry per member with its field + caption. */
+function tupleOf(ctx: RenderContext, fields: string[], path: string[]): CellTupleItem[] {
+  return path.map((member, i) => ({
+    uniqueName: fields[i],
+    caption: fields[i] ? captionOf(ctx, fields[i]) : undefined,
+    member,
+    memberCaption: member,
+    level: i,
+  }));
 }
 function hierarchyOf(ctx: RenderContext, field: string): Hierarchy | undefined {
   const slice = ctx.normal.report.slice;

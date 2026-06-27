@@ -235,7 +235,8 @@ export class ProPivot {
   off(event?: string, handler?: (...args: unknown[]) => void): void { this.emitter.off(event, handler); }
 
   private handleCellClick(data: CellData, dbl: boolean): void {
-    this.selectedCell = data;
+    // Only value cells drive the selection highlight; header clicks still emit.
+    if (data.type === 'value') this.selectedCell = data;
     this.emitter.emit(dbl ? 'celldoubleclick' : 'cellclick', data);
   }
 
@@ -300,9 +301,15 @@ export class ProPivot {
       ...(slice.rows ?? []), ...(slice.columns ?? []), ...(slice.reportFilters ?? []),
     ];
     const h = all.find((x) => x.uniqueName === uniqueName);
-    if (!h) return;
-    if (!members) delete h.filter;
-    else h.filter = { type: 'members', members };
+    if (h) {
+      if (!members) delete h.filter;
+      else h.filter = { type: 'members', members };
+    } else {
+      // Not a standalone hierarchy (e.g. an expanded date level) — key it by field.
+      const ff = slice.fieldFilters ?? (slice.fieldFilters = {});
+      if (!members) delete ff[uniqueName];
+      else ff[uniqueName] = { type: 'members', members };
+    }
     this.refresh();
   }
 
@@ -522,12 +529,19 @@ export class ProPivot {
     return out;
   }
 
-  /** Distinct display members of a field, for the report-filter picker. */
+  /** Distinct display members of a field, for the filter pickers. Uses the
+   *  store-backed list when available (so expanded date-hierarchy levels like
+   *  "Date (Year)" resolve), and falls back to scanning the raw rows. */
   getMembers(uniqueName: string): string[] {
+    const fromEngine = this.engine.members?.(uniqueName);
     const seen = new Set<string>();
-    for (const row of this.engine.rawRows()) {
-      const v = row[uniqueName];
-      seen.add(v === null || v === undefined || v === '' ? '' : String(v));
+    if (fromEngine && fromEngine.length) {
+      for (const m of fromEngine) seen.add(m);
+    } else {
+      for (const row of this.engine.rawRows()) {
+        const v = row[uniqueName];
+        seen.add(v === null || v === undefined || v === '' ? '' : String(v));
+      }
     }
     return [...seen].sort((a, b) => {
       const na = Number(a), nb = Number(b);
