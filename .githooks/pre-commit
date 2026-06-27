@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Opt-in pre-commit hook: regenerate the starter download zips whenever the
+# library or sample source is part of this commit, then stage the refreshed
+# archives so docs/downloads stays in sync.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+changed="$(git diff --cached --name-only)"
+
+if printf '%s\n' "$changed" | grep -qE '^(src/|samples/react-starter/|samples/angular-starter/|samples/build-zips\.sh|package\.json|tsup\.config\.ts)'; then
+  echo "[pre-commit] Library/sample source staged — regenerating starter zips…"
+  bash "$ROOT/samples/build-zips.sh" >/dev/null
+  git add "$ROOT/docs/downloads"
+  echo "[pre-commit] docs/downloads refreshed and staged."
+fi

@@ -1,0 +1,55 @@
+name: Refresh starter downloads
+
+# Keeps docs/downloads/*.zip in sync with the library + sample sources.
+# Runs when anything that affects the bundled starters changes, rebuilds the
+# zips, and commits them back if their contents changed. The trigger paths
+# deliberately EXCLUDE docs/** so the auto-commit (which only touches
+# docs/downloads) never retriggers this workflow.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'samples/react-starter/**'
+      - 'samples/angular-starter/**'
+      - 'samples/build-zips.sh'
+      - 'package.json'
+      - 'tsup.config.ts'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-starters
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Rebuild starter download zips
+        run: bash samples/build-zips.sh
+
+      - name: Commit refreshed zips if they changed
+        run: |
+          if [ -n "$(git status --porcelain docs/downloads)" ]; then
+            echo "Starter downloads changed — committing."
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/downloads
+            git commit -m "chore: refresh starter download zips [skip ci]"
+            git push
+          else
+            echo "Starter downloads already up to date."
+          fi

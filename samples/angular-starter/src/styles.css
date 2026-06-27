@@ -1,0 +1,7 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1a2233;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+app-root { display: block; height: 100%; }
