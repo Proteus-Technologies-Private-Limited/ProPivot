@@ -7,12 +7,17 @@ from the docs site at **[/starters.html](https://proteus-technologies-private-li
 | ------ | ----- | ------ |
 | React starter | Vite · React 18 · TypeScript | [`react-starter/`](./react-starter) |
 | Angular starter | Angular 18 standalone · TypeScript | [`angular-starter/`](./angular-starter) |
+| Vue starter | Vite · Vue 3 · TypeScript | [`vue-starter/`](./vue-starter) |
+| Vanilla JS starter | Plain HTML + JavaScript · no build step | [`vanilla-js-starter/`](./vanilla-js-starter) |
 
-Each project consumes ProPivot through the package name `@proteus/propivot`
-(idiomatic `import { Pivot } from '@proteus/propivot/react'` etc.). Because the
-package is not published to a public registry, the starter wires it up as a local
-`file:` dependency pointing at a pre-built copy of the library under
-`<sample>/vendor/propivot`. That folder is generated — see below.
+The React, Angular, and Vue starters consume ProPivot through the package name
+`@proteus/propivot` (idiomatic `import { Pivot } from '@proteus/propivot/react'`,
+`/vue`, etc.). The vanilla starter instead loads the global `<script>` build and
+reads `window.ProPivot` — no bundler at all. Because the package is not published
+to a public registry, each starter wires it up against a pre-built copy of the
+library under `<sample>/vendor/propivot` (a local `file:` dependency for the
+framework starters, a relative `<script>`/`<link>` path for the vanilla one).
+That folder is generated — see below.
 
 ## Regenerating the downloadable zips
 

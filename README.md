@@ -2,11 +2,13 @@
 
 > **Pivot millions of rows in a heartbeat — right inside your app.**
 
-An **enterprise-grade, open-source React & Angular library** for building pivot tables
-over **millions of rows**. Lightning fast, lightweight, feature-rich, highly configurable —
-and instantly embedded in any project. The columnar engine aggregates **100% client-side**
-(no server round-trips): 17 aggregations, calculated-value formulas, conditional formatting,
-virtualized rendering, a `customizeCell` hook, and five export formats.
+An **enterprise-grade, open-source JavaScript library** for building pivot tables
+over **millions of rows**. Works with **React**, **Angular**, **Vue**, and any JavaScript
+framework — or plain JavaScript via a `<script>` tag. Lightning fast, lightweight,
+feature-rich, highly configurable — and instantly embedded in any project. The columnar
+engine aggregates **100% client-side** (no server round-trips): 17 aggregations,
+calculated-value formulas, conditional formatting, virtualized rendering, a `customizeCell`
+hook, and five export formats.
 
 **[▶ Live demo & docs →](https://proteus-technologies-private-limited.github.io/ProPivot/)**
 
@@ -66,7 +68,9 @@ const pivot = new ProPivot({
 - **Export** (`src/export`): all five — `csv`, `html`, `excel` (real `.xlsx`), `pdf`
   (real, dependency-free `.pdf`), and `image` (a deterministic `.svg` of the grid;
   `exportTo('image', { imageFormat: 'png' })` rasterizes it to PNG in the browser).
-- **Wrappers**: React (`@proteus/propivot/react`) and Angular (`<pro-pivot>` source).
+- **Wrappers**: React (`@proteus/propivot/react`), Vue (`@proteus/propivot/vue`), and
+  Angular (`<pro-pivot>` source). Or read `window.ProPivot` from the global `<script>`
+  build for any other stack.
 
 ### Off-thread compute (optional)
 

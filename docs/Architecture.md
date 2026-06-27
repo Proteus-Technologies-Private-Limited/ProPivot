@@ -21,7 +21,7 @@ src/
 ├─ facade/      ProPivot public class: constructor, methods, events, CellBuilder/CellData
 ├─ grid/        virtualized DOM renderer + drag-drop field list + CSS
 ├─ export/      csv · html · xlsx · pdf · svg(image)
-└─ wrappers/    React component + Angular <pro-pivot> source
+└─ wrappers/    React + Vue components + Angular <pro-pivot> source
 ```
 
 ## 1. Data model & ingestion

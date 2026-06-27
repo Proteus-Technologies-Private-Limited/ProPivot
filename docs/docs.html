@@ -306,7 +306,8 @@ function onCellClick(cell: any) { console.log(cell.value); }
 &lt;/pro-pivot&gt;</code></pre>
         <h3>Component</h3>
         <pre><code>import { Component } from '@angular/core';
-import { ProPivotComponent } from '@proteus/propivot/angular';
+// Copy pro-pivot.component.ts into your app (see the Angular starter), then:
+import { ProPivotComponent } from './pro-pivot.component';
 import '@proteus/propivot/propivot.css';
 
 @Component({
