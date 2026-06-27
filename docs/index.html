@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProPivot — enterprise-grade React &amp; Angular pivot table for millions of rows</title>
-  <meta name="description" content="ProPivot is an enterprise-grade, open-source React &amp; Angular library for building pivot tables over millions of rows. Lightning fast, lightweight, feature-rich, highly configurable — and instantly embedded in any project. 100% client-side, MIT licensed." />
+  <title>ProPivot — enterprise-grade JavaScript pivot table for millions of rows (React, Angular, Vue &amp; more)</title>
+  <meta name="description" content="ProPivot is an enterprise-grade, open-source JavaScript library for building pivot tables over millions of rows. Works with React, Angular, Vue, and any framework — or plain JavaScript via a script tag. Lightning fast, lightweight, feature-rich, highly configurable — and instantly embedded in any project. 100% client-side, MIT licensed." />
   <link rel="stylesheet" href="./assets/propivot.css?v=a01438b7" />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
@@ -154,15 +154,16 @@
       <span class="pill">⚡ Enterprise-grade · open source · runs entirely in the browser</span>
       <h1>Pivot <span class="grad">millions of rows</span> in a heartbeat — right inside your app.</h1>
       <p class="lead">
-        ProPivot is an <b>enterprise-grade, open-source React &amp; Angular library</b> for building pivot tables
-        over <b>millions of rows</b>. Lightning fast, lightweight, feature-rich, highly configurable — and
-        instantly embedded in any project. The columnar engine aggregates entirely in the browser, with no
-        server round-trips.
+        ProPivot is an <b>enterprise-grade, open-source JavaScript library</b> for building pivot tables
+        over <b>millions of rows</b>. It works with <b>React</b>, <b>Angular</b>, <b>Vue</b>, and any
+        JavaScript framework — or plain JavaScript via a <code>&lt;script&gt;</code> tag. Lightning fast,
+        lightweight, feature-rich, highly configurable — and instantly embedded in any project. The columnar
+        engine aggregates entirely in the browser, with no server round-trips.
       </p>
       <div class="cta">
         <a class="btn primary" href="./demo.html">▶ Pivot 2,000,000 rows</a>
         <a class="btn ghost" href="./upload.html">⬆ Pivot your own CSV / JSON</a>
-        <a class="btn ghost" href="./starters.html">⬇ React / Angular starter</a>
+        <a class="btn ghost" href="./starters.html">⬇ Download a starter app</a>
         <a class="btn ghost" href="./docs.html">Read the docs</a>
         <a class="btn ghost" href="./features.html">Feature examples</a>
         <a class="btn ghost" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub</a>
@@ -236,16 +237,16 @@
       <div class="card"><div class="ic">📤</div><h3>Five exports</h3><p>CSV, HTML, real <code>.xlsx</code>, dependency-free <code>.pdf</code>, and an <code>.svg</code> image of the grid (rasterizes to PNG in-browser).</p></div>
       <div class="card"><div class="ic">🧵</div><h3>Optional Web Worker</h3><p>Offload aggregation off the main thread behind one async interface — falls back automatically when workers aren't available.</p></div>
       <div class="card"><div class="ic">🦆</div><h3>DuckDB-WASM accelerator</h3><p>Opt-in: offload aggregation of <b>millions of rows</b> to in-browser DuckDB SQL <code>GROUPING SETS</code>, with automatic, result-identical fallback to the built-in engine.</p></div>
-      <div class="card"><div class="ic">🔌</div><h3>Angular &amp; React</h3><p>First-class <code>&lt;pro-pivot&gt;</code> Angular wrapper and a React component. Or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code>.</p></div>
+      <div class="card"><div class="ic">🔌</div><h3>Any framework</h3><p>First-class <code>&lt;Pivot&gt;</code> components for <b>React</b>, <b>Vue</b>, and an <code>&lt;pro-pivot&gt;</code> <b>Angular</b> wrapper. Or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code> — Svelte, jQuery, a WebView, anything.</p></div>
       <div class="card"><div class="ic">✅</div><h3>Golden-tested</h3><p>A two-layer golden suite pins both the computed cell matrix and the rendered grid, so the compatibility contract can't silently drift.</p></div>
     </div>
   </section>
 
   <section class="alt">
     <div class="container">
-      <p class="eyebrow">React &amp; Angular first</p>
+      <p class="eyebrow">Works with any JavaScript framework</p>
       <h2>Instantly embedded in any project.</h2>
-      <p class="sub">First-class <b>React</b> and <b>Angular</b> components — or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code> for Vue, Svelte, or an Android WebView. One <code>report</code> object drives them all. <a href="./docs.html">Full docs →</a></p>
+      <p class="sub">First-class <b>React</b>, <b>Vue</b>, and <b>Angular</b> components — or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code> for Svelte, jQuery, server-rendered pages, or an Android WebView. One <code>report</code> object drives them all. <a href="./docs.html">Full docs →</a></p>
       <div class="two">
         <div>
           <p class="label">React</p>
@@ -256,13 +257,29 @@
   onReady={(pivot) =&gt; console.log(<span class="s">'ready'</span>, pivot)} /&gt;;</pre>
         </div>
         <div>
+          <p class="label">Vue</p>
+<pre class="code"><span class="k">import</span> { Pivot } <span class="k">from</span> <span class="s">'@proteus/propivot/vue'</span>;
+<span class="k">import</span> <span class="s">'@proteus/propivot/propivot.css'</span>;
+
+&lt;<span class="p">Pivot</span> :report=<span class="s">"report"</span> toolbar
+  @ready=<span class="s">"onReady"</span> /&gt;</pre>
+        </div>
+        <div>
           <p class="label">Angular</p>
-<pre class="code"><span class="c">// import { ProPivotComponent } from '@proteus/propivot/angular';</span>
+<pre class="code"><span class="c">// import { ProPivotComponent } from './pro-pivot.component';</span>
 &lt;<span class="p">pro-pivot</span>
   [report]=<span class="s">"report"</span>
   [toolbar]=<span class="s">"true"</span>
   (cellclick)=<span class="s">"onCellClick($event)"</span>&gt;
 &lt;/<span class="p">pro-pivot</span>&gt;</pre>
+        </div>
+        <div>
+          <p class="label">Plain JavaScript</p>
+<pre class="code"><span class="c">&lt;!-- defines window.ProPivot --&gt;</span>
+&lt;script src=<span class="s">"propivot.global.js"</span>&gt;&lt;/script&gt;
+
+<span class="k">new</span> ProPivot({ container: <span class="s">'#pivot'</span>,
+  toolbar: <span class="k">true</span>, report });</pre>
         </div>
       </div>
     </div>

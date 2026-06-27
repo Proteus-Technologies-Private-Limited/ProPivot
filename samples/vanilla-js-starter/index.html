@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProPivot · Vanilla JavaScript starter</title>
+
+    <!-- The pivot grid stylesheet, from the vendored library copy. -->
+    <link rel="stylesheet" href="./vendor/propivot/dist/propivot.css" />
+    <link rel="stylesheet" href="./styles.css" />
+
+    <!-- The browser global build defines window.ProPivot — no bundler required. -->
+    <script src="./vendor/propivot/dist/propivot.global.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="bar">
+        <strong>ProPivot · Vanilla JS starter</strong>
+        <span class="muted" id="rowCount"></span>
+        <div class="spacer"></div>
+        <button id="expand">Expand</button>
+        <button id="collapse">Collapse</button>
+        <button id="csv">CSV</button>
+        <button id="excel">Excel</button>
+      </header>
+
+      <!-- ProPivot renders into this element. -->
+      <div id="pivot" class="grid"></div>
+    </div>
+
+    <!-- Plain scripts, no build step. sampleData defines the data + report. -->
+    <script src="./sampleData.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

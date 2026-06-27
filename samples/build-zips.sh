@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Regenerate the downloadable React/Angular starter zips that the docs site serves.
+# Regenerate the downloadable starter zips that the docs site serves
+# (React, Angular, Vue, and plain JavaScript).
 #
 #   1. (Re)builds the ProPivot library so dist/ is current.
 #   2. Vendors the runtime dist/ files into each sample's vendor/propivot folder.
@@ -54,14 +55,23 @@ vendor() {
       "import": "./dist/react.js",
       "require": "./dist/react.cjs"
     },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "import": "./dist/vue.js",
+      "require": "./dist/vue.cjs"
+    },
     "./global": "./dist/propivot.global.js",
     "./propivot.css": "./dist/propivot.css"
   },
   "peerDependencies": {
-    "react": ">=17"
+    "react": ">=17",
+    "vue": ">=3"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   }
@@ -96,9 +106,13 @@ mkdir -p "$OUT"
 
 vendor "$SAMPLES/react-starter"
 vendor "$SAMPLES/angular-starter"
+vendor "$SAMPLES/vue-starter"
+vendor "$SAMPLES/vanilla-js-starter"
 
 zip_sample "propivot-react-starter" "react-starter"
 zip_sample "propivot-angular-starter" "angular-starter"
+zip_sample "propivot-vue-starter" "vue-starter"
+zip_sample "propivot-vanilla-js-starter" "vanilla-js-starter"
 
 echo "==> Done. Artifacts:"
 ls -lh "$OUT"

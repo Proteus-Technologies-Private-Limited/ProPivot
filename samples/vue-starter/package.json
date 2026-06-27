@@ -1,0 +1,22 @@
+{
+  "name": "propivot-vue-starter",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Minimal Vue 3 + Vite starter that embeds the ProPivot pivot table.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@proteus/propivot": "file:./vendor/propivot",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.4",
+    "vue-tsc": "^2.0.0"
+  }
+}

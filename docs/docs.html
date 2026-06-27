@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ProPivot — documentation</title>
-  <meta name="description" content="ProPivot documentation: a step-by-step getting-started guide, a detailed feature reference, and ready-to-paste React and Angular sample code for the enterprise-grade, open-source pivot-table library that handles millions of rows entirely in the browser." />
+  <meta name="description" content="ProPivot documentation: a step-by-step getting-started guide, a detailed feature reference, and ready-to-paste React, Angular, Vue, and plain-JavaScript sample code for the enterprise-grade, open-source pivot-table library that handles millions of rows entirely in the browser." />
   <link rel="stylesheet" href="./assets/propivot.css?v=a01438b7" />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
@@ -81,6 +81,7 @@
       <a href="#report">The report object</a>
       <div class="g">Frameworks</div>
       <a href="#react">React</a>
+      <a href="#vue">Vue</a>
       <a href="#angular">Angular</a>
       <a href="#vanilla">Plain script / any stack</a>
       <div class="g">Reference</div>
@@ -94,16 +95,17 @@
 
     <main>
       <h1>Documentation</h1>
-      <p class="tagline">ProPivot is an enterprise-grade, open-source React &amp; Angular pivot-table library that pivots <b>millions of rows</b> entirely in the browser — lightning fast, lightweight, feature-rich, highly configurable, and instantly embeddable in any project.</p>
+      <p class="tagline">ProPivot is an enterprise-grade, open-source JavaScript pivot-table library that pivots <b>millions of rows</b> entirely in the browser — lightning fast, lightweight, feature-rich, highly configurable, and instantly embeddable in any project. Use it with React, Angular, Vue, any framework, or plain JavaScript.</p>
 
       <!-- ───────────────── Overview ───────────────── -->
       <section id="intro">
         <h2>Overview</h2>
-        <p>ProPivot turns flat data into an interactive pivot grid — grouping, aggregating, formatting, and exporting — with <b>no server round-trips</b>. A framework-agnostic columnar engine sits behind a stable facade, so the same core powers the React component, the Angular component, the headless API, an optional Web Worker, and an opt-in DuckDB-WASM accelerator.</p>
+        <p>ProPivot turns flat data into an interactive pivot grid — grouping, aggregating, formatting, and exporting — with <b>no server round-trips</b>. A framework-agnostic columnar engine sits behind a stable facade, so the same core powers the React component, the Vue component, the Angular component, the plain-script global build, the headless API, an optional Web Worker, and an opt-in DuckDB-WASM accelerator.</p>
         <div class="pills">
           <span class="pill">Enterprise-grade</span>
           <span class="pill">Open source (MIT)</span>
-          <span class="pill">React &amp; Angular</span>
+          <span class="pill">React · Angular · Vue</span>
+          <span class="pill">Any framework</span>
           <span class="pill">Millions of rows</span>
           <span class="pill">100% client-side</span>
           <span class="pill">Lightweight</span>
@@ -251,6 +253,43 @@ export function SalesPivot() {
         <p><b>Props:</b> <code>report</code>, <code>toolbar</code>, <code>width</code>, <code>height</code>, <code>customizeCell</code>, <code>className</code>, <code>style</code>, <code>onReady</code>, plus every event name as a callback prop. The component re-creates the pivot when the <code>report</code> identity changes.</p>
       </section>
 
+      <!-- ───────────────── Vue ───────────────── -->
+      <section id="vue">
+        <h2>Vue</h2>
+        <p>Import the component, bind a <code>:report</code>, and listen to any event with <code>@</code>. The wrapper mounts and disposes the engine for you, and swaps the report in place when the bound value changes.</p>
+        <pre><code>&lt;script setup lang="ts"&gt;
+import { ref } from 'vue';
+import { Pivot, type ProPivot } from '@proteus/propivot/vue';
+import '@proteus/propivot/propivot.css';
+
+const report = ref({
+  dataSource: { type: 'json', data },
+  slice: {
+    rows: [{ uniqueName: 'region' }, { uniqueName: 'category' }],
+    columns: [{ uniqueName: 'category' }],
+    measures: [{ uniqueName: 'sales', aggregation: 'sum', format: 'cur' }],
+  },
+  formats: [{ name: 'cur', currencySymbol: '$', decimalPlaces: 0 }],
+});
+
+function onReady(pivot: ProPivot) { console.log('ready', pivot.getReport()); }
+function onCellClick(cell: any) { console.log(cell.value); }
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;Pivot
+    :report="report"
+    toolbar
+    style="height: 520px"
+    @cellclick="onCellClick"
+    @columnresize="(e) =&gt; console.log(e.ref.uniqueName, e.width)"
+    @ready="onReady"
+  /&gt;
+&lt;/template&gt;</code></pre>
+        <p><b>Props:</b> <code>report</code>, <code>toolbar</code>, <code>width</code>, <code>height</code>, <code>customizeCell</code> — plus standard <code>class</code> / <code>style</code> fall-through. <b>Events:</b> every facade event is emitted, including <code>cellclick</code>, <code>columnresize</code>, <code>columnreorder</code>, <code>columnpropertychange</code>, and <code>ready</code> (which carries the <code>ProPivot</code> instance).</p>
+        <div class="callout">No Vue plugin or registration needed — <code>&lt;Pivot&gt;</code> is a plain component you import where you use it. It works the same in <code>&lt;script setup&gt;</code>, the Options API, or Nuxt (client-side).</div>
+      </section>
+
       <!-- ───────────────── Angular ───────────────── -->
       <section id="angular">
         <h2>Angular</h2>
@@ -296,7 +335,7 @@ export class SalesComponent {
       <!-- ───────────────── Vanilla ───────────────── -->
       <section id="vanilla">
         <h2>Plain script / any stack</h2>
-        <p>No build step required — load the global bundle and read <code>window.ProPivot</code>. Works with Vue, Svelte, server-rendered pages, or an Android WebView.</p>
+        <p>No build step and no framework required — load the global bundle and read <code>window.ProPivot</code>. This is the path for Svelte, SolidJS, jQuery, Web Components, server-rendered pages, or an Android/iOS WebView. (For React, Vue, and Angular, prefer the dedicated wrappers above.)</p>
         <pre><code>&lt;link rel="stylesheet" href="propivot.css" /&gt;
 &lt;script src="propivot.global.js"&gt;&lt;/script&gt;
 &lt;div id="pivot" style="height:480px"&gt;&lt;/div&gt;

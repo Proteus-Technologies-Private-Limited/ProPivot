@@ -6,12 +6,13 @@ export default defineConfig([
     entry: {
       index: 'src/index.ts',
       react: 'src/wrappers/react.tsx',
+      vue: 'src/wrappers/vue.ts',
     },
     format: ['esm', 'cjs'],
     dts: true,
     clean: true,
     sourcemap: true,
-    external: ['react'],
+    external: ['react', 'vue'],
     // Copy the base stylesheet into dist as propivot.css
     onSuccess: 'node -e "require(\'fs\').copyFileSync(\'src/grid/propivot.css\',\'dist/propivot.css\')"',
   },

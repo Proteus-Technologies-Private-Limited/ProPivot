@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProPivot — downloadable React &amp; Angular starter apps</title>
-  <meta name="description" content="Download a ready-to-run React or Angular starter project that embeds the ProPivot pivot table. Unzip, npm install, npm run dev — the pivot grid runs locally with no extra setup." />
+  <title>ProPivot — downloadable starter apps for React, Angular, Vue &amp; plain JavaScript</title>
+  <meta name="description" content="Download a ready-to-run React, Angular, Vue, or plain-JavaScript starter project that embeds the ProPivot pivot table. Unzip, npm install, npm run dev — the pivot grid runs locally with no extra setup." />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
     :root {
@@ -106,10 +106,11 @@
   <header class="hero">
     <div class="container">
       <span class="pill">⬇ Download · unzip · <code style="color:#dfe4f6">npm install</code> · run</span>
-      <h1>Ready-to-run <span class="grad">React &amp; Angular</span> starter apps.</h1>
+      <h1>Ready-to-run starter apps for <span class="grad">any JavaScript framework</span>.</h1>
       <p class="lead">
-        Grab a complete starter project that already embeds ProPivot over a sample dataset. Unzip it,
-        install dependencies, and the pivot grid runs locally in your browser — no registry access and
+        Grab a complete starter project that already embeds ProPivot over a sample dataset —
+        <b>React</b>, <b>Angular</b>, <b>Vue</b>, or plain <b>JavaScript</b>. Unzip it, install
+        dependencies, and the pivot grid runs locally in your browser — no registry access and
         no extra wiring. The library comes bundled inside, so it works completely offline.
       </p>
     </div>
@@ -131,7 +132,7 @@
           <li><code>README.md</code> — run instructions</li>
         </ul>
         <div class="dl">
-          <a class="btn" href="./downloads/propivot-react-starter.zip" download>⬇ Download React starter <span class="sz">· ~226 KB</span></a>
+          <a class="btn" href="./downloads/propivot-react-starter.zip" download>⬇ Download React starter <span class="sz">· ~276 KB</span></a>
         </div>
       </div>
 
@@ -146,7 +147,37 @@
           <li><code>README.md</code> — run instructions</li>
         </ul>
         <div class="dl">
-          <a class="btn" href="./downloads/propivot-angular-starter.zip" download>⬇ Download Angular starter <span class="sz">· ~228 KB</span></a>
+          <a class="btn" href="./downloads/propivot-angular-starter.zip" download>⬇ Download Angular starter <span class="sz">· ~278 KB</span></a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ic">🟢</div>
+        <h3>Vue starter</h3>
+        <p class="meta">Vite · Vue 3 · TypeScript</p>
+        <p>Renders <code>&lt;Pivot :report="report" toolbar /&gt;</code> with the Vue wrapper component — it forwards every event as an emit and swaps the report reactively.</p>
+        <ul>
+          <li><code>src/App.vue</code> — the <code>&lt;Pivot&gt;</code> component</li>
+          <li><code>src/sampleData.ts</code> — rows + report</li>
+          <li><code>README.md</code> — run instructions</li>
+        </ul>
+        <div class="dl">
+          <a class="btn" href="./downloads/propivot-vue-starter.zip" download>⬇ Download Vue starter <span class="sz">· ~276 KB</span></a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ic">🟨</div>
+        <h3>Vanilla JS starter</h3>
+        <p class="meta">Plain HTML + JavaScript · no build step</p>
+        <p>Zero tooling: a single <code>&lt;script&gt;</code> loads the global build and <code>new ProPivot({…})</code> mounts the grid. Perfect for server-rendered pages or a WebView.</p>
+        <ul>
+          <li><code>index.html</code> — loads the global bundle</li>
+          <li><code>main.js</code> + <code>sampleData.js</code> — mount + report</li>
+          <li><code>README.md</code> — run instructions</li>
+        </ul>
+        <div class="dl">
+          <a class="btn" href="./downloads/propivot-vanilla-js-starter.zip" download>⬇ Download Vanilla JS starter <span class="sz">· ~275 KB</span></a>
         </div>
       </div>
     </div>
@@ -156,7 +187,7 @@
     <div class="container">
       <p class="eyebrow">Run it</p>
       <h2>Three commands and you're pivoting.</h2>
-      <p class="sub">You need <a href="https://nodejs.org">Node.js</a> 18 or newer (Angular needs 18.19+). The steps are the same on macOS, Windows, and Linux.</p>
+      <p class="sub">For the React, Angular, and Vue starters you need <a href="https://nodejs.org">Node.js</a> 18 or newer (Angular needs 18.19+). The plain-JavaScript starter needs nothing but a browser. The steps are the same on macOS, Windows, and Linux.</p>
       <div class="req">📦 <span>Already shipped inside the zip — no <code>npm install @proteus/propivot</code> needed to run the starter.</span></div>
       <div class="steps">
         <div class="step">
@@ -184,6 +215,30 @@ npm install
 npm start
 <span class="muted"># → open http://localhost:4200</span></pre>
           <p class="note">Production build: <code>npm run build</code>.</p>
+        </div>
+        <div class="step">
+          <h3><span class="n">🟢</span> Vue</h3>
+<pre class="code"><span class="c"># 1 · unzip, then enter the folder</span>
+cd propivot-vue-starter
+
+<span class="c"># 2 · install dependencies</span>
+npm install
+
+<span class="c"># 3 · start the dev server</span>
+npm run dev
+<span class="muted"># → open http://localhost:5173</span></pre>
+          <p class="note">Production build: <code>npm run build</code> then <code>npm run preview</code>.</p>
+        </div>
+        <div class="step">
+          <h3><span class="n">🟨</span> Vanilla JS</h3>
+<pre class="code"><span class="c"># 1 · unzip, then enter the folder</span>
+cd propivot-vanilla-js-starter
+
+<span class="c"># 2 · serve the folder (no install needed)</span>
+npx --yes serve .
+<span class="c"># …or: python3 -m http.server 8080</span>
+<span class="muted"># → open the URL it prints</span></pre>
+          <p class="note">No build step — it loads the global <code>&lt;script&gt;</code> bundle directly.</p>
         </div>
       </div>
     </div>
