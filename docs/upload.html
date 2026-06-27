@@ -75,7 +75,7 @@
 
       <div id="drop" style="margin-top:12px">
         <div class="big">Drop your .csv or .json file here</div>
-        <div class="muted">Headers in row 1 (CSV). Types are auto-detected: numbers aggregate; ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
+        <div class="muted">No predefined columns needed — ProPivot reads your headers/keys and infers each field's type: numbers aggregate; ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
       </div>
 
       <div class="status muted" id="status">Showing the built-in sample below. Download it, edit it, and upload it back — or drop your own file.</div>
@@ -92,91 +92,33 @@
     <div id="pivot"></div>
   </div>
 
-  <script src="./assets/propivot.global.js?v=b72678eb"></script>
+  <script src="./assets/propivot.global.js?v=ingest1"></script>
   <script>
     var PP = window.ProPivot;
     var $ = function (id) { return document.getElementById(id); };
 
-    // ── Minimal, robust CSV parser (RFC-4180-ish: quotes, escaped quotes, CRLF, BOM) ──
-    function parseCSV(text) {
-      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-      var rows = [], field = '', row = [], inQ = false;
-      for (var i = 0; i < text.length; i++) {
-        var c = text[i];
-        if (inQ) {
-          if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
-          else field += c;
-        } else if (c === '"') inQ = true;
-        else if (c === ',') { row.push(field); field = ''; }
-        else if (c === '\n') { row.push(field); rows.push(row); field = ''; row = []; }
-        else if (c === '\r') { /* swallow */ }
-        else field += c;
-      }
-      if (field.length || row.length) { row.push(field); rows.push(row); }
-      if (!rows.length) throw new Error('The CSV file is empty.');
-      var header = rows.shift().map(function (h) { return h.trim(); });
-      if (!header.some(Boolean)) throw new Error('No header row found.');
-      return rows.filter(function (r) { return r.some(function (v) { return v !== '' && v != null; }); })
-        .map(function (r) { var o = {}; header.forEach(function (h, i) { o[h] = r[i] != null ? r[i] : ''; }); return o; });
-    }
-
-    // ── Value-based type inference → ProPivot mapping ──
-    var ISO_DATE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/;
-    var NUMERIC = /^-?\s*\$?\s*[\d,]*\.?\d+%?$/;
-    function toNumber(v) { var n = Number(String(v).replace(/[$,%\s]/g, '')); return isFinite(n) ? n : null; }
-
-    function inferAndCoerce(data) {
-      var cols = Object.keys(data[0] || {});
-      var mapping = {}, types = {};
-      cols.forEach(function (col) {
-        var nNum = 0, nDate = 0, nNon = 0;
-        data.forEach(function (r) {
-          var v = r[col];
-          if (v === '' || v == null) return;
-          nNon++;
-          var s = String(v).trim();
-          if (ISO_DATE.test(s)) nDate++;
-          else if (NUMERIC.test(s) && toNumber(s) != null) nNum++;
-        });
-        var t = nNon === 0 ? 'string' : nDate === nNon ? 'year/month/day' : nNum === nNon ? 'number' : 'string';
-        types[col] = t; mapping[col] = { type: t, caption: col };
-      });
-      data.forEach(function (r) { cols.forEach(function (col) {
-        if (types[col] === 'number') { var n = toNumber(r[col]); r[col] = n == null ? null : n; }
-      }); });
-      return { mapping: mapping, types: types };
-    }
-
-    function starterReport(data, mapping, types) {
-      var cols = Object.keys(mapping);
-      var firstText = cols.filter(function (c) { return types[c] !== 'number'; })[0];
-      var firstNum = cols.filter(function (c) { return types[c] === 'number'; })[0];
-      return {
-        dataSource: { type: 'json', data: data, mapping: mapping },
-        slice: {
-          rows: firstText ? [{ uniqueName: firstText }] : [],
-          columns: [],
-          measures: firstNum ? [{ uniqueName: firstNum, aggregation: 'sum' }] : [],
-        },
-        options: { grid: { type: 'compact', showGrandTotals: 'on' } },
-      };
-    }
-
+    // The library owns CSV/JSON parsing + column inference. We just hand raw text
+    // (or an array of rows) to pivot.loadData(...) — ProPivot infers the field
+    // list/types, builds a starter slice, and renders it so you can drag to pivot.
     var pivot = null;
-    function loadData(data) {
-      if (!Array.isArray(data) || !data.length) throw new Error('No rows found in the file.');
-      if (typeof data[0] !== 'object' || data[0] == null) throw new Error('Expected an array of row objects.');
-      var inf = inferAndCoerce(data);
-      renderChips(inf.types, data.length);
-      if (pivot) pivot.dispose();
-      pivot = new PP({ container: '#pivot', toolbar: true, report: starterReport(data, inf.mapping, inf.types) });
+
+    function loadRaw(input) {
+      if (!pivot) pivot = new PP({ container: '#pivot', toolbar: true });
+      var report = pivot.loadData(input); // infers columns + types, builds a starter slice, renders
+      var ds = report.dataSource;
+      renderChips(ds.mapping, ds.data.length);
+      return report;
     }
 
-    function renderChips(types, n) {
-      var cls = function (t) { return t === 'number' ? 'num' : (t.indexOf('/') >= 0 || t.indexOf('date') >= 0) ? 'date' : 'str'; };
-      var lbl = function (t) { return t === 'number' ? 'number' : (t.indexOf('/') >= 0 || t.indexOf('date') >= 0) ? 'date' : 'text'; };
+    function isDateType(t) { return t.indexOf('/') >= 0 || t.indexOf('date') >= 0 || t.indexOf('time') >= 0; }
+    function renderChips(mapping, n) {
+      var cls = function (t) { return t === 'number' ? 'num' : isDateType(t) ? 'date' : 'str'; };
+      var lbl = function (t) { return t === 'number' ? 'number' : isDateType(t) ? 'date' : 'text'; };
       $('chips').innerHTML = '<span class="chip">' + n.toLocaleString() + ' rows</span>' +
-        Object.keys(types).map(function (c) { return '<span class="chip ' + cls(types[c]) + '">' + c + ' · <b>' + lbl(types[c]) + '</b></span>'; }).join('');
+        Object.keys(mapping).map(function (c) {
+          var t = mapping[c].type || 'string';
+          return '<span class="chip ' + cls(t) + '">' + c + ' · <b>' + lbl(t) + '</b></span>';
+        }).join('');
     }
 
     function setStatus(msg, kind) { var el = $('status'); el.textContent = msg; el.className = 'status ' + (kind || 'muted'); }
@@ -186,18 +128,8 @@
       var reader = new FileReader();
       reader.onload = function () {
         try {
-          var text = String(reader.result);
-          var isJson = /\.json$/i.test(file.name) || text.trim().charAt(0) === '[' || text.trim().charAt(0) === '{';
-          var data;
-          if (isJson) {
-            var parsed = JSON.parse(text);
-            data = Array.isArray(parsed) ? parsed : (parsed.data || parsed.rows || null);
-            if (!data) throw new Error('JSON must be an array of objects (or { "data": [...] }).');
-          } else {
-            data = parseCSV(text);
-          }
-          loadData(data);
-          setStatus('Loaded “' + file.name + '” — ' + data.length.toLocaleString() + ' rows. Drag fields in the list to pivot.', 'ok');
+          var report = loadRaw(String(reader.result)); // library auto-detects CSV vs JSON
+          setStatus('Loaded “' + file.name + '” — ' + report.dataSource.data.length.toLocaleString() + ' rows. Drag fields in the list to pivot.', 'ok');
         } catch (err) {
           console.error(err);
           setStatus('Could not load file: ' + (err && err.message ? err.message : err), 'err');
@@ -250,7 +182,7 @@
     if (!PP) {
       setStatus('Demo bundle failed to load. Run "npm run build" and reload.', 'err');
     } else {
-      loadData(JSON.parse(JSON.stringify(SAMPLE)));
+      loadRaw(JSON.parse(JSON.stringify(SAMPLE))); // clone: loadData coerces in place
     }
   </script>
 </body>

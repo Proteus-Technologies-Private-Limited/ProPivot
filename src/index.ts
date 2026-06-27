@@ -2,7 +2,7 @@
 //   import { ProPivot } from '@proteus/propivot';
 
 export { ProPivot } from './facade/ProPivot';
-export type { ProPivotConfig } from './facade/ProPivot';
+export type { ProPivotConfig, LoadDataOptions } from './facade/ProPivot';
 export { CellBuilder } from './facade/cell';
 export type { CellData } from './facade/cell';
 export { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from './core/aggregations';
@@ -23,6 +23,11 @@ export type { ExportType, ExportParams } from './export';
 export { buildXlsx } from './export/xlsx';
 export { buildPdf } from './export/pdf';
 export { parseCsv } from './core/csv';
+// Raw-data ingestion: infer columns/types from CSV/JSON with no predefined mapping.
+export {
+  parseDataset, inferSchema, inferMapping, coerceData, parseNumber, buildStarterReport,
+} from './core/ingest';
+export type { InferOptions, StarterReportOptions } from './core/ingest';
 export { drillThroughRows } from './core/drillthrough';
 export type { DrillThroughQuery } from './core/drillthrough';
 

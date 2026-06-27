@@ -402,6 +402,7 @@ export class SalesComponent {
           <tr><td><code>setReport(r)</code> / <code>getReport()</code></td><td>Swap or read the whole report.</td></tr>
           <tr><td><code>refresh()</code></td><td>Recompute &amp; repaint.</td></tr>
           <tr><td><code>updateData({ data })</code></td><td>Replace the dataset, keeping the slice.</td></tr>
+          <tr><td><code>loadData(csvOrJsonOrArray)</code></td><td>Load <b>raw</b> data with no predefined mapping — infers the column list &amp; types and builds a starter report. Static <code>ProPivot.inferReport(input)</code> returns the report without rendering.</td></tr>
           <tr><td><code>exportTo(type, params)</code></td><td>Export to <code>csv</code> / <code>excel</code> / <code>pdf</code> / <code>image</code> / <code>html</code>.</td></tr>
           <tr><td><code>expandAllData()</code> / <code>collapseAllData()</code></td><td>Expand or collapse every group.</td></tr>
           <tr><td><code>on(evt, fn)</code> / <code>off(evt, fn)</code></td><td>Subscribe / unsubscribe to events.</td></tr>
