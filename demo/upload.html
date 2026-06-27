@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPivot — load your own CSV / JSON</title>
+  <!-- Built CSS + browser-global bundle. Run `npm run build` first. -->
+  <link rel="stylesheet" href="../dist/propivot.css" />
+  <style>
+    :root { --line:#e2e6ea; --accent:#2f6fdb; --ok:#15803d; --err:#b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; color:#1f2430; background:#f6f7f9; }
+    header { padding: 14px 20px; background:#fff; border-bottom:1px solid var(--line); }
+    h1 { font-size: 17px; margin: 0; }
+    h1 small { color:#6b7280; font-weight: 400; font-size: 12px; margin-left: 8px; }
+    a { color: var(--accent); }
+    .wrap { padding: 16px 20px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:14px; }
+    .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+    button { padding:8px 13px; cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:6px; font-size:13px; }
+    button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    button:hover { border-color:var(--accent); }
+    .muted { color:#6b7280; font-size:12px; }
+    /* Drop zone */
+    #drop {
+      border:2px dashed #c5ccd6; border-radius:10px; padding:28px; text-align:center;
+      color:#6b7280; background:#fbfcfe; transition:.15s border-color,.15s background; cursor:pointer;
+    }
+    #drop.over { border-color:var(--accent); background:#eef4ff; color:#1f2430; }
+    #drop strong { color:#1f2430; }
+    #drop .big { font-size:15px; margin-bottom:4px; }
+    .status { margin-top:10px; font-size:13px; }
+    .status.ok { color:var(--ok); }
+    .status.err { color:var(--err); }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .chip { font-size:12px; padding:2px 9px; border-radius:999px; background:#eef1f5; border:1px solid var(--line); }
+    .chip b { font-weight:600; }
+    .chip.num b { color:#1d4ed8; } .chip.date b { color:#7c3aed; } .chip.str b { color:#0f766e; }
+    #pivot { height: 580px; width: 100%; background:#fff; border-radius:8px; margin-top:4px; }
+    .hidden { display:none; }
+    code { background:#eef1f5; padding:1px 5px; border-radius:4px; }
+    ol { margin:8px 0 0; padding-left:20px; font-size:13px; color:#374151; }
+    ol li { margin:3px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ProPivot <small>load your own data — upload a CSV/JSON file, then drag fields to pivot</small></h1>
+    <p style="margin:6px 0 0"><a href="./index.html" style="text-decoration:none;font-size:14px;">▸ Back to the generated-data demo</a></p>
+  </header>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <button class="primary" id="pick">Choose CSV / JSON file</button>
+          <input type="file" id="file" accept=".csv,.json,text/csv,application/json" class="hidden" />
+          <span class="muted">…or drag a file onto the box below.</span>
+        </div>
+        <div class="row">
+          <button id="sampleCsv">⬇ Sample CSV</button>
+          <button id="sampleJson">⬇ Sample JSON</button>
+        </div>
+      </div>
+
+      <div id="drop" style="margin-top:12px">
+        <div class="big"><strong>Drop your .csv or .json file here</strong></div>
+        <div class="muted">Headers in row 1 (CSV). Types are auto-detected: numbers aggregate, ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
+      </div>
+
+      <div class="status muted" id="status">No file loaded yet — download a sample, edit it, and upload it back.</div>
+      <div class="chips" id="chips"></div>
+
+      <ol>
+        <li>Drag a text field (e.g. <code>Region</code>) into the <b>Rows</b> zone of the field list.</li>
+        <li>Drag a number field (e.g. <code>Sales</code>) into <b>Measures</b> — it sums by default; click its column header ▾ to change the aggregation.</li>
+        <li>Drag another field into <b>Columns</b> to cross-tab, or into <b>Report Filters</b> to slice.</li>
+        <li>Use the toolbar to <b>Export</b> to Excel / PDF / HTML / CSV — formatting (colors, currency, percent) is preserved.</li>
+      </ol>
+    </div>
+
+    <div id="pivot"></div>
+  </div>
+
+  <script src="../dist/propivot.global.js"></script>
+  <script>
+    const PP = window.ProPivot;
+    const $ = (id) => document.getElementById(id);
+
+    // ── Minimal, robust CSV parser (RFC-4180-ish: quotes, escaped quotes, CRLF) ──
+    function parseCSV(text) {
+      const rows = [];
+      let field = '', row = [], inQ = false;
+      // Strip a leading UTF-8 BOM if present.
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQ) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { field += '"'; i++; }
+            else inQ = false;
+          } else field += c;
+        } else if (c === '"') inQ = true;
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); rows.push(row); field = ''; row = []; }
+        else if (c === '\r') { /* swallow; \n handles the row break */ }
+        else field += c;
+      }
+      // Flush the final field/row (files without a trailing newline).
+      if (field.length || row.length) { row.push(field); rows.push(row); }
+      if (!rows.length) throw new Error('The CSV file is empty.');
+      const header = rows.shift().map((h) => h.trim());
+      if (!header.some(Boolean)) throw new Error('No header row found.');
+      return rows
+        .filter((r) => r.some((v) => v !== '' && v != null))
+        .map((r) => { const o = {}; header.forEach((h, i) => { o[h] = r[i] != null ? r[i] : ''; }); return o; });
+    }
+
+    // ── Value-based type inference per column → ProPivot mapping ──────────────
+    const ISO_DATE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/;
+    const NUMERIC = /^-?\s*\$?\s*[\d,]*\.?\d+%?$/; // allows 1,234.5 / $1200 / 42%
+
+    function toNumber(v) {
+      const n = Number(String(v).replace(/[$,%\s]/g, ''));
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function inferAndCoerce(data) {
+      const cols = Object.keys(data[0] ?? {});
+      const mapping = {};
+      const types = {};
+      for (const col of cols) {
+        let nNum = 0, nDate = 0, nNonEmpty = 0;
+        for (const r of data) {
+          const v = r[col];
+          if (v === '' || v == null) continue;
+          nNonEmpty++;
+          const s = String(v).trim();
+          if (ISO_DATE.test(s)) nDate++;
+          else if (NUMERIC.test(s) && toNumber(s) != null) nNum++;
+        }
+        let type;
+        if (nNonEmpty === 0) type = 'string';
+        else if (nDate === nNonEmpty) type = 'year/month/day';      // drillable date hierarchy
+        else if (nNum === nNonEmpty) type = 'number';
+        else type = 'string';
+        types[col] = type;
+        mapping[col] = { type, caption: col };
+      }
+      // Coerce numeric columns to real numbers so aggregations work.
+      for (const r of data) for (const col of cols) {
+        if (types[col] === 'number') { const n = toNumber(r[col]); r[col] = n == null ? null : n; }
+      }
+      return { mapping, types };
+    }
+
+    // ── Build a starter report: first text field → Rows, first number → Measure ──
+    function starterReport(data, mapping, types) {
+      const cols = Object.keys(mapping);
+      const firstText = cols.find((c) => types[c] !== 'number');
+      const firstNum = cols.find((c) => types[c] === 'number');
+      return {
+        dataSource: { type: 'json', data, mapping },
+        slice: {
+          rows: firstText ? [{ uniqueName: firstText }] : [],
+          columns: [],
+          measures: firstNum ? [{ uniqueName: firstNum, aggregation: 'sum' }] : [],
+        },
+        options: { grid: { type: 'compact', showGrandTotals: 'on' } },
+      };
+    }
+
+    let pivot = null;
+    function loadData(data) {
+      if (!Array.isArray(data) || !data.length) throw new Error('No rows found in the file.');
+      if (typeof data[0] !== 'object' || data[0] == null) throw new Error('Expected an array of row objects.');
+      const { mapping, types } = inferAndCoerce(data);
+      renderChips(types, data.length);
+      const report = starterReport(data, mapping, types);
+      if (pivot) pivot.dispose();
+      pivot = new PP({ container: '#pivot', toolbar: true, report });
+    }
+
+    function renderChips(types, n) {
+      const cls = (t) => (t === 'number' ? 'num' : t.includes('/') || t.includes('date') ? 'date' : 'str');
+      const lbl = (t) => (t === 'number' ? 'number' : t.includes('/') || t.includes('date') ? 'date' : 'text');
+      $('chips').innerHTML = `<span class="chip">${n.toLocaleString()} rows</span>` +
+        Object.entries(types).map(([c, t]) => `<span class="chip ${cls(t)}">${c} · <b>${lbl(t)}</b></span>`).join('');
+    }
+
+    function setStatus(msg, kind) {
+      const el = $('status');
+      el.textContent = msg;
+      el.className = 'status ' + (kind || 'muted');
+    }
+
+    // ── File handling (input + drag/drop) ────────────────────────────────────
+    function handleFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = String(reader.result);
+          const isJson = /\.json$/i.test(file.name) || text.trim().startsWith('[') || text.trim().startsWith('{');
+          let data;
+          if (isJson) {
+            const parsed = JSON.parse(text);
+            data = Array.isArray(parsed) ? parsed : (parsed.data ?? parsed.rows ?? null);
+            if (!data) throw new Error('JSON must be an array of objects (or { "data": [...] }).');
+          } else {
+            data = parseCSV(text);
+          }
+          loadData(data);
+          setStatus(`Loaded “${file.name}” — ${data.length.toLocaleString()} rows. Drag fields in the list to pivot.`, 'ok');
+        } catch (err) {
+          console.error(err);
+          setStatus('Could not load file: ' + (err && err.message ? err.message : err), 'err');
+        }
+      };
+      reader.onerror = () => setStatus('Failed to read the file.', 'err');
+      reader.readAsText(file);
+    }
+
+    $('pick').onclick = () => $('file').click();
+    $('file').onchange = (e) => handleFile(e.target.files[0]);
+
+    const drop = $('drop');
+    drop.onclick = () => $('file').click();
+    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+
+    // ── Sample files the user can download, edit and re-upload ────────────────
+    const SAMPLE = [
+      { Region: 'West',  Category: 'Furniture',  Date: '2024-01-15', Sales: 1200.5, Quantity: 4 },
+      { Region: 'West',  Category: 'Technology', Date: '2024-02-03', Sales: 3400,   Quantity: 2 },
+      { Region: 'East',  Category: 'Furniture',  Date: '2024-01-22', Sales: 800,    Quantity: 6 },
+      { Region: 'East',  Category: 'Office',     Date: '2024-03-11', Sales: 240.75, Quantity: 12 },
+      { Region: 'North', Category: 'Technology', Date: '2024-02-19', Sales: 5600,   Quantity: 3 },
+      { Region: 'North', Category: 'Office',     Date: '2024-03-28', Sales: 410,    Quantity: 9 },
+      { Region: 'South', Category: 'Furniture',  Date: '2024-01-30', Sales: 1500,   Quantity: 5 },
+      { Region: 'South', Category: 'Technology', Date: '2024-02-25', Sales: 2750.25,Quantity: 1 },
+      { Region: 'West',  Category: 'Office',     Date: '2024-03-05', Sales: 320,    Quantity: 8 },
+      { Region: 'East',  Category: 'Technology', Date: '2024-03-17', Sales: 4100,   Quantity: 2 },
+      { Region: 'North', Category: 'Furniture',  Date: '2024-01-09', Sales: 990,    Quantity: 7 },
+      { Region: 'South', Category: 'Office',     Date: '2024-02-14', Sales: 530.5,  Quantity: 10 },
+    ];
+
+    function download(content, filename, mime) {
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+
+    function toCsv(rows) {
+      const cols = Object.keys(rows[0]);
+      const esc = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      return [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n');
+    }
+
+    $('sampleCsv').onclick = () => download(toCsv(SAMPLE), 'propivot-sample.csv', 'text/csv;charset=utf-8');
+    $('sampleJson').onclick = () => download(JSON.stringify(SAMPLE, null, 2), 'propivot-sample.json', 'application/json');
+
+    // Load the built-in sample on first open so the page isn't blank.
+    loadData(JSON.parse(JSON.stringify(SAMPLE)));
+    setStatus('Showing the built-in sample. Download it, edit it, and upload it back — or drop your own file.', 'muted');
+  </script>
+</body>
+</html>
