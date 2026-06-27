@@ -57,6 +57,7 @@
         <div class="row">
           <button class="primary" id="pick">Choose CSV / JSON file</button>
           <input type="file" id="file" accept=".csv,.json,text/csv,application/json" class="hidden" />
+          <button id="trySample">Try with sample data</button>
           <span class="muted">…or drag a file onto the box below.</span>
         </div>
         <div class="row">
@@ -70,7 +71,7 @@
         <div class="muted">No predefined columns needed — the library reads your headers/keys and infers each field's type. Numbers aggregate; ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
       </div>
 
-      <div class="status muted" id="status">No file loaded yet — download a sample, edit it, and upload it back.</div>
+      <div class="status muted" id="status">No data loaded yet — choose a file, drop one above, or click “Try with sample data”.</div>
       <div class="chips" id="chips"></div>
 
       <ol>
@@ -87,7 +88,11 @@
 pivot.<span class="tok">loadData</span>(csvOrJsonTextOrArray);</pre>
     </div>
 
-    <div id="pivot"></div>
+    <div id="placeholder" class="panel" style="text-align:center;color:#6b7280;padding:54px 20px">
+      <div style="font-size:15px;font-weight:600;color:#1f2430">Your pivot table will appear here</div>
+      <div class="muted" style="margin-top:6px">Load a CSV/JSON file or click <b>Try with sample data</b> to see it in action.</div>
+    </div>
+    <div id="pivot" class="hidden"></div>
   </div>
 
   <script src="../dist/propivot.global.js"></script>
@@ -106,6 +111,8 @@ pivot.<span class="tok">loadData</span>(csvOrJsonTextOrArray);</pre>
       const report = pivot.loadData(input); // infers columns + types, builds a starter slice, renders
       const ds = report.dataSource;
       renderChips(ds.mapping, ds.data.length);
+      $('placeholder').classList.add('hidden'); // reveal the grid only once data is loaded
+      $('pivot').classList.remove('hidden');
       return report;
     }
 
@@ -187,13 +194,18 @@ pivot.<span class="tok">loadData</span>(csvOrJsonTextOrArray);</pre>
     $('sampleCsv').onclick = () => download(toCsv(SAMPLE), 'propivot-sample.csv', 'text/csv;charset=utf-8');
     $('sampleJson').onclick = () => download(JSON.stringify(SAMPLE, null, 2), 'propivot-sample.json', 'application/json');
 
-    // Load the built-in sample on first open so the page isn't blank.
-    if (!PP) {
-      setStatus('Demo bundle failed to load. Run "npm run build" and reload.', 'err');
-    } else {
-      loadRaw(SAMPLE.map((r) => ({ ...r }))); // clone: loadData coerces in place
-      setStatus('Showing the built-in sample. Download it, edit it, and upload it back — or drop your own file.', 'muted');
-    }
+    // "Try with sample data" loads the built-in sample on demand — nothing renders until then.
+    $('trySample').onclick = () => {
+      try {
+        const report = loadRaw(SAMPLE.map((r) => ({ ...r }))); // clone: loadData coerces in place
+        setStatus(`Loaded the built-in sample — ${report.dataSource.data.length} rows. This is demo data; upload your own file to replace it.`, 'ok');
+      } catch (err) {
+        console.error(err);
+        setStatus('Could not load the sample: ' + (err && err.message ? err.message : err), 'err');
+      }
+    };
+
+    if (!PP) setStatus('Demo bundle failed to load. Run "npm run build" and reload.', 'err');
   </script>
 </body>
 </html>
