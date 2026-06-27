@@ -11,6 +11,7 @@ import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import { LocalEngine, WorkerEngine, type PivotEngine } from '../core/engine';
 import { DuckDBEngine } from '../core/accel/duckdb';
 import { parseCsv } from '../core/csv';
+import { parseDataset, buildStarterReport, type InferOptions } from '../core/ingest';
 import { drillThroughRows } from '../core/drillthrough';
 import { EventEmitter, ALL_EVENTS } from './events';
 import type { CellData } from './cell';
@@ -35,6 +36,17 @@ export interface ProPivotConfig {
   /** Tuning for the DuckDB accelerator. */
   duckdb?: { threshold?: number; moduleUrl?: string };
   [event: string]: unknown; // inline event handlers
+}
+
+/** Options for the raw-data loaders (`ProPivot.inferReport` / `pivot.loadData`). */
+export interface LoadDataOptions extends InferOptions {
+  /** Override the auto-picked starter slice (rows/columns/measures). */
+  slice?: Report['slice'];
+  /**
+   * Extra Report fields merged over the inferred one (formats, conditions,
+   * options, or a `slice`). `dataSource` is always taken from the parsed data.
+   */
+  report?: Partial<Report>;
 }
 
 export class ProPivot {
@@ -207,6 +219,38 @@ export class ProPivot {
 
   refresh(): void {
     void this.computeAndRender(false).then(() => this.emitter.emit('update'));
+  }
+
+  /**
+   * Build a Report from a RAW dataset that has NO predefined mapping. Pass CSV
+   * text, JSON text, or an already-parsed array of row objects: the column list
+   * and field types are inferred (numbers aggregate; ISO dates drill Year ›
+   * Month › Day), numeric strings are coerced, and a starter slice is assembled
+   * (first text field → Rows, first numeric field → a summed Measure).
+   *
+   * Pure and static — it returns the Report and renders nothing. Hand it to a
+   * constructor (`new ProPivot({ container, report })`), `setReport`, or use the
+   * instance shortcut `loadData` to parse + render in one call.
+   */
+  static inferReport(input: string | unknown[], opts: LoadDataOptions = {}): Report {
+    const { data, mapping } = parseDataset(input, opts);
+    const report = buildStarterReport(data, mapping, { slice: opts.slice });
+    if (opts.report) {
+      const { dataSource: _ignored, ...rest } = opts.report;
+      Object.assign(report, rest); // formats / conditions / options / slice overrides
+    }
+    return report;
+  }
+
+  /**
+   * Parse a RAW dataset (CSV/JSON text or an array of rows), infer its columns
+   * and types, build a starter report, and render it — so the user can drag
+   * fields between zones to pivot. Returns the inferred Report.
+   */
+  loadData(input: string | unknown[], opts: LoadDataOptions = {}): Report {
+    const report = ProPivot.inferReport(input, opts);
+    this.setReport(this.mergeGlobal(report));
+    return report;
   }
 
   updateData(dataSource: { data?: unknown[]; filename?: string }): void {

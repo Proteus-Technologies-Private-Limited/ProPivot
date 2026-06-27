@@ -39,6 +39,8 @@
     #pivot { height: 580px; width: 100%; background:#fff; border-radius:8px; margin-top:4px; }
     .hidden { display:none; }
     code { background:#eef1f5; padding:1px 5px; border-radius:4px; }
+    pre { background:#0f1729; color:#d6e2ff; padding:12px 14px; border-radius:8px; overflow:auto; font-size:12px; line-height:1.5; }
+    pre .tok { color:#7dd3fc; }
     ol { margin:8px 0 0; padding-left:20px; font-size:13px; color:#374151; }
     ol li { margin:3px 0; }
   </style>
@@ -65,18 +67,24 @@
 
       <div id="drop" style="margin-top:12px">
         <div class="big"><strong>Drop your .csv or .json file here</strong></div>
-        <div class="muted">Headers in row 1 (CSV). Types are auto-detected: numbers aggregate, ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
+        <div class="muted">No predefined columns needed — the library reads your headers/keys and infers each field's type. Numbers aggregate; ISO dates (YYYY-MM-DD) drill Year › Month › Day.</div>
       </div>
 
       <div class="status muted" id="status">No file loaded yet — download a sample, edit it, and upload it back.</div>
       <div class="chips" id="chips"></div>
 
       <ol>
-        <li>Drag a text field (e.g. <code>Region</code>) into the <b>Rows</b> zone of the field list.</li>
+        <li>The library builds the field list for you — drag a text field (e.g. <code>Region</code>) into the <b>Rows</b> zone.</li>
         <li>Drag a number field (e.g. <code>Sales</code>) into <b>Measures</b> — it sums by default; click its column header ▾ to change the aggregation.</li>
         <li>Drag another field into <b>Columns</b> to cross-tab, or into <b>Report Filters</b> to slice.</li>
         <li>Use the toolbar to <b>Export</b> to Excel / PDF / HTML / CSV — formatting (colors, currency, percent) is preserved.</li>
       </ol>
+
+      <p class="muted" style="margin-top:14px">This whole page is just one library call — no predefined mapping:</p>
+      <pre><span class="tok">const</span> pivot = <span class="tok">new</span> ProPivot({ container: <span class="tok">'#pivot'</span>, toolbar: <span class="tok">true</span> });
+<span class="tok">// Pass raw CSV/JSON text or an array of rows — ProPivot infers the columns,</span>
+<span class="tok">// builds a starter report, and renders it so you can drag fields to pivot.</span>
+pivot.<span class="tok">loadData</span>(csvOrJsonTextOrArray);</pre>
     </div>
 
     <div id="pivot"></div>
@@ -84,108 +92,33 @@
 
   <script src="../dist/propivot.global.js"></script>
   <script>
+    // The library now owns CSV/JSON parsing + column inference. This page just
+    // hands raw text (or an array of rows) to pivot.loadData(...) — ProPivot
+    // infers the field list/types, builds a starter slice, and renders it.
     const PP = window.ProPivot;
     const $ = (id) => document.getElementById(id);
 
-    // ── Minimal, robust CSV parser (RFC-4180-ish: quotes, escaped quotes, CRLF) ──
-    function parseCSV(text) {
-      const rows = [];
-      let field = '', row = [], inQ = false;
-      // Strip a leading UTF-8 BOM if present.
-      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i];
-        if (inQ) {
-          if (c === '"') {
-            if (text[i + 1] === '"') { field += '"'; i++; }
-            else inQ = false;
-          } else field += c;
-        } else if (c === '"') inQ = true;
-        else if (c === ',') { row.push(field); field = ''; }
-        else if (c === '\n') { row.push(field); rows.push(row); field = ''; row = []; }
-        else if (c === '\r') { /* swallow; \n handles the row break */ }
-        else field += c;
-      }
-      // Flush the final field/row (files without a trailing newline).
-      if (field.length || row.length) { row.push(field); rows.push(row); }
-      if (!rows.length) throw new Error('The CSV file is empty.');
-      const header = rows.shift().map((h) => h.trim());
-      if (!header.some(Boolean)) throw new Error('No header row found.');
-      return rows
-        .filter((r) => r.some((v) => v !== '' && v != null))
-        .map((r) => { const o = {}; header.forEach((h, i) => { o[h] = r[i] != null ? r[i] : ''; }); return o; });
-    }
-
-    // ── Value-based type inference per column → ProPivot mapping ──────────────
-    const ISO_DATE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/;
-    const NUMERIC = /^-?\s*\$?\s*[\d,]*\.?\d+%?$/; // allows 1,234.5 / $1200 / 42%
-
-    function toNumber(v) {
-      const n = Number(String(v).replace(/[$,%\s]/g, ''));
-      return Number.isFinite(n) ? n : null;
-    }
-
-    function inferAndCoerce(data) {
-      const cols = Object.keys(data[0] ?? {});
-      const mapping = {};
-      const types = {};
-      for (const col of cols) {
-        let nNum = 0, nDate = 0, nNonEmpty = 0;
-        for (const r of data) {
-          const v = r[col];
-          if (v === '' || v == null) continue;
-          nNonEmpty++;
-          const s = String(v).trim();
-          if (ISO_DATE.test(s)) nDate++;
-          else if (NUMERIC.test(s) && toNumber(s) != null) nNum++;
-        }
-        let type;
-        if (nNonEmpty === 0) type = 'string';
-        else if (nDate === nNonEmpty) type = 'year/month/day';      // drillable date hierarchy
-        else if (nNum === nNonEmpty) type = 'number';
-        else type = 'string';
-        types[col] = type;
-        mapping[col] = { type, caption: col };
-      }
-      // Coerce numeric columns to real numbers so aggregations work.
-      for (const r of data) for (const col of cols) {
-        if (types[col] === 'number') { const n = toNumber(r[col]); r[col] = n == null ? null : n; }
-      }
-      return { mapping, types };
-    }
-
-    // ── Build a starter report: first text field → Rows, first number → Measure ──
-    function starterReport(data, mapping, types) {
-      const cols = Object.keys(mapping);
-      const firstText = cols.find((c) => types[c] !== 'number');
-      const firstNum = cols.find((c) => types[c] === 'number');
-      return {
-        dataSource: { type: 'json', data, mapping },
-        slice: {
-          rows: firstText ? [{ uniqueName: firstText }] : [],
-          columns: [],
-          measures: firstNum ? [{ uniqueName: firstNum, aggregation: 'sum' }] : [],
-        },
-        options: { grid: { type: 'compact', showGrandTotals: 'on' } },
-      };
-    }
-
     let pivot = null;
-    function loadData(data) {
-      if (!Array.isArray(data) || !data.length) throw new Error('No rows found in the file.');
-      if (typeof data[0] !== 'object' || data[0] == null) throw new Error('Expected an array of row objects.');
-      const { mapping, types } = inferAndCoerce(data);
-      renderChips(types, data.length);
-      const report = starterReport(data, mapping, types);
-      if (pivot) pivot.dispose();
-      pivot = new PP({ container: '#pivot', toolbar: true, report });
+
+    /** Load a raw dataset (CSV/JSON string, or an array of rows) into the pivot. */
+    function loadRaw(input) {
+      if (!pivot) pivot = new PP({ container: '#pivot', toolbar: true });
+      const report = pivot.loadData(input); // infers columns + types, builds a starter slice, renders
+      const ds = report.dataSource;
+      renderChips(ds.mapping, ds.data.length);
+      return report;
     }
 
-    function renderChips(types, n) {
-      const cls = (t) => (t === 'number' ? 'num' : t.includes('/') || t.includes('date') ? 'date' : 'str');
-      const lbl = (t) => (t === 'number' ? 'number' : t.includes('/') || t.includes('date') ? 'date' : 'text');
+    // ── Render the inferred column list as type chips ─────────────────────────
+    const isDateType = (t) => t.includes('/') || t.includes('date') || t.includes('time');
+    const chipClass = (t) => (t === 'number' ? 'num' : isDateType(t) ? 'date' : 'str');
+    const chipLabel = (t) => (t === 'number' ? 'number' : isDateType(t) ? 'date' : 'text');
+    function renderChips(mapping, n) {
       $('chips').innerHTML = `<span class="chip">${n.toLocaleString()} rows</span>` +
-        Object.entries(types).map(([c, t]) => `<span class="chip ${cls(t)}">${c} · <b>${lbl(t)}</b></span>`).join('');
+        Object.keys(mapping).map((c) => {
+          const t = mapping[c].type || 'string';
+          return `<span class="chip ${chipClass(t)}">${c} · <b>${chipLabel(t)}</b></span>`;
+        }).join('');
     }
 
     function setStatus(msg, kind) {
@@ -194,24 +127,14 @@
       el.className = 'status ' + (kind || 'muted');
     }
 
-    // ── File handling (input + drag/drop) ────────────────────────────────────
+    // ── File handling (input + drag/drop). The library auto-detects CSV vs JSON. ──
     function handleFile(file) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const text = String(reader.result);
-          const isJson = /\.json$/i.test(file.name) || text.trim().startsWith('[') || text.trim().startsWith('{');
-          let data;
-          if (isJson) {
-            const parsed = JSON.parse(text);
-            data = Array.isArray(parsed) ? parsed : (parsed.data ?? parsed.rows ?? null);
-            if (!data) throw new Error('JSON must be an array of objects (or { "data": [...] }).');
-          } else {
-            data = parseCSV(text);
-          }
-          loadData(data);
-          setStatus(`Loaded “${file.name}” — ${data.length.toLocaleString()} rows. Drag fields in the list to pivot.`, 'ok');
+          const report = loadRaw(String(reader.result));
+          setStatus(`Loaded “${file.name}” — ${report.dataSource.data.length.toLocaleString()} rows. Drag fields in the list to pivot.`, 'ok');
         } catch (err) {
           console.error(err);
           setStatus('Could not load file: ' + (err && err.message ? err.message : err), 'err');
@@ -265,8 +188,12 @@
     $('sampleJson').onclick = () => download(JSON.stringify(SAMPLE, null, 2), 'propivot-sample.json', 'application/json');
 
     // Load the built-in sample on first open so the page isn't blank.
-    loadData(JSON.parse(JSON.stringify(SAMPLE)));
-    setStatus('Showing the built-in sample. Download it, edit it, and upload it back — or drop your own file.', 'muted');
+    if (!PP) {
+      setStatus('Demo bundle failed to load. Run "npm run build" and reload.', 'err');
+    } else {
+      loadRaw(SAMPLE.map((r) => ({ ...r }))); // clone: loadData coerces in place
+      setStatus('Showing the built-in sample. Download it, edit it, and upload it back — or drop your own file.', 'muted');
+    }
   </script>
 </body>
 </html>
