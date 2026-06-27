@@ -3,8 +3,8 @@
     [
       {
         "tag": "th",
-        "text": "region / category",
-        "cls": "pp-corner",
+        "text": "region / category<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "cls": "pp-corner pp-draggable",
         "rs": 2
       },
       {
@@ -26,17 +26,17 @@
     [
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
         "cls": "pp-measureh pp-draggable"
       },
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
         "cls": "pp-measureh pp-draggable"
       },
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-gear\" title=\"Configure aggregation\">⚙</button><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
         "cls": "pp-measureh pp-grand pp-draggable"
       }
     ]

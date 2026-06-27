@@ -351,11 +351,25 @@ export class ProPivot {
     return [...(slice.rows ?? []), ...(slice.columns ?? [])].find((h) => h.uniqueName === ref.uniqueName);
   }
 
+  /**
+   * Mirror a measure-targeted presentation change onto the cached matrix. `render()`
+   * reuses the existing matrix WITHOUT recomputing, and `matrix.measures` are
+   * normalized COPIES of the slice measures — so width/display/caption edits must be
+   * applied here too, or the grid would keep showing the pre-edit measure.
+   * (Dimension columns are read live from `report`, so they need no mirroring.)
+   */
+  private patchMatrixMeasure(ref: ColumnRef, patch: Partial<Measure>): void {
+    if (ref.kind !== 'measure' || !this.matrix) return;
+    const m = this.matrix.measures.find((mm) => mm.key === ref.key);
+    if (m) Object.assign(m, patch);
+  }
+
   /** Set a column's pixel width (drag-resize). Presentation only — no recompute. */
   setColumnWidth(ref: ColumnRef, width: number): void {
     const entry = this.resolveColumn(ref);
     if (!entry) return;
     entry.width = Math.max(24, Math.round(width));
+    this.patchMatrixMeasure(ref, { width: entry.width });
     this.render();
     this.emitter.emit('columnresize', { ref, width: entry.width });
   }
@@ -365,6 +379,7 @@ export class ProPivot {
     const entry = this.resolveColumn(ref);
     if (!entry) return;
     if (display) entry.display = display; else delete entry.display;
+    this.patchMatrixMeasure(ref, { display: display ?? undefined });
     this.render();
     this.emitter.emit('columnpropertychange', { ref, property: 'display', value: display });
   }
@@ -374,6 +389,7 @@ export class ProPivot {
     const entry = this.resolveColumn(ref);
     if (!entry) return;
     entry.caption = caption;
+    this.patchMatrixMeasure(ref, { caption });
     this.render();
     this.emitter.emit('columnpropertychange', { ref, property: 'caption', value: caption });
   }
