@@ -336,6 +336,9 @@ export function applyFilters(store: ColumnStore, normal: NormalReport): number[]
   collect(normal.report.slice?.rows ?? []);
   collect(normal.report.slice?.columns ?? []);
   collect(normal.reportFilters);
+  // Field-keyed filters (e.g. expanded date-hierarchy levels like "Date (Year)").
+  const ff = normal.report.slice?.fieldFilters;
+  if (ff) collect(Object.keys(ff).map((uniqueName) => ({ uniqueName, filter: ff[uniqueName] })));
 
   let out: number[] = [];
   for (let i = 0; i < store.rowCount; i++) {

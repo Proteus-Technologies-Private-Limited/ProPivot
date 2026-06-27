@@ -117,6 +117,12 @@ export interface Slice {
   columns?: Hierarchy[];
   measures?: Measure[];
   reportFilters?: Hierarchy[];
+  /**
+   * Filters keyed by the resolved field name — used for fields that are not a
+   * standalone slice hierarchy, notably the expanded levels of a date hierarchy
+   * (e.g. `"Date (Year)"`). Honored by the planner alongside hierarchy filters.
+   */
+  fieldFilters?: Record<string, FilterSpec>;
   sorting?: Sorting;
   expands?: { expandAll?: boolean; rows?: Array<{ tuple: string[] }>; columns?: Array<{ tuple: string[] }> };
   drills?: { drillAll?: boolean; rows?: Array<{ tuple: string[] }>; columns?: Array<{ tuple: string[] }> };

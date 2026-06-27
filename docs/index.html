@@ -168,6 +168,55 @@
     </div>
   </header>
 
+  <section id="demo" class="alt">
+    <div class="container">
+      <p class="eyebrow">Live demo</p>
+      <h2>Pivot real data, right here.</h2>
+      <p class="sub">This grid is the actual library running in your browser on a generated dataset — no server, no iframe. Change the controls, drag fields, double-click a cell to drill through, export.</p>
+      <div class="demo-wrap">
+        <div class="controls">
+          <div class="ctl">
+            <label>Rows</label>
+            <select id="rows">
+              <option value="region,category">Region › Category</option>
+              <option value="region">Region</option>
+              <option value="orderDate">Order Date (Year › Qtr › Month)</option>
+              <option value="customer">Customer (high cardinality)</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label>Columns</label>
+            <select id="cols"><option value="year">Year</option><option value="">(none)</option></select>
+          </div>
+          <div class="ctl">
+            <label>Sales aggregation</label>
+            <select id="agg">
+              <option value="sum">Sum</option><option value="average">Average</option>
+              <option value="distinctcount">Distinct Count</option><option value="median">Median</option>
+              <option value="percentofcolumn">% of Column</option>
+              <option value="runningtotals">Running Totals</option><option value="difference">Difference</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label>Layout</label>
+            <select id="layout"><option value="compact">Compact</option><option value="flat">Flat</option><option value="classic">Classic</option></select>
+          </div>
+          <div class="demo-btns">
+            <button id="expand">Expand</button>
+            <button id="collapse">Collapse</button>
+            <button id="csv">CSV</button>
+            <button id="excel">Excel</button>
+            <button id="pdf">PDF</button>
+            <button id="image">Image</button>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div id="pivot"></div>
+        <p class="demo-note">Tip: hover a column header and click ▾ to open its properties (aggregation, conditional formatting, display format, filter); drag a header edge to resize, or drag headers to reorder; double-click a value cell to drill through.</p>
+      </div>
+    </div>
+  </section>
+
   <section id="features" class="container">
     <p class="eyebrow">Features</p>
     <h2>Everything a pivot needs, nothing it doesn't.</h2>
@@ -234,55 +283,6 @@
   },
   reportcomplete: () =&gt; console.log(<span class="s">'ready'</span>),
 });</pre>
-  </section>
-
-  <section id="demo" class="alt">
-    <div class="container">
-      <p class="eyebrow">Live demo</p>
-      <h2>Pivot real data, right here.</h2>
-      <p class="sub">This grid is the actual library running in your browser on a generated dataset — no server, no iframe. Change the controls, drag fields, double-click a cell to drill through, export.</p>
-      <div class="demo-wrap">
-        <div class="controls">
-          <div class="ctl">
-            <label>Rows</label>
-            <select id="rows">
-              <option value="region,category">Region › Category</option>
-              <option value="region">Region</option>
-              <option value="orderDate">Order Date (Year › Qtr › Month)</option>
-              <option value="customer">Customer (high cardinality)</option>
-            </select>
-          </div>
-          <div class="ctl">
-            <label>Columns</label>
-            <select id="cols"><option value="year">Year</option><option value="">(none)</option></select>
-          </div>
-          <div class="ctl">
-            <label>Sales aggregation</label>
-            <select id="agg">
-              <option value="sum">Sum</option><option value="average">Average</option>
-              <option value="distinctcount">Distinct Count</option><option value="median">Median</option>
-              <option value="percentofcolumn">% of Column</option>
-              <option value="runningtotals">Running Totals</option><option value="difference">Difference</option>
-            </select>
-          </div>
-          <div class="ctl">
-            <label>Layout</label>
-            <select id="layout"><option value="compact">Compact</option><option value="flat">Flat</option><option value="classic">Classic</option></select>
-          </div>
-          <div class="demo-btns">
-            <button id="expand">Expand</button>
-            <button id="collapse">Collapse</button>
-            <button id="csv">CSV</button>
-            <button id="excel">Excel</button>
-            <button id="pdf">PDF</button>
-            <button id="image">Image</button>
-          </div>
-        </div>
-        <div class="stats" id="stats"></div>
-        <div id="pivot"></div>
-        <p class="demo-note">Tip: hover a measure-column header and click ⚙ to change that measure's aggregation; double-click a value cell to drill through. Conditional formatting highlights large/small sales.</p>
-      </div>
-    </div>
   </section>
 
   <footer>

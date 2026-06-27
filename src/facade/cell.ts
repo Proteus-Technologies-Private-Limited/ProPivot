@@ -26,11 +26,30 @@ function kebab(s: string): string {
   return s.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
 }
 
+/**
+ * One entry in a cell's row/column tuple: the field (hierarchy) at this level
+ * AND the member value the clicked cell sits on for that field.
+ */
+export interface CellTupleItem {
+  /** Field / hierarchy uniqueName. */
+  uniqueName: string;
+  /** Field caption. */
+  caption?: string;
+  /** Member value at this level for the clicked cell (omitted on totals). */
+  member?: string;
+  /** Display caption of the member. */
+  memberCaption?: string;
+  /** Depth of this field on its axis (0-based). */
+  level?: number;
+}
+
 export interface CellData {
   rowIndex: number;
   columnIndex: number;
-  rows: Array<{ uniqueName: string; caption?: string }>;
-  columns: Array<{ uniqueName: string; caption?: string }>;
+  /** The cell's ROW tuple: one entry per row field, each with its member here. */
+  rows: CellTupleItem[];
+  /** The cell's COLUMN tuple: one entry per column field, each with its member here. */
+  columns: CellTupleItem[];
   hierarchy?: { uniqueName: string; caption?: string };
   measure?: { uniqueName: string; caption?: string };
   member?: { name: string; caption?: string };
