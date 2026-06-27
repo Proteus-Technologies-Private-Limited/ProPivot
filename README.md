@@ -1,9 +1,12 @@
 # ProPivot (`@proteus/propivot`)
 
-A **100% client-side** pivot grid engine for **Angular, React, and Android** (WebView).
-Built for **large datasets** and heavy customization — configurable events, 17
-aggregations, calculated-value formulas, conditional formatting, and a `customizeCell`
-hook — with no server round-trips.
+> **Pivot millions of rows in a heartbeat — right inside your app.**
+
+An **enterprise-grade, open-source React & Angular library** for building pivot tables
+over **millions of rows**. Lightning fast, lightweight, feature-rich, highly configurable —
+and instantly embedded in any project. The columnar engine aggregates **100% client-side**
+(no server round-trips): 17 aggregations, calculated-value formulas, conditional formatting,
+virtualized rendering, a `customizeCell` hook, and five export formats.
 
 **[▶ Live demo & docs →](https://proteus-technologies-private-limited.github.io/ProPivot/)**
 

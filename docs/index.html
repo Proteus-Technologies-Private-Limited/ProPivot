@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProPivot — a 100% client-side pivot grid engine</title>
-  <meta name="description" content="ProPivot is a 100% client-side pivot grid engine for Angular, React, and Android (WebView). 17 aggregations, calculated measures, virtualized rendering, drag-drop field list, and five export formats. MIT licensed." />
-  <link rel="stylesheet" href="./assets/propivot.css" />
+  <title>ProPivot — enterprise-grade React &amp; Angular pivot table for millions of rows</title>
+  <meta name="description" content="ProPivot is an enterprise-grade, open-source React &amp; Angular library for building pivot tables over millions of rows. Lightning fast, lightweight, feature-rich, highly configurable — and instantly embedded in any project. 100% client-side, MIT licensed." />
+  <link rel="stylesheet" href="./assets/propivot.css?v=a43ebc31" />
+  <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
     :root {
       --bg: #0b1020;
@@ -132,32 +133,33 @@
   </style>
 </head>
 <body>
-  <nav>
-    <div class="container">
-      <span class="brand"><span class="dot"></span> ProPivot</span>
-      <div class="links">
+  <header class="ppnav">
+    <div class="ppnav-inner">
+      <a class="ppnav-brand" href="./index.html"><span class="ppnav-dot"></span> ProPivot</a>
+      <nav class="ppnav-links">
         <a href="#features">Features</a>
         <a href="./demo.html">2M demo</a>
         <a href="./gallery.html">Gallery</a>
         <a href="./features.html">Examples</a>
-        <a href="#demo">Live demo</a>
-        <a class="gh-btn" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
-      </div>
+        <a href="./docs.html">Docs</a>
+        <a class="ppnav-gh" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+      </nav>
     </div>
-  </nav>
+  </header>
 
   <header class="hero">
     <div class="container">
-      <span class="pill">⚡ 100% client-side · no server round-trips</span>
-      <h1>The pivot grid engine that runs <span class="grad">entirely in the browser</span>.</h1>
+      <span class="pill">⚡ Enterprise-grade · open source · runs entirely in the browser</span>
+      <h1>Pivot <span class="grad">millions of rows</span> in a heartbeat — right inside your app.</h1>
       <p class="lead">
-        ProPivot is a dependency-light pivot table for <b>Angular</b>, <b>React</b>, and <b>Android</b>
-        (WebView). Columnar engine, 17 aggregations, calculated measures, virtualized rendering, drag-drop
-        field list, five export formats — and an opt-in <b>DuckDB-WASM</b> accelerator for millions of rows.
+        ProPivot is an <b>enterprise-grade, open-source React &amp; Angular library</b> for building pivot tables
+        over <b>millions of rows</b>. Lightning fast, lightweight, feature-rich, highly configurable — and
+        instantly embedded in any project. The columnar engine aggregates entirely in the browser, with no
+        server round-trips.
       </p>
       <div class="cta">
         <a class="btn primary" href="./demo.html">▶ Pivot 2,000,000 rows</a>
-        <a class="btn ghost" href="./gallery.html">Feature gallery</a>
+        <a class="btn ghost" href="./docs.html">Read the docs</a>
         <a class="btn ghost" href="./features.html">Feature examples</a>
         <a class="btn ghost" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub</a>
       </div>
@@ -237,24 +239,26 @@
 
   <section class="alt">
     <div class="container">
-      <p class="eyebrow">Framework-agnostic</p>
-      <h2>Drop it into any stack.</h2>
-      <p class="sub">The same engine and grid run from an ES module bundler or a plain <code>&lt;script&gt;</code> tag — no build assumptions, no server.</p>
+      <p class="eyebrow">React &amp; Angular first</p>
+      <h2>Instantly embedded in any project.</h2>
+      <p class="sub">First-class <b>React</b> and <b>Angular</b> components — or read <code>window.ProPivot</code> from a plain <code>&lt;script&gt;</code> for Vue, Svelte, or an Android WebView. One <code>report</code> object drives them all. <a href="./docs.html">Full docs →</a></p>
       <div class="two">
         <div>
-          <p class="label">npm / ESM (Angular, React, Vue, vanilla)</p>
-<pre class="code"><span class="k">import</span> { ProPivot } <span class="k">from</span> <span class="s">'@proteus/propivot'</span>;
+          <p class="label">React</p>
+<pre class="code"><span class="k">import</span> { Pivot } <span class="k">from</span> <span class="s">'@proteus/propivot/react'</span>;
 <span class="k">import</span> <span class="s">'@proteus/propivot/propivot.css'</span>;
 
-<span class="k">new</span> ProPivot({ container: <span class="s">'#pivot'</span>, report, reportcomplete });</pre>
+&lt;<span class="p">Pivot</span> report={report} toolbar
+  onReady={(pivot) =&gt; console.log(<span class="s">'ready'</span>, pivot)} /&gt;;</pre>
         </div>
         <div>
-          <p class="label">browser global (no bundler)</p>
-<pre class="code">&lt;link rel=<span class="s">"stylesheet"</span> href=<span class="s">"propivot.css"</span> /&gt;
-&lt;script src=<span class="s">"propivot.global.js"</span>&gt;&lt;/script&gt;
-&lt;script&gt;
-  <span class="k">const</span> pivot = <span class="k">new</span> window.<span class="p">ProPivot</span>({ container: <span class="s">'#pivot'</span>, report });
-&lt;/script&gt;</pre>
+          <p class="label">Angular</p>
+<pre class="code"><span class="c">// import { ProPivotComponent } from '@proteus/propivot/angular';</span>
+&lt;<span class="p">pro-pivot</span>
+  [report]=<span class="s">"report"</span>
+  [toolbar]=<span class="s">"true"</span>
+  (cellclick)=<span class="s">"onCellClick($event)"</span>&gt;
+&lt;/<span class="p">pro-pivot</span>&gt;</pre>
         </div>
       </div>
     </div>
@@ -299,7 +303,7 @@
     </div>
   </footer>
 
-  <script src="./assets/propivot.global.js"></script>
+  <script src="./assets/propivot.global.js?v=6ca22f46"></script>
   <script>
     (function () {
       var PP = window.ProPivot;

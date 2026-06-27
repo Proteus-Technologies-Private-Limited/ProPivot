@@ -34,7 +34,11 @@
   text-align: center;
   font-weight: 600;
 }
-.pp-corner { background: var(--pp-header-bg); text-align: left; position: sticky; left: 0; z-index: 3; }
+.pp-corner { background: var(--pp-header-bg); text-align: left; position: sticky; left: 0; }
+/* The top-left corner is pinned on BOTH axes, so it must stack above the
+ * sticky column headers (z 2) and the sticky row headers (z 1). The extra
+ * `thead th` qualifier out-specifies `.pp-table thead th { z-index: 2 }`. */
+.pp-table thead th.pp-corner { z-index: 5; }
 .pp-rowh {
   background: var(--pp-header-bg);
   text-align: left;

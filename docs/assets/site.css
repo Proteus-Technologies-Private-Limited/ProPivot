@@ -1,0 +1,50 @@
+/* Shared ProPivot site chrome — the top navigation used on EVERY page so the
+   header is identical everywhere. Self-contained: it does not depend on a
+   page's own CSS variables, so it looks the same regardless of host palette.
+   Clicking the brand (logo) always returns to the home page. */
+.ppnav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+  background: rgba(11, 16, 32, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.ppnav-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 22px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.ppnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 750;
+  font-size: 16px;
+  color: #fff !important;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.ppnav-brand:hover { text-decoration: none; opacity: 0.92; }
+.ppnav-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #6366f1, #14b8a6);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+}
+.ppnav-links { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+.ppnav-links a { color: #c9d0e3; font-size: 14px; font-weight: 550; text-decoration: none; }
+.ppnav-links a:hover { color: #fff; text-decoration: none; }
+.ppnav-links a.active { color: #fff; }
+.ppnav-gh { background: #fff; color: #0b1020 !important; padding: 7px 14px; border-radius: 8px; font-weight: 650; }
+.ppnav-gh:hover { background: #e8eaf2; text-decoration: none; }
+@media (max-width: 880px) {
+  .ppnav-links a:not(.ppnav-gh) { display: none; }
+}
