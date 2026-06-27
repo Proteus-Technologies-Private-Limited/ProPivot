@@ -1235,7 +1235,7 @@ export class GridRenderer {
       z.appendChild(h);
       const body = document.createElement('div');
       body.className = 'pp-zone-body';
-      for (const f of fields) body.appendChild(this.makeChip(f));
+      fields.forEach((f, i) => body.appendChild(this.makeChip(f, zone, i)));
       z.appendChild(body);
       z.addEventListener('dragover', (e) => { e.preventDefault(); z.classList.add('pp-dragover'); });
       z.addEventListener('dragleave', () => z.classList.remove('pp-dragover'));
@@ -1260,12 +1260,41 @@ export class GridRenderer {
     return names.map((n) => ({ uniqueName: n, caption: captionOf(ctx, n) }));
   }
 
-  private makeChip(field: { uniqueName: string; caption: string }): HTMLElement {
+  private makeChip(field: { uniqueName: string; caption: string }, zone: Zone, index: number): HTMLElement {
     const chip = document.createElement('div');
     chip.className = 'pp-chip';
     chip.textContent = field.caption;
     chip.draggable = true;
-    chip.addEventListener('dragstart', (e) => e.dataTransfer?.setData('text/plain', field.uniqueName));
+    chip.addEventListener('dragstart', (e) => {
+      e.dataTransfer?.setData('text/plain', field.uniqueName);
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    });
+
+    // Positional drop: dropping ONTO a chip reorders relative to it (insert before
+    // the chip when over its top half, after it over the bottom half) instead of
+    // appending to the end of the zone (which is what dropping on empty zone space
+    // does). The "Fields" pool isn't an ordered slice zone, so skip it there.
+    if (zone !== 'available') {
+      const clear = () => chip.classList.remove('pp-chip-drop-before', 'pp-chip-drop-after');
+      chip.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // don't also trigger the zone's append-on-drop highlight
+        const rect = chip.getBoundingClientRect();
+        const after = e.clientY > rect.top + rect.height / 2;
+        chip.classList.toggle('pp-chip-drop-after', after);
+        chip.classList.toggle('pp-chip-drop-before', !after);
+      });
+      chip.addEventListener('dragleave', clear);
+      chip.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // prevent the zone drop handler from appending instead
+        const after = chip.classList.contains('pp-chip-drop-after');
+        clear();
+        const name = e.dataTransfer?.getData('text/plain');
+        if (!name || name === field.uniqueName) return;
+        this.opts.controller.reorderColumn(name, zone, index + (after ? 1 : 0));
+      });
+    }
     return chip;
   }
 }

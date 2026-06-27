@@ -114,6 +114,9 @@
   font-size: 12px;
 }
 .pp-chip:active { cursor: grabbing; }
+/* Insertion indicator while reordering chips within a field-list zone. */
+.pp-chip-drop-before { box-shadow: inset 0 3px 0 var(--pp-accent); }
+.pp-chip-drop-after { box-shadow: inset 0 -3px 0 var(--pp-accent); }
 
 /* Measure header gear (opens the aggregation modal) — hover-revealed so the
    heading stays clean. */

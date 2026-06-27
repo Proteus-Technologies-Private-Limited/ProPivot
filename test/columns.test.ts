@@ -80,6 +80,45 @@ describe('column-properties facade (no DOM)', () => {
     expect(p.getReport().slice!.measures!.map((m) => m.uniqueName)).toEqual(['qty', 'sales']);
   });
 
+  it('reorderColumn moves an earlier measure down to a later target (drop = before target)', () => {
+    const p = new ProPivot({
+      container: '#none',
+      report: {
+        dataSource: { type: 'json', data },
+        slice: {
+          rows: [{ uniqueName: 'region' }],
+          measures: [
+            { uniqueName: 'sales', aggregation: 'sum' },
+            { uniqueName: 'qty', aggregation: 'sum' },
+            { uniqueName: 'sales', aggregation: 'average' },
+          ],
+        },
+      },
+    });
+    // Drop the first measure (index 0) onto the third (index 2). Detaching it shifts
+    // the target to index 1, so it must land BEFORE the target: [qty, sales-sum, sales-avg].
+    p.reorderColumn('sales', 'measures', 2);
+    const m = p.getReport().slice!.measures!;
+    expect(m.map((x) => x.aggregation)).toEqual(['sum', 'sum', 'average']);
+    expect(m.map((x) => x.uniqueName)).toEqual(['qty', 'sales', 'sales']);
+  });
+
+  it('reorderColumn moves a later row field up to an earlier target', () => {
+    const p = new ProPivot({
+      container: '#none',
+      report: {
+        dataSource: { type: 'json', data },
+        slice: {
+          rows: [{ uniqueName: 'region' }, { uniqueName: 'year' }],
+          measures: [{ uniqueName: 'sales', aggregation: 'sum' }],
+        },
+      },
+    });
+    // Drag the lower field (index 1) up onto the first (index 0): target keeps its index.
+    p.reorderColumn('year', 'rows', 0);
+    expect(p.getReport().slice!.rows!.map((h) => h.uniqueName)).toEqual(['year', 'region']);
+  });
+
   it('setTopN applies and clears a top-N filter on the first row field', () => {
     const p = make();
     p.setTopN('sales', 'top', 5);

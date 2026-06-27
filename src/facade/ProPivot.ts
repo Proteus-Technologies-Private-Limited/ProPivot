@@ -457,21 +457,34 @@ export class ProPivot {
     slice.reportFilters = slice.reportFilters ?? [];
     slice.measures = slice.measures ?? [];
 
-    // Detach the existing entry from whichever zone holds it.
+    // Detach the existing entry from whichever zone holds it, recording its
+    // original index so a same-zone reorder can compensate for the shift below.
     let fromZone: Zone | null = null;
+    let fromIndex = -1;
     let hier: Hierarchy | undefined;
     let meas: Measure | undefined;
     const detach = <T extends { uniqueName: string }>(arr: T[]): T | undefined => {
       const i = arr.findIndex((x) => x.uniqueName === uniqueName);
-      return i >= 0 ? arr.splice(i, 1)[0] : undefined;
+      if (i < 0) return undefined;
+      fromIndex = i;
+      return arr.splice(i, 1)[0];
     };
     if ((hier = detach(slice.rows))) fromZone = 'rows';
     else if ((hier = detach(slice.columns))) fromZone = 'columns';
     else if ((hier = detach(slice.reportFilters))) fromZone = 'filters';
     else if ((meas = detach(slice.measures))) fromZone = 'measures';
 
+    // `toIndex` is the drop target's index in the PRE-detach array. When the item
+    // is reordered within the same zone and it sat before the target, detaching it
+    // shifted every later entry (including the target) down by one — so we must
+    // decrement the insertion index to land before the column the user aimed at.
+    // Otherwise (cross-zone move, or dragging a lower item up) the target keeps its
+    // index and `toIndex` is already correct.
+    let insertIndex = toIndex;
+    if (fromZone === toZone && fromIndex >= 0 && fromIndex < toIndex) insertIndex -= 1;
+
     const caption = this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
-    const clampIndex = (arr: unknown[]) => Math.max(0, Math.min(toIndex, arr.length));
+    const clampIndex = (arr: unknown[]) => Math.max(0, Math.min(insertIndex, arr.length));
 
     switch (toZone) {
       case 'rows':

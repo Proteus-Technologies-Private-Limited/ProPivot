@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPivot — 2,000,000-row live demo</title>
   <meta name="description" content="Pivot 2 million rows entirely in the browser with ProPivot — built-in columnar engine, optional Web Worker, and an opt-in DuckDB-WASM accelerator." />
-  <link rel="stylesheet" href="./assets/propivot.css?v=a01438b7" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=9979e86f" />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
     :root { --bg:#0b1020; --ink:#1a2233; --ink-soft:#5b6478; --line:#e6e9f0; --accent:#6366f1; --accent-ink:#4338ca; --accent2:#14b8a6; }
@@ -127,7 +127,7 @@
     </div>
   </div>
 
-  <script src="./assets/propivot.global.js?v=b72678eb"></script>
+  <script src="./assets/propivot.global.js?v=dcc99a27"></script>
   <script>
     (function () {
       var PP = window.ProPivot;
@@ -216,7 +216,7 @@
           },
           dataerror: function () { $('panel').classList.remove('busy'); },
         };
-        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js?v=f807010a', location.href).href; }
+        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js?v=aad8552b', location.href).href; }
         else if (engine === 'duckdb') { cfg.accelerator = 'duckdb'; cfg.duckdb = { threshold: 1 }; }
 
         var t0 = performance.now();
