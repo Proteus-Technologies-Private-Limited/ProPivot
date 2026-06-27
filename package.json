@@ -1,7 +1,7 @@
 {
   "name": "@proteus/propivot",
   "version": "0.1.0",
-  "description": "ProPivot — a 100% client-side pivot grid engine for Angular, React, and Android (WebView). Handles large datasets with 17 aggregations, calculated measures, conditional formatting, virtualized rendering, and five export formats.",
+  "description": "ProPivot — an enterprise-grade, open-source React & Angular library for building pivot tables over millions of rows. Lightning fast, lightweight, feature-rich, highly configurable, and instantly embedded in any project. 100% client-side: 17 aggregations, calculated measures, conditional formatting, virtualized rendering, and five export formats.",
   "license": "MIT",
   "author": "Proteus Technologies Private Limited",
   "homepage": "https://proteus-technologies-private-limited.github.io/ProPivot/",

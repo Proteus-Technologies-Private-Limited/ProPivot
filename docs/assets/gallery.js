@@ -235,6 +235,47 @@
     });
   }
 
+  // ── Download ────────────────────────────────────────────────────────────────
+  // Live examples download as a complete, runnable single-file HTML page (loads
+  // the library from this site's CDN). Code-only examples (framework snippets)
+  // download as a .js file.
+  function buildStandaloneHtml(f) {
+    return [
+      '<!DOCTYPE html>',
+      '<html lang="en">',
+      '<head>',
+      '  <meta charset="utf-8" />',
+      '  <meta name="viewport" content="width=device-width, initial-scale=1" />',
+      '  <title>ProPivot — ' + f.title + '</title>',
+      '  <link rel="stylesheet" href="' + CDN_CSS + '" />',
+      '  <style>' + PLAY_CSS + '</style>',
+      '</head>',
+      '<body>',
+      '  ' + PLAY_HTML.replace(/\n/g, '\n  '),
+      '  <script src="' + CDN_JS + '"></scr' + 'ipt>',
+      '  <script>',
+      f.code.replace(/^/gm, '    '),
+      '  </scr' + 'ipt>',
+      '</body>',
+      '</html>',
+      '',
+    ].join('\n');
+  }
+  function triggerDownload(filename, text, mime) {
+    try {
+      var blob = new Blob([text], { type: mime });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    } catch (e) { if (window.console) console.error(e); }
+  }
+  function downloadCode(f) {
+    if (f.live) triggerDownload('propivot-' + f.id + '.html', buildStandaloneHtml(f), 'text/html');
+    else triggerDownload('propivot-' + f.id + '.js', f.code, 'text/javascript');
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
   var nav = document.getElementById('nav');
   var current = null;
@@ -290,6 +331,13 @@
       copyBtn.textContent = 'Copied ✓';
       setTimeout(function () { copyBtn.textContent = 'Copy code'; }, 1200);
     } catch (e) { /* clipboard unavailable */ }
+  });
+  var dlBtn = document.getElementById('download');
+  if (dlBtn) dlBtn.addEventListener('click', function () {
+    downloadCode(current);
+    var label = dlBtn.textContent;
+    dlBtn.textContent = 'Downloaded ✓';
+    setTimeout(function () { dlBtn.textContent = label; }, 1200);
   });
   var cpBtn = document.getElementById('codepen');
   if (cpBtn) cpBtn.addEventListener('click', function () { openCodePen(current); });

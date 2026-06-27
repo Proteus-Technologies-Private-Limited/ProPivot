@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPivot — 2,000,000-row live demo</title>
   <meta name="description" content="Pivot 2 million rows entirely in the browser with ProPivot — built-in columnar engine, optional Web Worker, and an opt-in DuckDB-WASM accelerator." />
-  <link rel="stylesheet" href="./assets/propivot.css" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=a43ebc31" />
+  <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
     :root { --bg:#0b1020; --ink:#1a2233; --ink-soft:#5b6478; --line:#e6e9f0; --accent:#6366f1; --accent-ink:#4338ca; --accent2:#14b8a6; }
     * { box-sizing: border-box; }
@@ -41,15 +42,19 @@
   </style>
 </head>
 <body>
-  <div class="top">
-    <span class="dot"></span><b>ProPivot</b>
-    <div class="links">
-      <a href="./index.html">Home</a>
-      <a href="./gallery.html">Gallery</a>
-      <a href="./features.html">Examples</a>
-      <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+  <header class="ppnav">
+    <div class="ppnav-inner">
+      <a class="ppnav-brand" href="./index.html"><span class="ppnav-dot"></span> ProPivot</a>
+      <nav class="ppnav-links">
+        <a href="./index.html#features">Features</a>
+        <a class="active" href="./demo.html">2M demo</a>
+        <a href="./gallery.html">Gallery</a>
+        <a href="./features.html">Examples</a>
+        <a href="./docs.html">Docs</a>
+        <a class="ppnav-gh" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+      </nav>
     </div>
-  </div>
+  </header>
 
   <div class="wrap">
     <h1>Two million rows, pivoted in your browser <span class="tag" id="ver"></span></h1>
@@ -120,7 +125,7 @@
     </div>
   </div>
 
-  <script src="./assets/propivot.global.js"></script>
+  <script src="./assets/propivot.global.js?v=6ca22f46"></script>
   <script>
     (function () {
       var PP = window.ProPivot;
@@ -209,7 +214,7 @@
           },
           dataerror: function () { $('panel').classList.remove('busy'); },
         };
-        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js', location.href).href; }
+        if (engine === 'worker') { cfg.worker = true; cfg.workerUrl = new URL('./assets/propivot.worker.js?v=178e24f3', location.href).href; }
         else if (engine === 'duckdb') { cfg.accelerator = 'duckdb'; cfg.duckdb = { threshold: 1 }; }
 
         var t0 = performance.now();

@@ -193,6 +193,29 @@ export class GridRenderer {
     };
     scroll.addEventListener('scroll', this.onScroll);
     this.paintBody();
+    this.applyStickyHeader(table);
+  }
+
+  /**
+   * Pin EVERY header row, not just the last one. A pivot thead can have several
+   * stacked rows (e.g. column-field names above the measure row). With a shared
+   * `top: 0` they'd all stick to the same line and overlap — only the last would
+   * show. Here each row's cells get `top` = the summed height of the rows above
+   * it, so the whole header block stays fixed while the body scrolls. (Cells that
+   * rowSpan from row 0 — like the corner — naturally stay at top: 0.)
+   */
+  private applyStickyHeader(table: HTMLElement): void {
+    const rows = table.querySelectorAll<HTMLElement>('thead > tr');
+    let offset = 0;
+    for (let r = 0; r < rows.length; r++) {
+      const tr = rows[r];
+      const top = `${offset}px`;
+      const cells = tr.querySelectorAll<HTMLElement>('th, td');
+      for (let c = 0; c < cells.length; c++) cells[c].style.top = top;
+      // Advance by this row's own painted height (rowSpan cells overflow downward
+      // and don't inflate the row they start in, which is exactly what we want).
+      offset += tr.getBoundingClientRect().height || (cells[0]?.offsetHeight ?? 0);
+    }
   }
 
   /** Min/max per measure slot across the matrix, to auto-scale data_bar/heatmap. */

@@ -5,39 +5,46 @@
         "tag": "th",
         "text": "region / category<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
         "cls": "pp-corner pp-draggable",
+        "style": "top: 0px;",
         "rs": 2
       },
       {
         "tag": "th",
         "text": "2023<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
-        "cls": "pp-colh pp-draggable"
+        "cls": "pp-colh pp-draggable",
+        "style": "top: 0px;"
       },
       {
         "tag": "th",
         "text": "2024<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
-        "cls": "pp-colh pp-draggable"
+        "cls": "pp-colh pp-draggable",
+        "style": "top: 0px;"
       },
       {
         "tag": "th",
         "text": "Grand Total",
-        "cls": "pp-colh pp-grand"
+        "cls": "pp-colh pp-grand",
+        "style": "top: 0px;"
       }
     ],
     [
       {
         "tag": "th",
         "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
-        "cls": "pp-measureh pp-draggable"
+        "cls": "pp-measureh pp-draggable",
+        "style": "top: 0px;"
       },
       {
         "tag": "th",
         "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
-        "cls": "pp-measureh pp-draggable"
+        "cls": "pp-measureh pp-draggable",
+        "style": "top: 0px;"
       },
       {
         "tag": "th",
         "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
-        "cls": "pp-measureh pp-grand pp-draggable"
+        "cls": "pp-measureh pp-grand pp-draggable",
+        "style": "top: 0px;"
       }
     ]
   ],

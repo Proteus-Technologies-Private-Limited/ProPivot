@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ProPivot — feature examples</title>
   <meta name="description" content="A focused, runnable example for every ProPivot feature: layouts, 17 aggregations, calculated measures, conditional & display formatting, date hierarchies, sorting/Top-N, column resize/reorder/properties, export, drill-through and events — each with copy-paste code and an open-in-playground link." />
-  <link rel="stylesheet" href="./assets/propivot.css" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=a43ebc31" />
+  <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
   <style>
     :root { --ink:#1f2430; --muted:#6b7280; --accent:#2f6fdb; --border:#e3e6ec; --bg:#f7f8fa; }
     * { box-sizing: border-box; }
@@ -15,7 +16,7 @@
     header.top small { color:var(--muted); }
     header.top .sitelinks { margin-left:auto; display:flex; gap:16px; }
     header.top .sitelinks a { color:var(--accent); text-decoration:none; font-size:13px; }
-    .layout { display:flex; min-height:calc(100vh - 53px); }
+    .layout { display:flex; min-height:calc(100vh - 58px); }
     nav.side { width:240px; flex:0 0 240px; background:#fff; border-right:1px solid var(--border); padding:8px 0 20px; overflow:auto; }
     nav.side .navgroup { padding:12px 18px 4px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9aa1ad; }
     nav.side button { display:block; width:100%; text-align:left; border:none; background:none; cursor:pointer; padding:7px 18px; font-size:13.5px; color:var(--ink); border-left:3px solid transparent; }
@@ -42,15 +43,18 @@
   </style>
 </head>
 <body>
-  <header class="top">
-    <h1>ProPivot</h1>
-    <small>feature examples — one focused, runnable demo per capability</small>
-    <nav class="sitelinks">
-      <a href="./index.html">Home</a>
-      <a href="./gallery.html">Gallery</a>
-      <a href="./demo.html">2M demo</a>
-      <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
-    </nav>
+  <header class="ppnav">
+    <div class="ppnav-inner">
+      <a class="ppnav-brand" href="./index.html"><span class="ppnav-dot"></span> ProPivot</a>
+      <nav class="ppnav-links">
+        <a href="./index.html#features">Features</a>
+        <a href="./demo.html">2M demo</a>
+        <a href="./gallery.html">Gallery</a>
+        <a class="active" href="./features.html">Examples</a>
+        <a href="./docs.html">Docs</a>
+        <a class="ppnav-gh" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
+      </nav>
+    </div>
   </header>
 
   <div class="layout">
@@ -70,6 +74,7 @@
         <pre class="code"><code id="code"></code></pre>
         <div class="btnrow">
           <button class="btn" id="copy">Copy code</button>
+          <button class="btn" id="download">⬇ Download code</button>
           <button class="btn primary" id="codepen">Open in CodePen</button>
           <button class="btn" id="jsfiddle">Open in JSFiddle</button>
         </div>
@@ -85,11 +90,11 @@
 
   <script>
     window.GALLERY_CFG = {
-      cdnJs: 'https://proteus-technologies-private-limited.github.io/ProPivot/assets/propivot.global.js',
-      cdnCss: 'https://proteus-technologies-private-limited.github.io/ProPivot/assets/propivot.css',
+      cdnJs: 'https://proteus-technologies-private-limited.github.io/ProPivot/assets/propivot.global.js?v=6ca22f46',
+      cdnCss: 'https://proteus-technologies-private-limited.github.io/ProPivot/assets/propivot.css?v=a43ebc31',
     };
   </script>
-  <script src="./assets/propivot.global.js"></script>
-  <script src="./assets/gallery.js"></script>
+  <script src="./assets/propivot.global.js?v=6ca22f46"></script>
+  <script src="./assets/gallery.js?v=06b003ac"></script>
 </body>
 </html>
