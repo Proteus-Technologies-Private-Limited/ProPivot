@@ -6,6 +6,7 @@
   <title>ProPivot — downloadable starter apps for React, Angular, Vue &amp; plain JavaScript</title>
   <meta name="description" content="Download a ready-to-run React, Angular, Vue, or plain-JavaScript starter project that embeds the ProPivot pivot table. Unzip, npm install, npm run dev — the pivot grid runs locally with no extra setup." />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
+  <script defer src="./assets/site.js?v=1"></script>
   <style>
     :root {
       --bg: #0b1020; --bg-soft: #111834; --panel: #ffffff;
@@ -70,6 +71,7 @@
     /* run steps */
     .alt { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
     .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+    .steps .step, .cards .card { min-width: 0; } /* allow code blocks to shrink on narrow screens */
     .step h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 17px; }
     .step h3 .n { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
     pre.code { background: var(--code-bg); color: #e7ecff; border-radius: 12px; padding: 16px 18px; overflow: auto; font-size: 13.5px; line-height: 1.7; border: 1px solid #1c264d; margin: 0 0 14px; }

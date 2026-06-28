@@ -7,6 +7,7 @@
   <meta name="description" content="ProPivot documentation: a step-by-step getting-started guide, a detailed feature reference, and ready-to-paste React, Angular, Vue, and plain-JavaScript sample code for the enterprise-grade, open-source pivot-table library that handles millions of rows entirely in the browser." />
   <link rel="stylesheet" href="./assets/propivot.css?v=9979e86f" />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
+  <script defer src="./assets/site.js?v=1"></script>
   <style>
     :root { --ink:#1f2430; --muted:#6b7280; --accent:#2f6fdb; --accent-ink:#1d4ed8; --border:#e3e6ec; --bg:#f7f8fa; }
     * { box-sizing: border-box; }
@@ -52,7 +53,21 @@
     .tabpane { display:none; }
     .tabpane.active { display:block; }
     .tabpane pre { margin-top:0; border-radius:0 10px 10px 10px; }
-    @media (max-width:820px){ nav.side { display:none; } main { padding:24px 20px 60px; } .grid2 { grid-template-columns:1fr; } }
+    @media (max-width:820px){
+      .layout { flex-direction:column; }
+      /* Turn the section TOC into a horizontal, swipeable strip so every
+         section is still reachable on a phone instead of being hidden. */
+      nav.side { width:100%; flex:none; height:auto; position:static; border-right:none; border-bottom:1px solid var(--border); display:flex; gap:4px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:8px; }
+      nav.side .g { display:none; }
+      nav.side a { flex:0 0 auto; white-space:nowrap; padding:8px 12px; border-left:none; border-radius:7px; }
+      nav.side a.active { border-left-color:transparent; background:#eef4ff; }
+      main { padding:24px 20px 60px; }
+      .grid2 { grid-template-columns:1fr; }
+      /* Let dense API tables scroll within their own box rather than push the
+         whole page wider than the screen. */
+      table.api { display:block; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      pre { max-width:100%; }
+    }
   </style>
 </head>
 <body>

@@ -7,6 +7,7 @@
   <meta name="description" content="A focused, runnable example for every ProPivot feature: layouts, 17 aggregations, calculated measures, conditional & display formatting, date hierarchies, sorting/Top-N, column resize/reorder/properties, export, drill-through and events — each with copy-paste code and an open-in-playground link." />
   <link rel="stylesheet" href="./assets/propivot.css?v=9979e86f" />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
+  <script defer src="./assets/site.js?v=1"></script>
   <style>
     :root { --ink:#1f2430; --muted:#6b7280; --accent:#2f6fdb; --border:#e3e6ec; --bg:#f7f8fa; }
     * { box-sizing: border-box; }
@@ -38,8 +39,18 @@
     .btn:hover { border-color:var(--accent); color:var(--accent); }
     .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
     .cdnnote { font-size:12px; color:var(--muted); margin-top:18px; max-width:840px; line-height:1.5; }
-    .cdnnote code { background:#eef1f5; padding:1px 4px; border-radius:4px; }
-    @media (max-width:760px){ nav.side { display:none; } }
+    .cdnnote code { background:#eef1f5; padding:1px 4px; border-radius:4px; overflow-wrap:anywhere; word-break:break-word; }
+    @media (max-width:760px){
+      .layout { flex-direction:column; min-height:0; }
+      /* Keep the example picker reachable on mobile as a horizontal, swipeable
+         strip of chips rather than hiding it (which would strand the visitor on
+         the first example with no way to switch). */
+      nav.side { width:100%; flex:none; border-right:none; border-bottom:1px solid var(--border); display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:8px; }
+      nav.side .navgroup { display:none; }
+      nav.side button { width:auto; flex:0 0 auto; white-space:nowrap; border-left:none; border-radius:7px; padding:8px 12px; background:var(--bg); }
+      nav.side button.active { border-left:none; background:#e6efff; color:var(--accent); }
+      main { padding:18px 16px 40px; }
+    }
   </style>
 </head>
 <body>
