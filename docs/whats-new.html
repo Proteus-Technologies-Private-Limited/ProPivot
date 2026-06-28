@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProPivot — what's new (v0.3): accessibility, touch, filters, binning, dark mode &amp; more</title>
+  <title>ProPivot — what's new: accessibility, touch, filters, binning, dark mode, calculated columns &amp; more</title>
   <meta name="description" content="Live showcase of the latest ProPivot features: full keyboard navigation & ARIA, touch dragging, label & value filters, numeric binning, range selection with copy-to-clipboard, dark mode, RTL, and localization." />
   <link rel="stylesheet" href="./assets/propivot.css?v=606d1e32" />
   <link rel="stylesheet" href="./assets/site.css?v=ccf56706" />
@@ -128,11 +128,23 @@
       </div>
     </section>
 
+    <section class="feature">
+      <h2>🧮 Calculated columns &amp; formula editor <span class="tag">v0.4</span></h2>
+      <p class="desc">Define a measure from a <code>formula</code> over other aggregations
+        (e.g. <code>sum('sales') / sum('qty')</code>). Open a column ▾ → <b>Calculation</b> tab to see the column's
+        type, edit the formula with live validation, and browse the built-in functions as click-to-insert chips —
+        or do it in code with <code>pivot.setMeasureFormula()</code> / <code>pivot.validateFormula()</code>. Gate the
+        panel with <code>options.columnProperties</code> (<code>showType</code> / <code>showFormula</code> /
+        <code>editFormula</code>).</p>
+      <div class="try">▶ Open the ▾ on the <b>Sales / Unit</b> header → <b>Calculation</b> tab to view and edit its formula.</div>
+      <div class="pivot" id="d-calc"></div>
+    </section>
+
     <p style="color:var(--ink-soft);font-size:13.5px;max-width:820px">
       📱 <b>Touch:</b> column resize, reorder and the drag-drop field list now use Pointer Events, so every grid on
       this page is fully usable on a phone or tablet. See the full <a href="./docs.html">documentation</a> for the
       <code>binning</code>, <code>theme</code>, <code>rtl</code>, <code>localization</code>, <code>setLabelFilter()</code>,
-      <code>setValueFilter()</code> and <code>setBinning()</code> APIs.
+      <code>setValueFilter()</code>, <code>setBinning()</code> and <code>setMeasureFormula()</code> APIs.
     </p>
   </main>
 
@@ -206,6 +218,15 @@
             labelFilter: 'Filtre texte', valueFilter: 'Filtre valeur', clearFilters: 'Effacer', drillThrough: 'Détail',
             grandTotalCaption: 'Total général', totals: 'Total',
           } } }, report: themeReport() },
+          { el: 'd-calc', toolbar: true, opt: { theme: theme }, report: {
+            dataSource: ds(),
+            slice: { rows: [{ uniqueName: 'region' }], columns: [{ uniqueName: 'category' }], measures: [
+              { uniqueName: 'sales', aggregation: 'sum', format: 'cur', caption: 'Sales' },
+              { uniqueName: 'qty', aggregation: 'sum', caption: 'Qty' },
+              { uniqueName: 'perUnit', formula: "sum('sales') / sum('qty')", caption: 'Sales / Unit', format: 'cur' },
+            ] },
+            formats: [cur],
+          } },
         ];
       }
       function themeReport() {
