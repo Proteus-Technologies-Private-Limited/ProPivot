@@ -319,3 +319,15 @@
 .pp-cond-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-top: 1px solid var(--pp-border); padding-top: 8px; }
 .pp-cond-form select, .pp-cond-form input[type="number"] { width: 64px; padding: 4px; border: 1px solid var(--pp-border); border-radius: 4px; }
 .pp-cond-form input[type="color"] { width: 32px; height: 26px; padding: 0; border: 1px solid var(--pp-border); border-radius: 4px; }
+
+/* ── Responsive: keep the data grid usable on small screens ──────────────────
+   On narrow viewports the inline field list (.pp-fieldlist) wraps its drag
+   zones into a tall vertical stack, which can squeeze the actual grid down to
+   a sliver. Cap its height so it scrolls within itself and the grid (.pp-scroll)
+   keeps room. The field list stays fully usable and can still be toggled off
+   via the toolbar “Fields” button. */
+@media (max-width: 700px) {
+  .pp-fieldlist { max-height: 42%; overflow: auto; }
+  .pp-zone { flex-basis: 140px; }
+  .pp-toolbar { gap: 8px; padding: 6px 8px; }
+}
