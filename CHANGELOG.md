@@ -32,6 +32,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `interval` or custom `breaks`, via `binning` on a row/column field, the new
   `setBinning()` API, or the column **Properties** panel. Buckets sort
   numerically and drill-through resolves raw rows by bin.
+- **Range selection + copy** — select a rectangle of cells with Shift+click or
+  Shift+arrows, and copy it as TSV with Ctrl/Cmd+C (pasteable into Excel /
+  Sheets). Off-screen (virtualized) rows are included in the copied text.
 - New `localization.grid.gridLabel` option for the grid's accessible name.
 
 ### Changed

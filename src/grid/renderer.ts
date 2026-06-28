@@ -135,6 +135,9 @@ export class GridRenderer {
   private focusRC: { r: number; c: number } | null = null;
   private rovingEl: HTMLElement | null = null;
   private bodyTable: HTMLElement | null = null;
+  /** Range-selection corners in logical grid coords (anchor + moving focus). */
+  private selAnchor: { r: number; c: number } | null = null;
+  private selFocus: { r: number; c: number } | null = null;
 
   constructor(container: HTMLElement, private opts: RendererOptions) {
     this.root = container;
@@ -227,6 +230,8 @@ export class GridRenderer {
     // Roving focus starts on the first body cell (or first header cell if empty).
     this.rovingEl = null;
     this.focusRC = this.body.visualRows.length ? { r: headerRows, c: 0 } : { r: 0, c: 0 };
+    this.selAnchor = null;
+    this.selFocus = null;
 
     scroll.addEventListener('scroll', this.onScroll);
     this.paintBody();
@@ -316,8 +321,10 @@ export class GridRenderer {
     if (virtualize && start > 0) b.tbody.appendChild(spacer(b.colCount, start * b.rowHeight));
     for (let i = start; i < end; i++) b.tbody.appendChild(this.buildRow(b, b.visualRows[i], i));
     if (virtualize && end < total) b.tbody.appendChild(spacer(b.colCount, (total - end) * b.rowHeight));
-    // Keep exactly one navigable cell tabbable after every (re)paint.
+    // Keep exactly one navigable cell tabbable after every (re)paint, and
+    // re-apply the range highlight to freshly painted rows.
     this.applyRoving();
+    this.applyRangeHighlight();
   }
 
   // ---------- accessibility: ARIA tagging + keyboard navigation ----------
@@ -345,7 +352,18 @@ export class GridRenderer {
   private bindNav(table: HTMLElement): void {
     table.addEventListener('keydown', this.onKeyNav);
     table.addEventListener('focusin', this.onFocusIn);
+    table.addEventListener('click', this.onSelectClick);
   }
+
+  /** Click sets the selection anchor; Shift-click extends the range. */
+  private onSelectClick = (e: MouseEvent): void => {
+    const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-r]');
+    if (!el) return;
+    const rc = { r: +(el.dataset.r ?? 0), c: +(el.dataset.c ?? 0) };
+    if (e.shiftKey && this.selAnchor) this.selFocus = rc;
+    else { this.selAnchor = rc; this.selFocus = rc; }
+    this.applyRangeHighlight();
+  };
 
   private onFocusIn = (e: FocusEvent): void => {
     const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-r]');
@@ -385,6 +403,11 @@ export class GridRenderer {
   private onKeyNav = (e: KeyboardEvent): void => {
     const b = this.body;
     if (!b || !this.focusRC) return;
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+      e.preventDefault();
+      this.copySelection();
+      return;
+    }
     const maxR = b.headerRows + b.visualRows.length - 1;
     const maxC = b.colCount - 1;
     // Step relative to the CURRENT cell's span so wide headers advance cleanly.
@@ -420,8 +443,84 @@ export class GridRenderer {
         return;
     }
     e.preventDefault();
+    // Shift extends from the anchor; anchor it at the ORIGIN cell before moving.
+    if (e.shiftKey) { if (!this.selAnchor) this.selAnchor = this.focusRC; }
     this.focusAt(r, c);
+    if (this.focusRC) {
+      this.selFocus = this.focusRC;
+      if (!e.shiftKey) this.selAnchor = this.focusRC;
+      this.applyRangeHighlight();
+    }
   };
+
+  /** Highlight every painted cell inside the current selection rectangle. */
+  private applyRangeHighlight(): void {
+    const scope = this.bodyTable;
+    if (!scope) return;
+    scope.querySelectorAll('.pp-range').forEach((n) => n.classList.remove('pp-range'));
+    const a = this.selAnchor, f = this.selFocus;
+    if (!a || !f) return;
+    const r0 = Math.min(a.r, f.r), r1 = Math.max(a.r, f.r);
+    const c0 = Math.min(a.c, f.c), c1 = Math.max(a.c, f.c);
+    if (r0 === r1 && c0 === c1) return; // single cell — leave it to the focus ring
+    scope.querySelectorAll<HTMLElement>('[data-r]').forEach((el) => {
+      const rr = +(el.dataset.r ?? 0), cc = +(el.dataset.c ?? 0);
+      const rs = +(el.dataset.rs ?? 1), cs = +(el.dataset.cs ?? 1);
+      if (rr <= r1 && rr + rs - 1 >= r0 && cc <= c1 && cc + cs - 1 >= c0) el.classList.add('pp-range');
+    });
+  }
+
+  /** Copy the selected rectangle to the clipboard as TSV (spreadsheet-pasteable). */
+  private copySelection(): void {
+    const b = this.body, a = this.selAnchor, f = this.selFocus;
+    if (!b || !a || !f) return;
+    const r0 = Math.min(a.r, f.r), r1 = Math.max(a.r, f.r);
+    const c0 = Math.min(a.c, f.c), c1 = Math.max(a.c, f.c);
+    const lines: string[] = [];
+    for (let r = r0; r <= r1; r++) {
+      const cells: string[] = [];
+      for (let c = c0; c <= c1; c++) cells.push(this.cellText(r, c));
+      lines.push(cells.join('\t'));
+    }
+    const tsv = lines.join('\n');
+    writeClipboard(tsv);
+    this.opts.emit('copy', { rows: r1 - r0 + 1, columns: c1 - c0 + 1, text: tsv });
+  }
+
+  /** Text for a grid cell — from the matrix model for body rows (works even when
+   *  virtualized off-screen), from the DOM for painted header cells. */
+  private cellText(r: number, c: number): string {
+    const b = this.body;
+    if (!b) return '';
+    if (r >= b.headerRows) return this.modelBodyText(r - b.headerRows, c);
+    const el = this.cellAt(r, c);
+    return el ? (el.textContent ?? '').trim() : '';
+  }
+
+  private modelBodyText(v: number, c: number): string {
+    const b = this.body!;
+    const vr = b.visualRows[v];
+    if (!vr) return '';
+    const loc = b.ctx.normal.localization;
+    if (c < b.rowHeaderCols) {
+      if (b.multi) {
+        if (vr.isGrand) return c === 0 ? loc.grandTotal : '';
+        if (c < vr.path.length) return vr.path[c];
+        if (vr.isSubtotal && c === vr.path.length) return loc.total;
+        return '';
+      }
+      return vr.isGrand ? loc.grandTotal : vr.label;
+    }
+    const vcol = c - b.rowHeaderCols;
+    const measureSpan = Math.max(1, b.measures.length);
+    const leafIdx = Math.floor(vcol / measureSpan);
+    const mIdx = vcol % measureSpan;
+    const isGrandCol = b.showColGrand && leafIdx === b.colLeaves.length;
+    const cp = isGrandCol ? [] : (b.colLeaves[leafIdx]?.path ?? []);
+    const measure = b.measures[mIdx] ?? null;
+    const measureKey = measure?.key ?? b.measures[0]?.key ?? '';
+    return b.matrix.text.get(pathKey(vr.path, cp, measureKey)) ?? '';
+  }
 
   /** Run the focused cell's primary (or context-menu) keyboard action. */
   private activateFocused(context: boolean): void {
@@ -1807,6 +1906,25 @@ function sortGlyph(sort?: string): string {
 /** Map an internal sort direction to the ARIA `aria-sort` token. */
 function ariaSort(sort?: string): 'ascending' | 'descending' | 'none' {
   return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : 'none';
+}
+/** Write text to the clipboard, falling back to a hidden textarea + execCommand. */
+function writeClipboard(text: string): void {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch { /* fall through to legacy path */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  } catch { /* clipboard unavailable */ }
 }
 function emptyNode(): AxisNode {
   return { path: [], label: '', field: '', depth: 0, children: [], expanded: true, isLeaf: true };

@@ -363,6 +363,10 @@ body.pp-dragging { user-select: none; -webkit-user-select: none; }
   .pp-toolbar { gap: 8px; padding: 6px 8px; }
 }
 
+/* Range selection (Shift+click / Shift+arrows). An inset overlay so it shows
+   even over conditionally-coloured cells. */
+.pp-table .pp-range { box-shadow: inset 0 0 0 9999px rgba(47, 111, 219, 0.13); }
+
 /* Keyboard focus ring for the ARIA grid (roving-tabindex navigation). */
 .pp-table [role="gridcell"]:focus-visible,
 .pp-table [role="rowheader"]:focus-visible,
