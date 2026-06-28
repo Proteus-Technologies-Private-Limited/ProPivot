@@ -59,6 +59,8 @@ export interface PivotController {
   getConditions(): Condition[];
   /** Apply a Top/Bottom-N filter to a row hierarchy ranked by a measure. */
   setTopN(measureUniqueName: string, mode: 'top' | 'bottom' | 'off', quantity: number): void;
+  /** Group a numeric dimension into fixed-width ranges (null/0 clears). */
+  setBinning(uniqueName: string, interval: number | null): void;
 }
 
 export interface RendererOptions {
@@ -823,6 +825,24 @@ export class GridRenderer {
         }
         sel.addEventListener('change', () => this.opts.controller.setMeasureAggregation(measure.uniqueName, sel.value));
         return sel;
+      })()));
+    }
+
+    // Numeric dimension: group values into fixed-width ranges.
+    if (ref.kind === 'field' && fieldTypeOf(ctx, ref.uniqueName) === 'number') {
+      const cur = hierarchyOf(ctx, ref.uniqueName)?.binning?.interval;
+      p.appendChild(fieldRow('Group into ranges', (() => {
+        const wrap = document.createElement('div');
+        wrap.className = 'pp-field-inline';
+        const input = document.createElement('input');
+        input.type = 'number'; input.min = '0'; input.placeholder = 'interval (e.g. 100)';
+        if (cur) input.value = String(cur);
+        const apply = primaryBtn('Apply', () => {
+          const n = Number(input.value);
+          this.opts.controller.setBinning(ref.uniqueName, n > 0 ? n : null);
+        });
+        wrap.append(input, apply);
+        return wrap;
       })()));
     }
 

@@ -4,7 +4,7 @@
 //  - string columns       -> dictionary (string[]) + Int32Array of codes
 // This keeps memory low and makes aggregation a tight numeric loop.
 
-import type { FieldType, Mapping, MappingEntry } from './types';
+import type { FieldType, Mapping, MappingEntry, Binning } from './types';
 
 export type ColumnKind = 'number' | 'string' | 'date';
 
@@ -233,6 +233,68 @@ export function displayValue(store: ColumnStore, field: string, row: number, dat
   if (Number.isNaN(n)) return '';
   if (col.kind === 'date') return formatEpoch(n, datePattern ?? 'dd/MM/yyyy');
   return String(n);
+}
+
+// ---------------------------------------------------------------------------
+// Numeric binning — derive a categorical (string) column of range labels so the
+// whole pipeline (grouping keys, axis tree, filters) treats a binned numeric
+// field as a dimension, with bins ordered numerically via `naturalOrder`.
+
+/** Trim float noise from a bin boundary for a clean label. */
+function binNum(n: number): string {
+  return String(Number(n.toFixed(10)));
+}
+
+/** Range label for a value under a binning spec. */
+export function binLabel(value: number, binning: Binning): string {
+  const breaks = binning.breaks && binning.breaks.length ? [...binning.breaks].sort((a, b) => a - b) : null;
+  if (breaks) {
+    const last = breaks[breaks.length - 1];
+    if (value >= last) return `${binNum(last)}+`;
+    let k = 0;
+    while (k + 1 < breaks.length && breaks[k + 1] <= value) k++;
+    return `${binNum(breaks[k])} - ${binNum(breaks[k + 1])}`;
+  }
+  const size = binning.interval && binning.interval > 0 ? binning.interval : 1;
+  const lo = Math.floor(value / size) * size;
+  return `${binNum(lo)} - ${binNum(lo + size)}`;
+}
+
+/** Sort key for a bin label (its lower bound). */
+function binSortKey(label: string): number {
+  const n = parseFloat(label);
+  return Number.isNaN(n) ? Infinity : n;
+}
+
+/** Build a string column of range labels from a numeric column. */
+function binnedColumn(col: Column, binning: Binning): Column {
+  const nums = col.numbers!;
+  const dict: string[] = [];
+  const index = new Map<string, number>();
+  const codes = new Int32Array(nums.length);
+  for (let i = 0; i < nums.length; i++) {
+    const v = nums[i];
+    if (Number.isNaN(v)) { codes[i] = BLANK_CODE; continue; }
+    const label = binLabel(v, binning);
+    let c = index.get(label);
+    if (c === undefined) { c = dict.length; dict.push(label); index.set(label, c); }
+    codes[i] = c;
+  }
+  const naturalOrder = [...dict].sort((a, b) => binSortKey(a) - binSortKey(b));
+  return { name: col.name, caption: col.caption, kind: 'string', type: 'string', codes, dict, naturalOrder };
+}
+
+/** Return a store where the given numeric fields are replaced by binned (range)
+ *  string columns. The original store is untouched (columns map is cloned). */
+export function applyBinning(store: ColumnStore, bins: Map<string, Binning>): ColumnStore {
+  if (!bins.size) return store;
+  const columns = new Map(store.columns);
+  let changed = false;
+  for (const [field, binning] of bins) {
+    const col = columns.get(field);
+    if (col && col.kind === 'number') { columns.set(field, binnedColumn(col, binning)); changed = true; }
+  }
+  return changed ? { ...store, columns } : store;
 }
 
 /** Raw numeric value (for numeric aggregation). */

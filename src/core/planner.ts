@@ -4,14 +4,14 @@
 // aggregations (ratios + positional difference family) and calculated measures.
 
 import type { ColumnStore } from './store';
-import { numericValue, rawKey, displayValue } from './store';
+import { numericValue, rawKey, displayValue, applyBinning } from './store';
 import type { NormalReport, NormalMeasure } from './normalize';
 import { totalsEnabled } from './normalize';
 import { createAccumulator, isRelative, type Accumulator } from './aggregations';
 import { parseFormula, collectAggRefs, collectFieldRefs, evaluateFormula, type AstNode } from './formula';
 import { resolveFormats, formatNumber } from './format';
 import { pathKey, US, GS, type AxisNode, type CellMatrix } from './matrix';
-import type { NumberFormat, FilterSpec } from './types';
+import type { NumberFormat, FilterSpec, Binning } from './types';
 
 export interface BaseDesc { key: string; agg: string; field: string; }
 interface CalcDesc { measure: NormalMeasure; ast: AstNode; }
@@ -55,6 +55,17 @@ export function planBase(measures: NormalMeasure[]): BasePlan {
     }
   }
   return { baseList, calcs, measureBaseKey };
+}
+
+/** Field → binning spec, gathered from the row/column hierarchies. */
+function collectBinning(normal: NormalReport): Map<string, Binning> {
+  const bins = new Map<string, Binning>();
+  for (const h of [...(normal.report.slice?.rows ?? []), ...(normal.report.slice?.columns ?? [])]) {
+    if (h.binning && (h.binning.interval || (h.binning.breaks && h.binning.breaks.length))) {
+      bins.set(h.uniqueName, h.binning);
+    }
+  }
+  return bins;
 }
 
 /** Built-in GROUPING-SETS scan that fills the base-cell map on the main thread. */
@@ -176,6 +187,9 @@ export function assembleMatrix(
 
 export function buildMatrix(store: ColumnStore, normal: NormalReport): CellMatrix {
   const datePattern = normal.options.datePattern;
+
+  // ---- 0. Numeric binning -> derive range (string) dimension columns ----
+  store = applyBinning(store, collectBinning(normal));
 
   // ---- 1. Filters -> selection (member filters + Top/Bottom-N) ----
   const selection = applyFilters(store, normal);

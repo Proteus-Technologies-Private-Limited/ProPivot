@@ -28,6 +28,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `>` `<` `≥` `≤` `=` `≠` and `between`), via new `setLabelFilter()` /
   `setValueFilter()` API and the column **Filter** panel. The member picker
   gained a search box (in both the column panel and the report-filter bar).
+- **Numeric binning** — group a numeric dimension into ranges, by fixed
+  `interval` or custom `breaks`, via `binning` on a row/column field, the new
+  `setBinning()` API, or the column **Properties** panel. Buckets sort
+  numerically and drill-through resolves raw rows by bin.
 - New `localization.grid.gridLabel` option for the grid's accessible name.
 
 ### Changed
