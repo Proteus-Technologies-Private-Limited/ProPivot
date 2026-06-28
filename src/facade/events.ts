@@ -13,7 +13,7 @@ export const SUPERSET_EVENTS = [
   'localizationloaded', 'openingreportfile', 'querycomplete', 'queryerror',
   'reportfilecancelled', 'reportfileerror', 'reportfileloaded', 'runningquery',
   'aftergriddraw', 'beforegriddraw',
-  'columnresize', 'columnreorder', 'columnpropertychange',
+  'columnresize', 'columnreorder', 'columnpropertychange', 'copy',
 ] as const;
 
 export type EventName = (typeof CORE_EVENTS)[number] | (typeof SUPERSET_EVENTS)[number];

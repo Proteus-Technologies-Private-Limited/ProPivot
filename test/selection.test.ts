@@ -82,6 +82,28 @@ describe('range selection + copy', () => {
     pivot.dispose();
   });
 
+  it('fires a copy event passed inline in the config (not just via .on)', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let evt: { rows?: number; columns?: number; text?: string } = {};
+    const pivot: ProPivot = await new Promise((resolve) => {
+      const p = new ProPivot({
+        container,
+        report: { ...report, options: { ...report.options, configuratorButton: false } },
+        copy: (e: typeof evt) => { evt = e; },
+        reportcomplete: () => resolve(p),
+      });
+    });
+    const table = container.querySelector('.pp-table') as HTMLElement;
+    const start = table.querySelector('[data-r="2"][data-c="1"]') as HTMLElement;
+    start.focus();
+    key(start, 'ArrowRight', { shiftKey: true });
+    key(document.activeElement!, 'c', { ctrlKey: true });
+    expect(evt.text).toBe(copied);
+    expect(evt.columns).toBe(2);
+    pivot.dispose();
+  });
+
   it('Shift+click extends from the anchor', async () => {
     const { table, pivot } = await mount();
     const a = table.querySelector('[data-r="2"][data-c="0"]') as HTMLElement; // East row header

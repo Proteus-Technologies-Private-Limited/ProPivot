@@ -6,6 +6,23 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-28
+
+### Fixed
+- **Field-list drag-reorder** — dropping a chip onto a same-`uniqueName` sibling
+  (e.g. two measures over the same field, like sum + average) no longer falls
+  through to a zone move that rebuilt the zone and dropped the duplicate. Drops
+  onto a chip/header in an ordered zone now always stay in the reorder path, and
+  the drag carries its source slot so the *dragged* duplicate is reordered, not
+  the first `uniqueName` match. `reorderColumn()` gained an optional `from`
+  argument to pin the source slot.
+- **Custom heading lost on cross-zone move** — moving a measure with a custom
+  caption (e.g. `Units` over field `qty`) into Rows/Columns now keeps its heading
+  instead of reverting to the raw field name. Both `reorderColumn()` and
+  `moveField()` carry the dragged entry's caption.
+- **`copy` event** — added to the bindable event set so an inline
+  `new ProPivot({ copy: … })` handler fires, matching `pivot.on('copy', …)`.
+
 ## [0.3.0] - 2026-06-28
 
 ### Added

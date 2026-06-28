@@ -1,6 +1,6 @@
 {
   "name": "@proteus/propivot",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "ProPivot — an enterprise-grade, open-source JavaScript library for building pivot tables over millions of rows. Works with React, Angular, Vue, and any framework (or plain JavaScript via a script tag). Lightning fast, lightweight, feature-rich, highly configurable, and instantly embedded in any project. 100% client-side: 17 aggregations, calculated measures, conditional formatting, virtualized rendering, and five export formats.",
   "license": "MIT",
   "author": "Proteus Technologies Private Limited",

@@ -52,7 +52,7 @@ export interface LoadDataOptions extends InferOptions {
 
 export class ProPivot {
   // Keep in sync with package.json "version" — enforced by test-script/check-version.mjs.
-  static version = '0.3.0';
+  static version = '0.3.1';
 
   private container: HTMLElement | null = null;
   private emitter = new EventEmitter();
@@ -398,12 +398,16 @@ export class ProPivot {
   /** Move a field between Field-List zones (drag-drop). */
   moveField(uniqueName: string, toZone: Zone): void {
     const slice = this.report.slice ?? (this.report.slice = {});
+    // Preserve a custom heading the field already carried in its prior zone, so a
+    // measure captioned "Units" doesn't revert to the raw field name on the move.
+    const prior = [...(slice.rows ?? []), ...(slice.columns ?? []),
+      ...(slice.reportFilters ?? []), ...(slice.measures ?? [])].find((x) => x.uniqueName === uniqueName);
     slice.rows = (slice.rows ?? []).filter((h) => h.uniqueName !== uniqueName);
     slice.columns = (slice.columns ?? []).filter((h) => h.uniqueName !== uniqueName);
     slice.reportFilters = (slice.reportFilters ?? []).filter((h) => h.uniqueName !== uniqueName);
     slice.measures = (slice.measures ?? []).filter((m) => m.uniqueName !== uniqueName);
 
-    const caption = this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
+    const caption = prior?.caption ?? this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
     switch (toZone) {
       case 'rows': slice.rows.push({ uniqueName, caption }); break;
       case 'columns': slice.columns.push({ uniqueName, caption }); break;
@@ -488,29 +492,47 @@ export class ProPivot {
    * preserving the column's object (width / display / filter / aggregation ride
    * along). Recomputes the cube since order/zone change the layout.
    */
-  reorderColumn(uniqueName: string, toZone: Zone, toIndex: number): void {
+  reorderColumn(uniqueName: string, toZone: Zone, toIndex: number, from?: { zone: Zone; index: number }): void {
     const slice = this.report.slice ?? (this.report.slice = {});
     slice.rows = slice.rows ?? [];
     slice.columns = slice.columns ?? [];
     slice.reportFilters = slice.reportFilters ?? [];
     slice.measures = slice.measures ?? [];
 
-    // Detach the existing entry from whichever zone holds it, recording its
-    // original index so a same-zone reorder can compensate for the shift below.
+    const zoneArr = (z: Zone): Array<Hierarchy | Measure> | undefined =>
+      z === 'rows' ? slice.rows : z === 'columns' ? slice.columns
+        : z === 'filters' ? slice.reportFilters : z === 'measures' ? slice.measures : undefined;
+
+    // Detach the existing entry, recording its original index so a same-zone
+    // reorder can compensate for the shift below. Prefer the caller-pinned source
+    // slot (disambiguates duplicate-uniqueName measures); otherwise fall back to
+    // the first matching uniqueName across zones.
     let fromZone: Zone | null = null;
     let fromIndex = -1;
     let hier: Hierarchy | undefined;
     let meas: Measure | undefined;
-    const detach = <T extends { uniqueName: string }>(arr: T[]): T | undefined => {
-      const i = arr.findIndex((x) => x.uniqueName === uniqueName);
-      if (i < 0) return undefined;
+    const take = (z: Zone, i: number): void => {
+      const removed = (zoneArr(z) as Array<Hierarchy | Measure>).splice(i, 1)[0];
+      fromZone = z;
       fromIndex = i;
-      return arr.splice(i, 1)[0];
+      if (z === 'measures') meas = removed as Measure; else hier = removed as Hierarchy;
     };
-    if ((hier = detach(slice.rows))) fromZone = 'rows';
-    else if ((hier = detach(slice.columns))) fromZone = 'columns';
-    else if ((hier = detach(slice.reportFilters))) fromZone = 'filters';
-    else if ((meas = detach(slice.measures))) fromZone = 'measures';
+
+    const pinned = from && zoneArr(from.zone);
+    if (pinned && pinned[from!.index]?.uniqueName === uniqueName) {
+      take(from!.zone, from!.index);
+    } else {
+      const detach = <T extends { uniqueName: string }>(arr: T[]): T | undefined => {
+        const i = arr.findIndex((x) => x.uniqueName === uniqueName);
+        if (i < 0) return undefined;
+        fromIndex = i;
+        return arr.splice(i, 1)[0];
+      };
+      if ((hier = detach(slice.rows))) fromZone = 'rows';
+      else if ((hier = detach(slice.columns))) fromZone = 'columns';
+      else if ((hier = detach(slice.reportFilters))) fromZone = 'filters';
+      else if ((meas = detach(slice.measures))) fromZone = 'measures';
+    }
 
     // `toIndex` is the drop target's index in the PRE-detach array. When the item
     // is reordered within the same zone and it sat before the target, detaching it
@@ -521,7 +543,11 @@ export class ProPivot {
     let insertIndex = toIndex;
     if (fromZone === toZone && fromIndex >= 0 && fromIndex < toIndex) insertIndex -= 1;
 
-    const caption = this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
+    // Carry the dragged entry's own caption across a zone change (e.g. a measure
+    // captioned "Units" moved to columns), so a custom heading isn't lost to the
+    // raw field name. Fall back to the mapping caption only for brand-new entries.
+    const caption = hier?.caption ?? meas?.caption
+      ?? this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
     const clampIndex = (arr: unknown[]) => Math.max(0, Math.min(insertIndex, arr.length));
 
     switch (toZone) {

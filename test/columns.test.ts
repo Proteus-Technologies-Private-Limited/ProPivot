@@ -119,6 +119,63 @@ describe('column-properties facade (no DOM)', () => {
     expect(p.getReport().slice!.rows!.map((h) => h.uniqueName)).toEqual(['year', 'region']);
   });
 
+  it('reorderColumn carries a custom caption across a zone change (measure → columns)', () => {
+    const p = new ProPivot({
+      container: '#none',
+      report: {
+        dataSource: { type: 'json', data },
+        slice: {
+          rows: [{ uniqueName: 'region' }],
+          columns: [{ uniqueName: 'year' }],
+          // uniqueName 'qty' but a custom heading — must survive the move to columns.
+          measures: [{ uniqueName: 'qty', aggregation: 'sum', caption: 'Units' }],
+        },
+      },
+    });
+    p.reorderColumn('qty', 'columns', 1, { zone: 'measures', index: 0 });
+    const moved = p.getReport().slice!.columns!.find((h) => h.uniqueName === 'qty');
+    expect(moved!.caption).toBe('Units'); // not the raw 'qty'
+    expect(p.getReport().slice!.measures).toEqual([]);
+  });
+
+  it('moveField carries a custom caption across a zone change', () => {
+    const p = new ProPivot({
+      container: '#none',
+      report: {
+        dataSource: { type: 'json', data },
+        slice: {
+          rows: [{ uniqueName: 'region' }],
+          measures: [{ uniqueName: 'qty', aggregation: 'sum', caption: 'Units' }],
+        },
+      },
+    });
+    p.moveField('qty', 'columns');
+    expect(p.getReport().slice!.columns!.find((h) => h.uniqueName === 'qty')!.caption).toBe('Units');
+  });
+
+  it('reorderColumn with a pinned source reorders the dragged duplicate measure, not the first match', () => {
+    const p = new ProPivot({
+      container: '#none',
+      report: {
+        dataSource: { type: 'json', data },
+        slice: {
+          rows: [{ uniqueName: 'region' }],
+          measures: [
+            { uniqueName: 'sales', aggregation: 'sum', caption: 'Total' },
+            { uniqueName: 'sales', aggregation: 'average', caption: 'Avg' },
+            { uniqueName: 'qty', aggregation: 'sum', caption: 'Units' },
+          ],
+        },
+      },
+    });
+    // Drag the SECOND 'sales' (index 1, "Avg") to the front. Without a pinned
+    // source this would detach the first 'sales' instead.
+    p.reorderColumn('sales', 'measures', 0, { zone: 'measures', index: 1 });
+    const m = p.getReport().slice!.measures!;
+    expect(m.map((x) => x.caption)).toEqual(['Avg', 'Total', 'Units']);
+    expect(m.map((x) => x.aggregation)).toEqual(['average', 'sum', 'sum']);
+  });
+
   it('setTopN applies and clears a top-N filter on the first row field', () => {
     const p = make();
     p.setTopN('sales', 'top', 5);

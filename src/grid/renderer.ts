@@ -45,8 +45,12 @@ export interface PivotController {
   sortByMeasure(uniqueName: string): void;
   /** Set a column's pixel width (drag-resize). */
   setColumnWidth(ref: ColumnRef, width: number): void;
-  /** Reorder a column to a zone + index (drag-reorder, within or across zones). */
-  reorderColumn(uniqueName: string, toZone: Zone, toIndex: number): void;
+  /**
+   * Reorder a column to a zone + index (drag-reorder, within or across zones).
+   * `from` pins the exact source slot so duplicate-uniqueName measures (e.g. sum
+   * AND average of the same field) reorder the dragged one, not the first match.
+   */
+  reorderColumn(uniqueName: string, toZone: Zone, toIndex: number, from?: { zone: Zone; index: number }): void;
   /** Set (or clear with null) a column's display format. */
   setColumnDisplay(ref: ColumnRef, display: DisplayFormat | null): void;
   /** Rename a column's heading/caption. */
@@ -756,7 +760,7 @@ export class GridRenderer {
         startPointerDrag(pe, {
           label: o.ref.uniqueName,
           move: (el) => this.highlightDrop(el),
-          drop: (el, _x, y) => this.dropField(o.ref.uniqueName, el, y),
+          drop: (el, _x, y) => this.dropField(o.ref.uniqueName, o.zone, o.index, el, y),
           end: () => this.clearDropHighlights(),
         });
       });
@@ -810,13 +814,25 @@ export class GridRenderer {
     this.gridEl.querySelectorAll('.pp-dragover, .pp-chip-dragover').forEach((n) => n.classList.remove('pp-dragover', 'pp-chip-dragover'));
   }
 
-  /** Commit a pointer-drag drop: reorder onto a chip/header, else move to a zone. */
-  private dropField(name: string, el: Element | null, y: number): void {
-    const chip = el?.closest?.('.pp-chip[data-pp-name], [data-pp-name]') as HTMLElement | null;
-    if (chip && chip.dataset.ppName && chip.dataset.ppName !== name && chip.dataset.ppZone && chip.dataset.ppZone !== 'available') {
-      const rect = chip.getBoundingClientRect();
-      const after = y > rect.top + rect.height / 2 ? 1 : 0;
-      this.opts.controller.reorderColumn(name, chip.dataset.ppZone as Zone, Number(chip.dataset.ppIndex) + after);
+  /**
+   * Commit a pointer-drag drop. `fromZone`/`fromIndex` identify the dragged source
+   * slot. Dropping onto a chip/header in an ordered zone reorders relative to it
+   * (before/after by pointer y) — staying in the reorder path even when the target
+   * shares the dragged field's uniqueName, so we never fall through to moveField
+   * (which would rebuild the zone and drop duplicate measures). Dropping on empty
+   * zone space moves the field to that zone.
+   */
+  private dropField(name: string, fromZone: Zone, fromIndex: number, el: Element | null, y: number): void {
+    const target = el?.closest?.('.pp-chip[data-pp-name], [data-pp-name]') as HTMLElement | null;
+    if (target && target.dataset.ppName && target.dataset.ppZone && target.dataset.ppZone !== 'available') {
+      const toZone = target.dataset.ppZone as Zone;
+      const toIndex = Number(target.dataset.ppIndex);
+      // Dropping onto the exact same slot is a no-op.
+      if (toZone !== fromZone || toIndex !== fromIndex) {
+        const rect = target.getBoundingClientRect();
+        const after = y > rect.top + rect.height / 2 ? 1 : 0;
+        this.opts.controller.reorderColumn(name, toZone, toIndex + after, { zone: fromZone, index: fromIndex });
+      }
       return;
     }
     const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
@@ -1746,7 +1762,7 @@ export class GridRenderer {
         move: (el) => this.highlightDrop(el),
         // Dropping onto a chip reorders relative to it (before/after by pointer y);
         // dropping on empty zone space moves the field to that zone.
-        drop: (el, _x, y) => this.dropField(field.uniqueName, el, y),
+        drop: (el, _x, y) => this.dropField(field.uniqueName, zone, index, el, y),
         end: () => this.clearDropHighlights(),
       });
     });
