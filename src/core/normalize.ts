@@ -10,14 +10,23 @@ export type ResolvedColumnProps = Required<ColumnPropertiesOptions>;
 
 /** Resolve the `columnProperties` option (boolean | object) to a flat shape. */
 export function resolveColumnProps(opt: Options['columnProperties']): ResolvedColumnProps {
-  if (opt === false) return { enabled: false, edit: false, resize: false, reorder: false };
-  if (opt === true || opt === undefined) return { enabled: true, edit: true, resize: true, reorder: true };
+  if (opt === false) {
+    return { enabled: false, edit: false, resize: false, reorder: false, showType: false, showFormula: false, editFormula: false };
+  }
+  if (opt === true || opt === undefined) {
+    return { enabled: true, edit: true, resize: true, reorder: true, showType: true, showFormula: true, editFormula: true };
+  }
   const enabled = opt.enabled !== false;
+  const edit = enabled && opt.edit !== false;
   return {
     enabled,
-    edit: enabled && opt.edit !== false,
+    edit,
     resize: enabled && opt.resize !== false,
     reorder: enabled && opt.reorder !== false,
+    showType: enabled && opt.showType !== false,
+    showFormula: enabled && opt.showFormula !== false,
+    // Editing a formula additionally requires the panel to be editable at all.
+    editFormula: edit && opt.editFormula !== false,
   };
 }
 

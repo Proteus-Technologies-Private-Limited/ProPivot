@@ -6,6 +6,30 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-28
+
+### Added
+- **Calculation panel** — the column-properties popup now has a **Calculation**
+  tab for measures. It shows whether the column is a **source field** or a
+  **calculated value**, lets you define/edit the formula, and surfaces the
+  available source fields and the full built-in-function reference (aggregations,
+  scalar functions, operators, `if(…)`, `#field#`) as click-to-insert chips.
+- **`setMeasureFormula(ref, formula)`** — define, change, or clear (empty string)
+  a measure's calculation programmatically.
+- **`pivot.validateFormula(formula)`** and core `validateFormula()` — pre-flight
+  check returning `{ ok, message }`, flagging unknown fields / aggregations /
+  functions for friendly editor feedback.
+- **`columnProperties` gains `showType`, `showFormula`, `editFormula`** so
+  developers control what's visible/editable in the panel (e.g. a read-only
+  formula view, or hiding calculations entirely).
+
+### Fixed
+- **Dragging a calculated measure no longer destroys it.** Its `uniqueName` isn't
+  a real data field, so a drag that rebuilt the entry stripped the `formula` and
+  the column vanished. `moveField()` / `reorderColumn()` now carry the whole entry
+  (formula, aggregation, format, display, width) and refuse to move a calculated
+  measure into a dimension/filter zone (it can only live in Values).
+
 ## [0.3.1] - 2026-06-28
 
 ### Fixed

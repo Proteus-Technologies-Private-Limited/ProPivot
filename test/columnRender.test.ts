@@ -65,6 +65,50 @@ describe('column render-only updates take effect without recompute', () => {
   });
 });
 
+describe('column-properties: calculation panel', () => {
+  const openProps = (c: HTMLElement, measureCaption: string): HTMLElement => {
+    // Popups append to document.body and outlive a test — clear any stragglers so
+    // we read the one we just opened, not a previous test's.
+    document.querySelectorAll('.pp-colprops-popup').forEach((n) => n.remove());
+    const th = [...c.querySelectorAll('thead th')].find((t) => t.textContent?.includes(measureCaption))!;
+    (th.querySelector('.pp-colprops') as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return document.querySelector('.pp-colprops-popup') as HTMLElement;
+  };
+
+  it('shows a Source-field type badge and no formula for a plain measure', async () => {
+    const { c } = await mount(baseReport);
+    const pop = openProps(c, 'sales');
+    expect(pop.querySelector('.pp-type-badge')!.textContent).toMatch(/Source field/);
+    expect(pop.querySelector('[data-tab="calc"]')).toBeTruthy(); // tab exists (editable)
+  });
+
+  it('shows the Calculated badge and the formula text for a calculated measure', async () => {
+    const { c } = await mount({
+      dataSource: { type: 'json', data },
+      slice: {
+        rows: [{ uniqueName: 'region' }],
+        measures: [{ uniqueName: 'profit', formula: "sum('sales') * 2", caption: 'Profit' }],
+      },
+    });
+    const pop = openProps(c, 'Profit');
+    expect(pop.querySelector('.pp-type-badge.pp-type-calc')!.textContent).toBe('Calculated value');
+    (pop.querySelector('[data-tab="calc"]') as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect((pop.querySelector('.pp-calc-formula') as HTMLTextAreaElement).value).toBe("sum('sales') * 2");
+    // The function reference is present (e.g. an aggregation chip).
+    expect([...pop.querySelectorAll('.pp-calc-chip')].some((b) => b.textContent === "sum('field')")).toBe(true);
+  });
+
+  it('hides the Calculation tab when columnProperties.showFormula is false', async () => {
+    const { c } = await mount({
+      dataSource: { type: 'json', data },
+      slice: { rows: [{ uniqueName: 'region' }], measures: [{ uniqueName: 'sales', aggregation: 'sum' }] },
+      options: { columnProperties: { showFormula: false } },
+    });
+    const pop = openProps(c, 'sales');
+    expect(pop.querySelector('[data-tab="calc"]')).toBeNull();
+  });
+});
+
 const tick = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 
 describe('cellclick carries the full cell context (row + column tuple)', () => {

@@ -18,6 +18,54 @@ const FIELD_AGGS = new Set([
   'runningtotals', 'stdevp', 'stdevs',
 ]);
 
+/**
+ * UI-facing reference for the formula language — the single source the column
+ * Calculation panel renders so users can discover what's available. Keep the
+ * `aggregations` list in sync with FIELD_AGGS above and `scalars` with the scalar
+ * cases in evaluateFormula.
+ */
+export const FORMULA_HELP: {
+  aggregations: Array<{ syntax: string; desc: string }>;
+  scalars: Array<{ syntax: string; desc: string }>;
+  operators: Array<{ syntax: string; desc: string }>;
+  syntax: Array<{ syntax: string; desc: string }>;
+} = {
+  aggregations: [
+    { syntax: "sum('field')", desc: 'Sum of a field' },
+    { syntax: "average('field')", desc: 'Mean of a field' },
+    { syntax: "count('field')", desc: 'Row count' },
+    { syntax: "distinctcount('field')", desc: 'Distinct values' },
+    { syntax: "median('field')", desc: 'Median' },
+    { syntax: "product('field')", desc: 'Product of values' },
+    { syntax: "min('field')", desc: 'Minimum' },
+    { syntax: "max('field')", desc: 'Maximum' },
+    { syntax: "percent('field')", desc: 'Percent of grand total' },
+    { syntax: "percentofcolumn('field')", desc: 'Percent of column total' },
+    { syntax: "percentofrow('field')", desc: 'Percent of row total' },
+    { syntax: "index('field')", desc: 'Weighted index' },
+    { syntax: "difference('field')", desc: 'Difference vs previous' },
+    { syntax: "runningtotals('field')", desc: 'Running total' },
+    { syntax: "stdevp('field')", desc: 'Population std. deviation' },
+    { syntax: "stdevs('field')", desc: 'Sample std. deviation' },
+  ],
+  scalars: [
+    { syntax: 'abs(x)', desc: 'Absolute value' },
+    { syntax: 'round(x, n?)', desc: 'Round (to n decimals)' },
+    { syntax: 'min(a, b, …)', desc: 'Smallest argument' },
+    { syntax: 'max(a, b, …)', desc: 'Largest argument' },
+    { syntax: 'isnan(x)', desc: '1 if x is NaN, else 0' },
+  ],
+  operators: [
+    { syntax: '+  -  *  /  ^', desc: 'Arithmetic (^ = power)' },
+    { syntax: '>  <  >=  <=  ==  !=', desc: 'Comparison → 1 / 0' },
+    { syntax: 'and   or', desc: 'Boolean → 1 / 0' },
+  ],
+  syntax: [
+    { syntax: 'if(cond, then, else)', desc: 'Conditional value' },
+    { syntax: '#field#', desc: "Field by its default aggregation (same as sum('field') for numbers)" },
+  ],
+};
+
 type Tok = { t: string; v: string };
 
 function lex(input: string): Tok[] {
@@ -173,6 +221,43 @@ class FParser {
 
 export function parseFormula(formula: string): AstNode {
   return new FParser(lex(formula)).parse();
+}
+
+const SCALAR_FNS = new Set(['abs', 'round', 'min', 'max', 'isnan']);
+
+/**
+ * Lightweight validity check for the calculation editor. The parser itself is
+ * deliberately lenient (it recovers from anything), so this walks the AST and
+ * flags the mistakes a user actually makes: an unknown aggregation, an unknown
+ * scalar function, or a reference to a field that isn't in the data. Returns the
+ * first problem found, or `{ ok: true }` for an empty or sound formula.
+ */
+export function validateFormula(formula: string, knownFields: Iterable<string>): { ok: boolean; message?: string } {
+  const trimmed = formula.trim();
+  if (!trimmed) return { ok: true };
+  const known = new Set(knownFields);
+  let problem = '';
+  const walk = (n: AstNode): void => {
+    if (problem) return;
+    switch (n.kind) {
+      case 'agg':
+        if (!FIELD_AGGS.has(n.agg)) problem = `Unknown aggregation "${n.agg}"`;
+        else if (!known.has(n.field)) problem = `Unknown field "${n.field}"`;
+        break;
+      case 'field':
+        if (!known.has(n.name)) problem = `Unknown field "${n.name}"`;
+        break;
+      case 'call':
+        if (!SCALAR_FNS.has(n.name)) problem = `Unknown function "${n.name}"`;
+        else n.args.forEach(walk);
+        break;
+      case 'unary': walk(n.arg); break;
+      case 'binary': walk(n.left); walk(n.right); break;
+      case 'if': walk(n.cond); walk(n.then); if (n.else) walk(n.else); break;
+    }
+  };
+  walk(parseFormula(trimmed));
+  return problem ? { ok: false, message: problem } : { ok: true };
 }
 
 /** All (agg, field) references that must be pre-aggregated for a cell. */

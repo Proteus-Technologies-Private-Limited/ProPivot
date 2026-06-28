@@ -8,6 +8,7 @@ import type {
 import { normalizeReport, type NormalReport } from '../core/normalize';
 import type { CellMatrix, AxisNode } from '../core/matrix';
 import { compileConditions } from '../core/conditions';
+import { validateFormula } from '../core/formula';
 import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import { LocalEngine, WorkerEngine, type PivotEngine } from '../core/engine';
 import { DuckDBEngine } from '../core/accel/duckdb';
@@ -50,9 +51,15 @@ export interface LoadDataOptions extends InferOptions {
   report?: Partial<Report>;
 }
 
+/** A slice entry is a calculated measure when it carries a non-empty `formula`. */
+function isCalculated(entry: Hierarchy | Measure | undefined): boolean {
+  const formula = (entry as Measure | undefined)?.formula;
+  return Boolean(formula && formula.trim());
+}
+
 export class ProPivot {
   // Keep in sync with package.json "version" — enforced by test-script/check-version.mjs.
-  static version = '0.3.1';
+  static version = '0.4.0';
 
   private container: HTMLElement | null = null;
   private emitter = new EventEmitter();
@@ -98,6 +105,7 @@ export class ProPivot {
           allFields: () => this.getAllHierarchies(),
           moveField: (uniqueName, zone) => this.moveField(uniqueName, zone),
           setMeasureAggregation: (uniqueName, agg) => this.setMeasureAggregation(uniqueName, agg),
+          setMeasureFormula: (ref, formula) => this.setMeasureFormula(ref, formula),
           members: (uniqueName) => this.getMembers(uniqueName),
           setFilter: (uniqueName, members) => this.setFilter(uniqueName, members),
           setLabelFilter: (uniqueName, op, query) => this.setLabelFilter(uniqueName, op, query),
@@ -348,6 +356,38 @@ export class ProPivot {
     }
   }
 
+  /**
+   * Set or clear a measure's calculation formula. A non-empty formula turns the
+   * measure into a calculated value (aggregation `none` — the formula computes the
+   * cell). An empty string reverts it to a plain `sum` of its field. The formula
+   * language is lenient (invalid expressions evaluate to NaN rather than throwing);
+   * use `pivot.validateFormula(...)` for friendly pre-flight feedback in a UI.
+   */
+  setMeasureFormula(ref: ColumnRef, formula: string): void {
+    const entry = this.resolveColumn(ref);
+    if (!entry || !('aggregation' in entry)) return;
+    const m = entry as Measure;
+    const trimmed = formula.trim();
+    if (trimmed) {
+      m.formula = trimmed;
+      m.aggregation = 'none';
+    } else {
+      delete m.formula;
+      m.aggregation = 'sum';
+    }
+    this.refresh();
+    this.emitter.emit('columnpropertychange', { ref, property: 'formula', value: trimmed || null });
+  }
+
+  /**
+   * Check a calculation formula against the available data fields. Returns
+   * `{ ok: true }` for a sound (or empty) formula, otherwise `{ ok: false, message }`
+   * describing the first problem (unknown field / aggregation / function).
+   */
+  validateFormula(formula: string): { ok: boolean; message?: string } {
+    return validateFormula(formula, this.getAllHierarchies().map((h) => h.uniqueName));
+  }
+
   /** Set the active member filter for a hierarchy (used by the report-filter UI). */
   setFilter(uniqueName: string, members: string[] | null): void {
     this.applyFieldFilter(uniqueName, members && members.length ? { type: 'members', members } : null);
@@ -398,21 +438,29 @@ export class ProPivot {
   /** Move a field between Field-List zones (drag-drop). */
   moveField(uniqueName: string, toZone: Zone): void {
     const slice = this.report.slice ?? (this.report.slice = {});
-    // Preserve a custom heading the field already carried in its prior zone, so a
-    // measure captioned "Units" doesn't revert to the raw field name on the move.
+    // Find the existing entry so its whole object (caption, width, display, and —
+    // crucially — a measure's `formula`/`aggregation`/`format`) rides along instead
+    // of being rebuilt from scratch.
     const prior = [...(slice.rows ?? []), ...(slice.columns ?? []),
       ...(slice.reportFilters ?? []), ...(slice.measures ?? [])].find((x) => x.uniqueName === uniqueName);
+
+    // A calculated measure's uniqueName is not a real data field, so it can only
+    // live in Values — moving it into a dimension/filter zone would strip the
+    // formula and the column would vanish. Ignore such moves.
+    if (isCalculated(prior) && toZone !== 'measures') return;
+
     slice.rows = (slice.rows ?? []).filter((h) => h.uniqueName !== uniqueName);
     slice.columns = (slice.columns ?? []).filter((h) => h.uniqueName !== uniqueName);
     slice.reportFilters = (slice.reportFilters ?? []).filter((h) => h.uniqueName !== uniqueName);
     slice.measures = (slice.measures ?? []).filter((m) => m.uniqueName !== uniqueName);
 
     const caption = prior?.caption ?? this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
+    const base = { ...(prior ?? {}), uniqueName, caption };
     switch (toZone) {
-      case 'rows': slice.rows.push({ uniqueName, caption }); break;
-      case 'columns': slice.columns.push({ uniqueName, caption }); break;
-      case 'filters': slice.reportFilters.push({ uniqueName, caption }); break;
-      case 'measures': slice.measures.push({ uniqueName, caption, aggregation: 'sum', active: true }); break;
+      case 'rows': slice.rows.push(base as Hierarchy); break;
+      case 'columns': slice.columns.push(base as Hierarchy); break;
+      case 'filters': slice.reportFilters.push(base as Hierarchy); break;
+      case 'measures': slice.measures.push({ aggregation: 'sum', active: true, ...base } as Measure); break;
       case 'available': break;
     }
     this.refresh();
@@ -534,6 +582,14 @@ export class ProPivot {
       else if ((meas = detach(slice.measures))) fromZone = 'measures';
     }
 
+    // A calculated measure can only live in Values (its uniqueName isn't a real
+    // field). Reject a drop into a dimension/filter zone by restoring it where it
+    // came from, so the column isn't silently destroyed.
+    if (isCalculated(meas) && toZone !== 'measures' && fromZone === 'measures' && fromIndex >= 0) {
+      slice.measures.splice(fromIndex, 0, meas as Measure);
+      return;
+    }
+
     // `toIndex` is the drop target's index in the PRE-detach array. When the item
     // is reordered within the same zone and it sat before the target, detaching it
     // shifted every later entry (including the target) down by one — so we must
@@ -550,17 +606,21 @@ export class ProPivot {
       ?? this.report.dataSource?.mapping?.[uniqueName]?.caption ?? uniqueName;
     const clampIndex = (arr: unknown[]) => Math.max(0, Math.min(insertIndex, arr.length));
 
+    // Carry the whole detached object across a zone change so width / display /
+    // filter / aggregation / format ride along; only swap in the destination-required
+    // fields (caption everywhere, aggregation/active when landing in Values).
+    const carried = hier ?? meas;
     switch (toZone) {
       case 'rows':
       case 'columns':
       case 'filters': {
-        const entry: Hierarchy = hier ?? { uniqueName, caption };
+        const entry = { ...(carried ?? {}), uniqueName, caption } as Hierarchy;
         const arr = toZone === 'rows' ? slice.rows : toZone === 'columns' ? slice.columns : slice.reportFilters;
         arr.splice(clampIndex(arr), 0, entry);
         break;
       }
       case 'measures': {
-        const entry: Measure = meas ?? { uniqueName, caption, aggregation: 'sum', active: true };
+        const entry = { aggregation: 'sum', active: true, ...(carried ?? {}), uniqueName, caption } as Measure;
         slice.measures.splice(clampIndex(slice.measures), 0, entry);
         break;
       }

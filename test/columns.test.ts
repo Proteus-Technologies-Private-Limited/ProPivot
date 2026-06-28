@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ProPivot } from '../src/facade/ProPivot';
+import { resolveColumnProps } from '../src/core/normalize';
 
 const data = [
   { region: 'West', year: 2023, sales: 100, qty: 2 },
@@ -174,6 +175,79 @@ describe('column-properties facade (no DOM)', () => {
     const m = p.getReport().slice!.measures!;
     expect(m.map((x) => x.caption)).toEqual(['Avg', 'Total', 'Units']);
     expect(m.map((x) => x.aggregation)).toEqual(['average', 'sum', 'sum']);
+  });
+
+  const withCalc = () => new ProPivot({
+    container: '#none',
+    report: {
+      dataSource: { type: 'json', data },
+      slice: {
+        rows: [{ uniqueName: 'region' }],
+        measures: [
+          { uniqueName: 'sales', aggregation: 'sum' },
+          { uniqueName: 'profit', formula: "sum('sales') - sum('qty')", caption: 'Profit' },
+        ],
+      },
+    },
+  });
+
+  it('reorderColumn preserves a calculated measure formula on a same-zone reorder', () => {
+    const p = withCalc();
+    p.reorderColumn('profit', 'measures', 0, { zone: 'measures', index: 1 });
+    const profit = p.getReport().slice!.measures!.find((m) => m.uniqueName === 'profit')!;
+    expect(profit.formula).toBe("sum('sales') - sum('qty')");
+    expect(profit.caption).toBe('Profit');
+  });
+
+  it('moveField keeps a calculated measure in Values and preserves its formula', () => {
+    const p = withCalc();
+    // Dropping a calc measure on the Rows zone must be ignored (it has no real field).
+    p.moveField('profit', 'rows');
+    expect(p.getReport().slice!.rows!.some((h) => h.uniqueName === 'profit')).toBe(false);
+    const profit = p.getReport().slice!.measures!.find((m) => m.uniqueName === 'profit')!;
+    expect(profit.formula).toBe("sum('sales') - sum('qty')");
+  });
+
+  it('reorderColumn refuses to turn a calculated measure into a dimension', () => {
+    const p = withCalc();
+    p.reorderColumn('profit', 'rows', 0, { zone: 'measures', index: 1 });
+    expect(p.getReport().slice!.rows!.some((h) => h.uniqueName === 'profit')).toBe(false);
+    expect(p.getReport().slice!.measures!.find((m) => m.uniqueName === 'profit')!.formula)
+      .toBe("sum('sales') - sum('qty')");
+  });
+
+  it('setMeasureFormula defines, updates, and clears a calculation', () => {
+    const p = make();
+    const ref = { kind: 'measure', uniqueName: 'sales', key: 'sales' } as const;
+    p.setMeasureFormula(ref, "sum('sales') * 2");
+    let m = p.getReport().slice!.measures![0];
+    expect(m.formula).toBe("sum('sales') * 2");
+    expect(m.aggregation).toBe('none'); // becomes calculated
+    p.setMeasureFormula(ref, ''); // clear → back to a plain sum
+    m = p.getReport().slice!.measures![0];
+    expect(m.formula).toBeUndefined();
+    expect(m.aggregation).toBe('sum');
+  });
+
+  it('validateFormula flags unknown fields / aggregations / functions, accepts sound ones', () => {
+    const p = make(); // data fields: region, year, sales, qty
+    expect(p.validateFormula("sum('sales') - sum('qty')")).toEqual({ ok: true });
+    expect(p.validateFormula('')).toEqual({ ok: true });
+    expect(p.validateFormula("sum('salez')").ok).toBe(false);
+    expect(p.validateFormula("totes('sales')").ok).toBe(false);
+    expect(p.validateFormula("frobnicate(sum('sales'))").ok).toBe(false);
+  });
+
+  it('resolveColumnProps exposes calculation flags and lets developers gate them', () => {
+    expect(resolveColumnProps(true)).toMatchObject({ showType: true, showFormula: true, editFormula: true });
+    expect(resolveColumnProps(false)).toMatchObject({ showType: false, showFormula: false, editFormula: false });
+    // Read-only formula: visible but not editable.
+    expect(resolveColumnProps({ editFormula: false })).toMatchObject({ showFormula: true, editFormula: false });
+    // editFormula additionally requires `edit`.
+    expect(resolveColumnProps({ edit: false }).editFormula).toBe(false);
+    // Hide the type + calculation entirely.
+    expect(resolveColumnProps({ showType: false, showFormula: false }))
+      .toMatchObject({ showType: false, showFormula: false });
   });
 
   it('setTopN applies and clears a top-N filter on the first row field', () => {

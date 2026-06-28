@@ -395,6 +395,34 @@ body.pp-dragging { user-select: none; -webkit-user-select: none; }
 .pp-btn { padding: 6px 10px; border: 1px solid var(--pp-border); background: var(--pp-surface); border-radius: 5px; cursor: pointer; font-size: 12px; }
 .pp-btn:hover { border-color: var(--pp-accent); color: var(--pp-accent); }
 .pp-muted { font-size: 11px; color: var(--pp-faint); }
+
+/* Column type badge + calculation editor (column-properties panel). */
+.pp-type-badge {
+  display: inline-block; align-self: flex-start; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; background: var(--pp-surface);
+  border: 1px solid var(--pp-border); color: var(--pp-muted);
+}
+.pp-type-badge.pp-type-calc { background: #eef4ff; border-color: var(--pp-accent); color: var(--pp-accent); }
+.pp-calc-intro { margin: 0 0 2px; font-size: 11px; color: var(--pp-muted); line-height: 1.4; }
+.pp-calc-formula {
+  width: 100%; box-sizing: border-box; padding: 6px; border: 1px solid var(--pp-border);
+  border-radius: 5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; resize: vertical; background: var(--pp-surface); color: inherit;
+}
+.pp-calc-formula:read-only { background: var(--pp-bg, #f6f7f9); color: var(--pp-muted); }
+.pp-calc-error { font-size: 11px; color: #c0392b; }
+.pp-calc-ref > summary {
+  cursor: pointer; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: var(--pp-muted); padding: 4px 0; list-style: revert;
+}
+.pp-calc-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 0 4px; }
+.pp-calc-chip {
+  padding: 2px 7px; border: 1px solid var(--pp-border); border-radius: 4px; cursor: pointer;
+  background: var(--pp-surface); color: inherit; font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: nowrap;
+}
+.pp-calc-chip:hover:not(:disabled) { border-color: var(--pp-accent); color: var(--pp-accent); }
+.pp-calc-chip:disabled { cursor: default; opacity: 0.85; }
 .pp-cond-list { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow: auto; }
 .pp-cond-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .pp-cond-swatch { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 20px; border-radius: 4px; border: 1px solid var(--pp-border); font-size: 10px; }

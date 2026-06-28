@@ -10,6 +10,7 @@ import { pathKey, GS } from '../core/matrix';
 import type { NormalReport } from '../core/normalize';
 import { totalsEnabled } from '../core/normalize';
 import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
+import { FORMULA_HELP, validateFormula } from '../core/formula';
 import type { CompiledCondition } from '../core/conditions';
 import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy, LabelOperator, ValueOperator } from '../core/types';
 import { formatVisual, evalConditionStyle, formatsForType } from '../core/cellStyle';
@@ -27,6 +28,8 @@ export interface PivotController {
   allFields(): Array<{ uniqueName: string; caption: string }>;
   moveField(uniqueName: string, toZone: Zone): void;
   setMeasureAggregation(uniqueName: string, aggregation: string): void;
+  /** Set/clear a measure's calculation formula (empty string reverts to a plain sum). */
+  setMeasureFormula(ref: ColumnRef, formula: string): void;
   /** Distinct display members of a field (for the report-filter picker). */
   members(uniqueName: string): string[];
   /** Apply (or clear, when members is null) a member filter. */
@@ -898,6 +901,9 @@ export class GridRenderer {
     const tabDefs: Array<{ id: string; label: string; build: (p: HTMLElement) => void }> = [];
 
     tabDefs.push({ id: 'props', label: 'Properties', build: (p) => this.buildPropsPane(p, ctx, ref, measure, caption) });
+    if (isMeasure && ctx.normal.columnProps.showFormula) {
+      tabDefs.push({ id: 'calc', label: 'Calculation', build: (p) => this.buildCalculationPane(p, ctx, ref, measure) });
+    }
     tabDefs.push({ id: 'display', label: 'Display', build: (p) => this.buildDisplayPane(p, ctx, ref, fieldType, currentDisplay) });
     if (isMeasure) tabDefs.push({ id: 'cond', label: 'Conditional', build: (p) => this.buildConditionsPane(p, ctx, ref) });
     tabDefs.push({ id: 'filter', label: 'Filter', build: (p) => this.buildFilterPane(p, ctx, ref, field) });
@@ -947,6 +953,16 @@ export class GridRenderer {
     p: HTMLElement, ctx: RenderContext, ref: ColumnRef,
     measure: CellMatrix['measures'][number] | null, caption: string,
   ): void {
+    // Where does this column's data come from — a source field or a calculation?
+    if (ctx.normal.columnProps.showType) {
+      const calc = ref.kind === 'measure' && Boolean(measure?.calculated);
+      const ft = fieldTypeOf(ctx, ref.kind === 'measure' ? (measure?.uniqueName ?? ref.uniqueName) : ref.uniqueName);
+      const badge = document.createElement('span');
+      badge.className = 'pp-type-badge' + (calc ? ' pp-type-calc' : '');
+      badge.textContent = calc ? 'Calculated value' : `Source field${ft ? ` (${ft})` : ''}`;
+      p.appendChild(fieldRow('Type', badge));
+    }
+
     p.appendChild(fieldRow('Heading', (() => {
       const wrap = document.createElement('div');
       wrap.className = 'pp-field-inline';
@@ -1003,6 +1019,126 @@ export class GridRenderer {
         return wrap;
       })()));
     }
+  }
+
+  /**
+   * Calculation tab (measures only): shows whether the column is a source field or
+   * a calculation, lets the developer-permitted user define/change the formula, and
+   * surfaces the available fields + built-in functions as click-to-insert chips.
+   */
+  private buildCalculationPane(
+    p: HTMLElement, ctx: RenderContext, ref: ColumnRef,
+    measure: CellMatrix['measures'][number] | null,
+  ): void {
+    const canEdit = ctx.normal.columnProps.editFormula;
+    const calc = Boolean(measure?.calculated);
+
+    const intro = document.createElement('p');
+    intro.className = 'pp-calc-intro';
+    intro.textContent = calc
+      ? 'This column is computed from a formula over the source data.'
+      : canEdit
+        ? 'This column aggregates a source field. Enter a formula to turn it into a calculated value.'
+        : 'This column aggregates a source field directly (no calculation).';
+    p.appendChild(intro);
+
+    const ta = document.createElement('textarea');
+    ta.className = 'pp-calc-formula';
+    ta.rows = 3;
+    ta.spellcheck = false;
+    ta.value = measure?.formula ?? '';
+    ta.placeholder = "e.g.  sum('sales') - sum('cost')";
+    ta.readOnly = !canEdit;
+    p.appendChild(fieldRow('Formula', ta));
+
+    const err = document.createElement('div');
+    err.className = 'pp-calc-error';
+    err.style.display = 'none';
+    p.appendChild(err);
+
+    const fields = this.opts.controller.allFields();
+
+    const insert = (snippet: string): void => {
+      if (ta.readOnly) return;
+      const s = ta.selectionStart ?? ta.value.length;
+      const e = ta.selectionEnd ?? ta.value.length;
+      ta.value = ta.value.slice(0, s) + snippet + ta.value.slice(e);
+      const caret = s + snippet.length;
+      ta.focus();
+      ta.setSelectionRange(caret, caret);
+    };
+
+    if (canEdit) {
+      const bar = document.createElement('div');
+      bar.className = 'pp-field-inline';
+      const apply = primaryBtn(calc ? 'Update formula' : 'Apply formula', () => {
+        const check = validateFormula(ta.value, fields.map((f) => f.uniqueName));
+        if (!check.ok) {
+          err.textContent = check.message ?? 'Invalid formula';
+          err.style.display = '';
+          return;
+        }
+        err.style.display = 'none';
+        this.opts.controller.setMeasureFormula(ref, ta.value);
+        this.closeEditor();
+      });
+      bar.appendChild(apply);
+      if (calc) {
+        bar.appendChild(plainBtn('Remove', () => {
+          this.opts.controller.setMeasureFormula(ref, '');
+          this.closeEditor();
+        }));
+      }
+      p.appendChild(bar);
+    }
+
+    // Click-to-insert reference: source fields, then the built-in function catalog.
+    if (fields.length) {
+      p.appendChild(this.calcChipGroup('Fields', fields.map((f) => ({
+        syntax: `'${f.uniqueName}'`, label: f.caption, desc: f.uniqueName,
+      })), canEdit ? insert : null));
+    }
+    const groups: Array<[string, typeof FORMULA_HELP.aggregations]> = [
+      ['Aggregations', FORMULA_HELP.aggregations],
+      ['Scalar functions', FORMULA_HELP.scalars],
+      ['Operators', FORMULA_HELP.operators],
+      ['Syntax', FORMULA_HELP.syntax],
+    ];
+    for (const [title, items] of groups) {
+      p.appendChild(this.calcChipGroup(
+        title,
+        items.map((it) => ({ syntax: it.syntax, label: it.syntax, desc: it.desc })),
+        canEdit ? insert : null,
+      ));
+    }
+  }
+
+  /** A titled, collapsible group of click-to-insert reference chips. */
+  private calcChipGroup(
+    title: string,
+    items: Array<{ syntax: string; label: string; desc: string }>,
+    insert: ((snippet: string) => void) | null,
+  ): HTMLElement {
+    const box = document.createElement('details');
+    box.className = 'pp-calc-ref';
+    box.open = title === 'Fields' || title === 'Aggregations';
+    const sum = document.createElement('summary');
+    sum.textContent = title;
+    box.appendChild(sum);
+    const list = document.createElement('div');
+    list.className = 'pp-calc-chips';
+    for (const it of items) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'pp-calc-chip';
+      chip.textContent = it.label;
+      chip.title = it.desc;
+      if (insert) chip.addEventListener('click', () => insert(it.syntax));
+      else chip.disabled = true;
+      list.appendChild(chip);
+    }
+    box.appendChild(list);
+    return box;
   }
 
   private buildDisplayPane(

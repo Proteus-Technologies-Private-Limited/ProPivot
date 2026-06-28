@@ -207,6 +207,18 @@ export interface ColumnPropertiesOptions {
   resize?: boolean;
   /** Allow drag-reordering columns between/within zones (default true). */
   reorder?: boolean;
+  /** Show the column's source/calculated type in the panel (default true). */
+  showType?: boolean;
+  /**
+   * Show a measure's calculation formula and the built-in-function reference
+   * (read-only view). Default true. Set false to hide the Calculation tab.
+   */
+  showFormula?: boolean;
+  /**
+   * Allow defining/changing a measure's calculation formula in the panel
+   * (default true; also requires `edit`). When false the formula is read-only.
+   */
+  editFormula?: boolean;
 }
 
 export interface NumberFormat {
