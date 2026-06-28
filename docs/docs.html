@@ -82,6 +82,7 @@
         <a href="./features.html">Examples</a>
         <a href="./starters.html">Starters</a>
         <a class="active" href="./docs.html">Docs</a>
+        <a href="./whats-new.html">What's new</a>
         <a class="ppnav-gh" href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub ★</a>
       </nav>
     </div>
@@ -103,6 +104,13 @@
       <a href="#features-ref">Feature reference</a>
       <a href="#aggregations">Aggregations</a>
       <a href="#events">Events &amp; API</a>
+      <div class="g">Interactivity &amp; theming</div>
+      <a href="#accessibility">Accessibility &amp; keyboard</a>
+      <a href="#filtering">Filtering</a>
+      <a href="#binning">Numeric binning</a>
+      <a href="#selection">Selection &amp; copy</a>
+      <a href="#theming">Dark mode, RTL &amp; i18n</a>
+      <div class="g">More</div>
       <a href="#export">Export</a>
       <a href="#scale">Scaling to millions</a>
       <a href="#more">More resources</a>
@@ -386,6 +394,11 @@ export class SalesComponent {
           <div class="feat"><h3>Web Worker</h3><p>Offload aggregation off the main thread behind one async interface, with automatic fallback.</p></div>
           <div class="feat"><h3>DuckDB-WASM accelerator</h3><p>Opt-in SQL <code>GROUPING SETS</code> over millions of rows, with result-identical fallback to the built-in engine.</p></div>
           <div class="feat"><h3>Drill-through</h3><p>Double-click a cell to see the underlying source rows that aggregate into it.</p></div>
+          <div class="feat"><h3>Accessible &amp; keyboard-first</h3><p>A full ARIA grid with roving-tabindex arrow-key navigation; resize / reorder / field list also work on touch. <a href="#accessibility">More →</a></p></div>
+          <div class="feat"><h3>Label &amp; value filters</h3><p>Filter members by text or by a measure threshold (<code>between</code>, <code>&gt;</code>, …), with a member search box. <a href="#filtering">More →</a></p></div>
+          <div class="feat"><h3>Numeric binning</h3><p>Group a numeric field into ranges by <code>interval</code> or custom <code>breaks</code>. <a href="#binning">More →</a></p></div>
+          <div class="feat"><h3>Range copy</h3><p>Shift-select a rectangle and copy it as TSV (Ctrl/Cmd+C) into Excel / Sheets. <a href="#selection">More →</a></p></div>
+          <div class="feat"><h3>Dark mode, RTL &amp; i18n</h3><p>Built-in dark theme, right-to-left layout, and localizable chrome. <a href="#theming">More →</a></p></div>
         </div>
       </section>
 
@@ -409,6 +422,7 @@ export class SalesComponent {
           <tr><td><code>columnpropertychange</code></td><td>A column's heading / aggregation / format / filter changes.</td></tr>
           <tr><td><code>reportcomplete</code> / <code>ready</code></td><td>The report finished computing &amp; rendering.</td></tr>
           <tr><td><code>update</code></td><td>The grid re-rendered after any interaction.</td></tr>
+          <tr><td><code>copy</code></td><td>A selected cell range was copied — <code>{ rows, columns, text }</code> (the TSV written to the clipboard).</td></tr>
         </table>
         <h3>Useful methods</h3>
         <table class="api">
@@ -419,9 +433,86 @@ export class SalesComponent {
           <tr><td><code>loadData(csvOrJsonOrArray)</code></td><td>Load <b>raw</b> data with no predefined mapping — infers the column list &amp; types and builds a starter report. Static <code>ProPivot.inferReport(input)</code> returns the report without rendering.</td></tr>
           <tr><td><code>exportTo(type, params)</code></td><td>Export to <code>csv</code> / <code>excel</code> / <code>pdf</code> / <code>image</code> / <code>html</code>.</td></tr>
           <tr><td><code>expandAllData()</code> / <code>collapseAllData()</code></td><td>Expand or collapse every group.</td></tr>
+          <tr><td><code>setLabelFilter(field, op, query)</code> / <code>setValueFilter(field, measure, op, value, value2?)</code></td><td>Apply a label (text) or value (measure-threshold) filter; pass an empty query / clear with <code>setFilter(field, null)</code>.</td></tr>
+          <tr><td><code>setBinning(field, binning)</code></td><td>Group a numeric dimension into ranges (<code>{ interval }</code> or <code>{ breaks }</code>); <code>null</code> clears it.</td></tr>
           <tr><td><code>on(evt, fn)</code> / <code>off(evt, fn)</code></td><td>Subscribe / unsubscribe to events.</td></tr>
           <tr><td><code>dispose()</code></td><td>Tear down and free resources.</td></tr>
         </table>
+      </section>
+
+      <!-- ───────────────── Accessibility ───────────────── -->
+      <section id="accessibility">
+        <h2>Accessibility &amp; keyboard</h2>
+        <p>The grid renders as an ARIA <code>grid</code> — rows and cells carry <code>role</code>, <code>aria-rowindex</code>/<code>aria-colindex</code>, <code>aria-sort</code> on sortable headers, <code>aria-expanded</code> on group rows, and <code>aria-selected</code> on values. It is fully keyboard operable with a single tab stop (roving tabindex):</p>
+        <table class="api">
+          <tr><th>Key</th><th>Action</th></tr>
+          <tr><td><code>Tab</code></td><td>Move focus into / out of the grid (one stop).</td></tr>
+          <tr><td>Arrow keys</td><td>Move the focused cell; <code>Home</code>/<code>End</code> jump to row ends, <code>Ctrl+Home</code>/<code>Ctrl+End</code> to the grid corners, <code>PageUp</code>/<code>PageDown</code> by a viewport.</td></tr>
+          <tr><td><code>Enter</code> / <code>Space</code></td><td>Activate the cell — sort a header, expand/collapse a group row, or select a value.</td></tr>
+          <tr><td><code>Shift+F10</code></td><td>Open the column properties menu, or drill through a value cell.</td></tr>
+        </table>
+        <div class="callout">📱 Column resize, reorder, and the drag-drop field list use Pointer Events, so they work with mouse, pen, and touch (phones / tablets).</div>
+      </section>
+
+      <!-- ───────────────── Filtering ───────────────── -->
+      <section id="filtering">
+        <h2>Filtering</h2>
+        <p>Filters live on a row/column field's <code>filter</code>, or apply at runtime via the API and the column <b>▾ → Filter</b> panel (which also has a member search box).</p>
+        <table class="api">
+          <tr><th>Type</th><th>Example</th></tr>
+          <tr><td>Members</td><td><code>filter: { members: ['West', 'East'] }</code></td></tr>
+          <tr><td>Top/Bottom-N</td><td><code>filter: { type: 'top', measure: 'sales', quantity: 5 }</code></td></tr>
+          <tr><td>Label (text)</td><td><code>filter: { type: 'label', labelOperator: 'contains', query: 'North' }</code> — also <code>beginsWith</code> / <code>endsWith</code> / <code>equals</code> / <code>notContains</code> / <code>notEquals</code>.</td></tr>
+          <tr><td>Value (threshold)</td><td><code>filter: { type: 'value', measure: 'sales', operator: 'greaterThan', value: 1000 }</code> — also <code>lessThan</code> / <code>greaterEqual</code> / <code>lessEqual</code> / <code>equal</code> / <code>notEqual</code> / <code>between</code> (with <code>value2</code>).</td></tr>
+        </table>
+        <pre><code>pivot.setLabelFilter('region', 'beginsWith', 'No');
+pivot.setValueFilter('region', 'sales', 'greaterThan', 100000);
+pivot.setValueFilter('region', 'sales', 'between', 50000, 200000);
+pivot.setFilter('region', null); // clear</code></pre>
+      </section>
+
+      <!-- ───────────────── Numeric binning ───────────────── -->
+      <section id="binning">
+        <h2>Numeric binning</h2>
+        <p>Group a numeric dimension into ranges with <code>binning</code> on a row/column field — fixed-width <code>interval</code> buckets, or custom <code>breaks</code>. Buckets sort numerically (e.g. <code>"100 - 200"</code>), and drill-through still resolves the underlying rows.</p>
+        <pre><code>slice: {
+  rows: [{ uniqueName: 'orderValue', binning: { interval: 250 } }],         // 0–250, 250–500, …
+  // or: rows: [{ uniqueName: 'orderValue', binning: { breaks: [0, 100, 500] } }], // 0–100, 100–500, 500+
+  measures: [{ uniqueName: 'qty', aggregation: 'sum' }],
+}
+
+pivot.setBinning('orderValue', { interval: 250 }); // at runtime; null clears</code></pre>
+      </section>
+
+      <!-- ───────────────── Selection & copy ───────────────── -->
+      <section id="selection">
+        <h2>Selection &amp; copy</h2>
+        <p>Select a rectangle of cells with <b>Shift+click</b> or <b>Shift+arrow keys</b>, then copy it as TSV with <b>Ctrl/Cmd+C</b> — pasteable straight into Excel or Sheets. Off-screen (virtualized) rows are included in the copied text, and a <code>copy</code> event fires with <code>{ rows, columns, text }</code>.</p>
+      </section>
+
+      <!-- ───────────────── Dark mode, RTL & i18n ───────────────── -->
+      <section id="theming">
+        <h2>Dark mode, RTL &amp; localization</h2>
+        <p>All three are <code>options</code> on the report:</p>
+        <pre><code>new ProPivot({
+  container: '#pivot',
+  report: {
+    dataSource, slice,
+    options: {
+      theme: 'dark',          // 'light' (default) | 'dark' | 'auto' (follows the OS)
+      rtl: true,              // right-to-left layout (numbers stay LTR)
+      localization: { grid: {
+        fields: 'Champs', apply: 'Appliquer', all: 'Tout', none: 'Aucun',
+        searchMembers: 'Rechercher…', labelFilter: 'Filtre texte',
+        valueFilter: 'Filtre valeur', clearFilters: 'Effacer',
+        drillThrough: 'Détail', fullscreen: 'Plein écran',
+        grandTotalCaption: 'Total général', totals: 'Total',
+      } },
+    },
+  },
+});</code></pre>
+        <p>The dark theme covers the grid, toolbar, field list, popups and modals. Prefer your own palette? Override the CSS variables on <code>.pp-root</code> (<code>--pp-accent</code>, <code>--pp-surface</code>, <code>--pp-header-bg</code>, …). See it live on the <a href="./whats-new.html">What's new</a> page.</p>
+        <div class="callout">💡 Localization keys also include <code>csv</code>, <code>excel</code>, <code>pdf</code>, <code>html</code>, <code>blankMember</code>, <code>dateInvalidCaption</code> and <code>gridLabel</code> (the grid's accessible name).</div>
       </section>
 
       <!-- ───────────────── Export ───────────────── -->
@@ -459,10 +550,11 @@ pivot.exportTo('image', { filename: 'report' }); // SVG → PNG, in-browser</cod
       <section id="more">
         <h2>More resources</h2>
         <ul>
+          <li><a href="./whats-new.html">What's new</a> — live demos of accessibility, filters, binning, range-copy, dark mode, RTL &amp; localization.</li>
           <li><a href="./features.html">Feature examples</a> — a focused, runnable demo per capability (with copy &amp; download code).</li>
           <li><a href="./gallery.html">Feature gallery</a> — many live pivots side by side.</li>
           <li><a href="./demo.html">2M-row demo</a> — the engine &amp; accelerator under load.</li>
-          <li><a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub</a> · <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot/blob/main/docs/Architecture.md">Architecture</a></li>
+          <li><a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot/blob/main/CHANGELOG.md">Changelog</a> · <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot">GitHub</a> · <a href="https://github.com/Proteus-Technologies-Private-Limited/ProPivot/blob/main/docs/Architecture.md">Architecture</a></li>
         </ul>
       </section>
     </main>
