@@ -260,7 +260,10 @@
 .pp-modal select { width: 100%; padding: 7px; border: 1px solid var(--pp-border); border-radius: 5px; }
 .pp-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .pp-modal-actions button { padding: 7px 14px; border-radius: 5px; border: 1px solid var(--pp-border); background: var(--pp-surface); cursor: pointer; }
-.pp-modal-actions .primary { background: var(--pp-accent); color: #fff; border-color: var(--pp-accent); }
+/* Keep the primary action accent-filled inside modals — `.pp-modal-actions button`
+   above would otherwise repaint it surface-coloured, leaving white text on white. */
+.pp-modal-actions .primary,
+.pp-modal-actions .pp-popup-apply { background: var(--pp-accent); color: #fff; border-color: var(--pp-accent); }
 
 /* Report-filter area */
 .pp-filters {
