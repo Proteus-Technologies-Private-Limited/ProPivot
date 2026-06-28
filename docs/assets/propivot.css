@@ -112,11 +112,17 @@
   padding: 3px 6px;
   cursor: grab;
   font-size: 12px;
+  /* Pointer drag is custom (works on touch) — stop the browser from scrolling
+     or selecting text when a drag begins on a chip. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .pp-chip:active { cursor: grabbing; }
-/* Insertion indicator while reordering chips within a field-list zone. */
+/* Drop indicators while reordering chips / moving fields between zones. */
 .pp-chip-drop-before { box-shadow: inset 0 3px 0 var(--pp-accent); }
 .pp-chip-drop-after { box-shadow: inset 0 -3px 0 var(--pp-accent); }
+.pp-chip-dragover { box-shadow: 0 0 0 2px var(--pp-accent); }
 
 /* Measure header gear (opens the aggregation modal) — hover-revealed so the
    heading stays clean. */
@@ -252,7 +258,7 @@
 
 /* ── Column controls: resize handle, reorder, properties button ───────────── */
 .pp-measureh, .pp-colh, .pp-corner { position: relative; }
-.pp-draggable { cursor: grab; }
+.pp-draggable { cursor: grab; touch-action: none; }
 .pp-draggable:active { cursor: grabbing; }
 .pp-col-dragover { box-shadow: inset 3px 0 0 var(--pp-accent); }
 .pp-resize {
@@ -263,9 +269,33 @@
   height: 100%;
   cursor: col-resize;
   user-select: none;
+  touch-action: none;
   z-index: 4;
 }
 .pp-resize:hover { background: var(--pp-accent); opacity: 0.4; }
+/* Bigger resize grip for touch / pen (coarse) pointers. */
+@media (pointer: coarse) {
+  .pp-resize { right: -9px; width: 20px; }
+}
+
+/* Floating label shown while dragging a column header or field-list chip. */
+.pp-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10000;
+  pointer-events: none;
+  transform: translate(10px, 10px);
+  background: var(--pp-accent);
+  color: #fff;
+  font-size: 12px;
+  font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  padding: 4px 9px;
+  border-radius: 5px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+  white-space: nowrap;
+}
+body.pp-dragging { user-select: none; -webkit-user-select: none; }
 .pp-colprops {
   border: none;
   background: transparent;

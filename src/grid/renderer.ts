@@ -14,6 +14,7 @@ import type { CompiledCondition } from '../core/conditions';
 import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy } from '../core/types';
 import { formatVisual, evalConditionStyle, formatsForType } from '../core/cellStyle';
 import { CellBuilder, type CellData, type CellTupleItem } from '../facade/cell';
+import { startPointerDrag } from './drag';
 
 export type Zone = 'rows' | 'columns' | 'measures' | 'filters' | 'available';
 
@@ -605,8 +606,6 @@ export class GridRenderer {
     if (this.editor) { this.editor.remove(); this.editor = null; }
     if (this.editorOutside) { document.removeEventListener('mousedown', this.editorOutside); this.editorOutside = undefined; }
     if (this.editorKey) { document.removeEventListener('keydown', this.editorKey); this.editorKey = undefined; }
-    if (this.resizeMove) { document.removeEventListener('mousemove', this.resizeMove); this.resizeMove = undefined; }
-    if (this.resizeUp) { document.removeEventListener('mouseup', this.resizeUp); this.resizeUp = undefined; }
   }
 
   // ---------- column controls (resize / reorder / properties) ----------
@@ -638,19 +637,22 @@ export class GridRenderer {
     }
 
     if (cp.reorder) {
-      th.draggable = true;
       th.classList.add('pp-draggable');
-      th.addEventListener('dragstart', (e) => {
-        e.dataTransfer?.setData('text/plain', o.ref.uniqueName);
-        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-      });
-      th.addEventListener('dragover', (e) => { e.preventDefault(); th.classList.add('pp-col-dragover'); });
-      th.addEventListener('dragleave', () => th.classList.remove('pp-col-dragover'));
-      th.addEventListener('drop', (e) => {
-        e.preventDefault();
-        th.classList.remove('pp-col-dragover');
-        const name = e.dataTransfer?.getData('text/plain');
-        if (name && name !== o.ref.uniqueName) this.opts.controller.reorderColumn(name, o.zone, o.index);
+      // Mark the header as both a draggable source and a drop target (data attrs
+      // are read back via elementFromPoint during a pointer drag).
+      th.dataset.ppName = o.ref.uniqueName;
+      th.dataset.ppZone = o.zone;
+      th.dataset.ppIndex = String(o.index);
+      th.addEventListener('pointerdown', (e) => {
+        const pe = e as PointerEvent;
+        // Don't start a reorder from the ▾ button or the resize grip.
+        if ((pe.target as HTMLElement).closest('.pp-colprops, .pp-resize')) return;
+        startPointerDrag(pe, {
+          label: o.ref.uniqueName,
+          move: (el) => this.highlightDrop(el),
+          drop: (el, _x, y) => this.dropField(o.ref.uniqueName, el, y),
+          end: () => this.clearDropHighlights(),
+        });
       });
     }
 
@@ -660,33 +662,59 @@ export class GridRenderer {
       handle.title = 'Drag to resize';
       handle.setAttribute('aria-hidden', 'true');
       handle.addEventListener('click', (e) => e.stopPropagation());
-      handle.addEventListener('mousedown', (e) => this.startResize(e as MouseEvent, th, o.ref));
-      handle.draggable = false;
+      handle.addEventListener('pointerdown', (e) => this.startResize(e as PointerEvent, th, o.ref));
       th.appendChild(handle);
     }
   }
 
-  private resizeMove?: (e: MouseEvent) => void;
-  private resizeUp?: (e: MouseEvent) => void;
-
-  private startResize(e: MouseEvent, th: HTMLElement, ref: ColumnRef): void {
+  /** Live column-resize via pointer events (mouse, touch and pen). */
+  private startResize(e: PointerEvent, th: HTMLElement, ref: ColumnRef): void {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
+    const handle = e.currentTarget as HTMLElement;
     const startX = e.clientX;
     const startW = th.getBoundingClientRect().width || 80;
-    this.resizeMove = (ev: MouseEvent) => {
-      const w = Math.max(24, startW + (ev.clientX - startX));
-      th.style.width = `${w}px`;
+    const widthAt = (ev: PointerEvent) => Math.max(24, startW + (ev.clientX - startX));
+    const move = (ev: PointerEvent) => { th.style.width = `${widthAt(ev)}px`; };
+    const up = (ev: PointerEvent) => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      try { handle.releasePointerCapture(ev.pointerId); } catch { /* not captured */ }
+      this.opts.controller.setColumnWidth(ref, widthAt(ev));
     };
-    this.resizeUp = (ev: MouseEvent) => {
-      if (this.resizeMove) document.removeEventListener('mousemove', this.resizeMove);
-      if (this.resizeUp) document.removeEventListener('mouseup', this.resizeUp);
-      this.resizeMove = undefined; this.resizeUp = undefined;
-      const w = Math.max(24, startW + (ev.clientX - startX));
-      this.opts.controller.setColumnWidth(ref, w);
-    };
-    document.addEventListener('mousemove', this.resizeMove);
-    document.addEventListener('mouseup', this.resizeUp);
+    try { handle.setPointerCapture(e.pointerId); } catch { /* unsupported */ }
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  }
+
+  /** Highlight the field-list zone / chip currently under a drag. */
+  private highlightDrop(el: Element | null): void {
+    this.clearDropHighlights();
+    const chip = el?.closest?.('.pp-chip[data-pp-name]') as HTMLElement | null;
+    const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
+    if (chip && chip.dataset.ppZone !== 'available') chip.classList.add('pp-chip-dragover');
+    else if (zone) zone.classList.add('pp-dragover');
+  }
+
+  private clearDropHighlights(): void {
+    if (!this.bodyTable && !this.gridEl) return;
+    this.gridEl.querySelectorAll('.pp-dragover, .pp-chip-dragover').forEach((n) => n.classList.remove('pp-dragover', 'pp-chip-dragover'));
+  }
+
+  /** Commit a pointer-drag drop: reorder onto a chip/header, else move to a zone. */
+  private dropField(name: string, el: Element | null, y: number): void {
+    const chip = el?.closest?.('.pp-chip[data-pp-name], [data-pp-name]') as HTMLElement | null;
+    if (chip && chip.dataset.ppName && chip.dataset.ppName !== name && chip.dataset.ppZone && chip.dataset.ppZone !== 'available') {
+      const rect = chip.getBoundingClientRect();
+      const after = y > rect.top + rect.height / 2 ? 1 : 0;
+      this.opts.controller.reorderColumn(name, chip.dataset.ppZone as Zone, Number(chip.dataset.ppIndex) + after);
+      return;
+    }
+    const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
+    if (zone?.dataset.zone) this.opts.controller.moveField(name, zone.dataset.zone as Zone);
   }
 
   // ---------- column-properties panel ----------
@@ -1467,14 +1495,8 @@ export class GridRenderer {
       body.className = 'pp-zone-body';
       fields.forEach((f, i) => body.appendChild(this.makeChip(f, zone, i)));
       z.appendChild(body);
-      z.addEventListener('dragover', (e) => { e.preventDefault(); z.classList.add('pp-dragover'); });
-      z.addEventListener('dragleave', () => z.classList.remove('pp-dragover'));
-      z.addEventListener('drop', (e) => {
-        e.preventDefault();
-        z.classList.remove('pp-dragover');
-        const uniqueName = e.dataTransfer?.getData('text/plain');
-        if (uniqueName) this.opts.controller.moveField(uniqueName, zone);
-      });
+      // The zone is a passive drop target — pointer drags resolve it via
+      // elementFromPoint (see dropField / highlightDrop).
       return z;
     };
 
@@ -1494,37 +1516,20 @@ export class GridRenderer {
     const chip = document.createElement('div');
     chip.className = 'pp-chip';
     chip.textContent = field.caption;
-    chip.draggable = true;
-    chip.addEventListener('dragstart', (e) => {
-      e.dataTransfer?.setData('text/plain', field.uniqueName);
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    // Drag source + drop target descriptors, read back via elementFromPoint.
+    chip.dataset.ppName = field.uniqueName;
+    chip.dataset.ppZone = zone;
+    chip.dataset.ppIndex = String(index);
+    chip.addEventListener('pointerdown', (e) => {
+      startPointerDrag(e as PointerEvent, {
+        label: field.caption,
+        move: (el) => this.highlightDrop(el),
+        // Dropping onto a chip reorders relative to it (before/after by pointer y);
+        // dropping on empty zone space moves the field to that zone.
+        drop: (el, _x, y) => this.dropField(field.uniqueName, el, y),
+        end: () => this.clearDropHighlights(),
+      });
     });
-
-    // Positional drop: dropping ONTO a chip reorders relative to it (insert before
-    // the chip when over its top half, after it over the bottom half) instead of
-    // appending to the end of the zone (which is what dropping on empty zone space
-    // does). The "Fields" pool isn't an ordered slice zone, so skip it there.
-    if (zone !== 'available') {
-      const clear = () => chip.classList.remove('pp-chip-drop-before', 'pp-chip-drop-after');
-      chip.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // don't also trigger the zone's append-on-drop highlight
-        const rect = chip.getBoundingClientRect();
-        const after = e.clientY > rect.top + rect.height / 2;
-        chip.classList.toggle('pp-chip-drop-after', after);
-        chip.classList.toggle('pp-chip-drop-before', !after);
-      });
-      chip.addEventListener('dragleave', clear);
-      chip.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // prevent the zone drop handler from appending instead
-        const after = chip.classList.contains('pp-chip-drop-after');
-        clear();
-        const name = e.dataTransfer?.getData('text/plain');
-        if (!name || name === field.uniqueName) return;
-        this.opts.controller.reorderColumn(name, zone, index + (after ? 1 : 0));
-      });
-    }
     return chip;
   }
 }
