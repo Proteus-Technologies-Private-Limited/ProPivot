@@ -258,8 +258,10 @@
 }
 .pp-modal label { display: block; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; }
 .pp-modal select { width: 100%; padding: 7px; border: 1px solid var(--pp-border); border-radius: 5px; }
-.pp-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-.pp-modal-actions button { padding: 7px 14px; border-radius: 5px; border: 1px solid var(--pp-border); background: var(--pp-surface); cursor: pointer; }
+.pp-modal-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; }
+/* Normalise both actions to one size/baseline — reset the inline-form margin and
+   font-size the primary button (.pp-popup-apply) otherwise brings in. */
+.pp-modal-actions button { margin: 0; padding: 7px 14px; border-radius: 5px; border: 1px solid var(--pp-border); background: var(--pp-surface); cursor: pointer; font-size: 12.5px; line-height: 1.2; font-weight: 500; }
 /* Keep the primary action accent-filled inside modals — `.pp-modal-actions button`
    above would otherwise repaint it surface-coloured, leaving white text on white. */
 .pp-modal-actions .primary,
