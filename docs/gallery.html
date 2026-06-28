@@ -119,6 +119,15 @@
           grid:{ type:'classic' } },
         { t:'Top-N filter', d:'Keep only the top 2 regions by sales.',
           slice:{ rows:[{uniqueName:'region',filter:{type:'top',measure:'sales',quantity:2}}], columns:[{uniqueName:'category'}], measures:[{uniqueName:'sales',aggregation:'sum',caption:'Sales',format:'cur'}] } },
+        // ── New in v0.3 ──
+        { t:'Numeric binning', d:'Group the numeric Sales field into $2,000 ranges with binning.',
+          slice:{ rows:[{uniqueName:'sales',binning:{interval:2000}}], measures:[{uniqueName:'qty',aggregation:'sum',caption:'Units'}] } },
+        { t:'Label filter', d:'Keep regions whose name does not contain the letter “e”.',
+          slice:{ rows:[{uniqueName:'region',filter:{type:'label',labelOperator:'notContains',query:'e'}}], columns:[{uniqueName:'category'}], measures:[{uniqueName:'sales',aggregation:'sum',caption:'Sales',format:'cur'}] } },
+        { t:'Dark mode', d:"Built-in dark theme via options.theme:'dark'.",
+          slice:{ rows:[{uniqueName:'region'}], columns:[{uniqueName:'category'}], measures:[{uniqueName:'sales',aggregation:'sum',caption:'Sales',format:'cur'}] }, options:{ theme:'dark' } },
+        { t:'Right-to-left (RTL)', d:'Mirror the grid for RTL locales with options.rtl.',
+          slice:{ rows:[{uniqueName:'region'},{uniqueName:'category'}], columns:[{uniqueName:'year'}], measures:[{uniqueName:'sales',aggregation:'sum',caption:'Sales',format:'cur'}] }, options:{ rtl:true } },
       ];
 
       var grid = document.getElementById('grid');
@@ -135,7 +144,7 @@
               slice: ex.slice,
               conditions: ex.conditions || [],
               formats: [cur, pct],
-              options: { grid: Object.assign({ type:'compact' }, ex.grid || {}), configuratorButton:false },
+              options: Object.assign({ grid: Object.assign({ type:'compact' }, ex.grid || {}), configuratorButton:false }, ex.options || {}),
             },
           });
         } catch (e) { host.innerHTML = '<p style="padding:12px;color:#b71c1c">Failed to render.</p>'; }

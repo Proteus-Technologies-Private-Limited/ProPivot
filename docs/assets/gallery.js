@@ -32,6 +32,40 @@
 
   // ── Feature catalog ─────────────────────────────────────────────────────────
   var F = [
+    // ===== New in v0.3 =====
+    { group: 'New in v0.3', id: 'binning', title: 'Numeric binning', desc:
+      '<p>Group a numeric dimension into ranges with <code>binning</code> on the field — a fixed <code>interval</code> or custom <code>breaks</code>. Buckets sort numerically and drill-through still resolves the underlying rows.</p>',
+      hint: 'Double-click a bucket cell to drill through to its source rows.',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'sales', binning: { interval: 2000 } }], // 0–2000, 2000–4000, …\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'qty', aggregation: 'sum', caption: 'Units' }],\n    },\n  },\n});\nlog('Sales bucketed into $2,000 ranges. Try { breaks: [0, 2000, 6000] } for custom edges.');" },
+
+    { group: 'New in v0.3', id: 'label-value-filters', title: 'Label & value filters', desc:
+      '<p>Filter members by text (<code>contains</code>, <code>beginsWith</code>…) or by a measure threshold (<code>&gt; &lt; ≥ ≤ = ≠ between</code>) — declaratively or via <code>setLabelFilter()</code> / <code>setValueFilter()</code>. The picker also has a member search box.</p>',
+      hint: 'Open the ▾ on the Region header → Filter tab to try the search box, label, and value filters.',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      // Keep only regions whose total Sales exceed 10,000.\n      rows: [{ uniqueName: 'region', filter: { type: 'value', measure: 'sales', operator: 'greaterThan', value: 10000 } }],\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }],\n    },\n  },\n});\n// Apply more at runtime:\n// pivot.setLabelFilter('region', 'contains', 'o');\n// pivot.setValueFilter('region', 'sales', 'between', 5000, 14000);\nlog('Value filter: Sales > 10,000. Open Region ▾ → Filter for label / value / search.');" },
+
+    { group: 'New in v0.3', id: 'range-copy', title: 'Range selection & copy', desc:
+      '<p>Select a rectangle of cells and copy it as TSV — pasteable into Excel or Sheets. Off-screen (virtualized) rows are included, and a <code>copy</code> event fires with <code>{ rows, columns, text }</code>.</p>',
+      hint: 'Click a value cell, then Shift+click another (or Shift+arrow keys), and press Ctrl/Cmd+C.',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }, { uniqueName: 'product' }],\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }, { uniqueName: 'qty', aggregation: 'sum', caption: 'Qty' }],\n    },\n  },\n});\npivot.on('copy', (e) => log('Copied ' + e.rows + '×' + e.columns + ' cells:\\n' + e.text));\nlog('Shift-select a range, then Ctrl/Cmd+C. Tab in and use arrow keys too.');" },
+
+    { group: 'New in v0.3', id: 'dark-mode', title: 'Dark mode', desc:
+      '<p>Built-in dark theme via <code>options.theme</code> (<code>\'dark\'</code>, or <code>\'auto\'</code> to follow the OS). The grid, toolbar, field list, popups and modals all theme together.</p>',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  toolbar: true,\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }],\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }],\n    },\n    options: { theme: 'dark' }, // 'light' | 'dark' | 'auto'\n  },\n});" },
+
+    { group: 'New in v0.3', id: 'rtl', title: 'Right-to-left (RTL)', desc:
+      '<p><code>options.rtl: true</code> mirrors the whole grid for right-to-left locales — sticky row headers, indentation and the resize grip flip, while numbers stay left-to-right.</p>',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  toolbar: true,\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }, { uniqueName: 'category' }],\n      columns: [{ uniqueName: 'product' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }],\n    },\n    options: { rtl: true },\n  },\n});" },
+
+    { group: 'New in v0.3', id: 'localization', title: 'Localization (i18n)', desc:
+      '<p>Every toolbar / filter / drill-through string is overridable via <code>localization.grid</code>. Here the chrome is in French.</p>',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  toolbar: true,\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }],\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }],\n    },\n    options: { localization: { grid: {\n      fields: 'Champs', fullscreen: 'Plein écran', apply: 'Appliquer', all: 'Tout', none: 'Aucun',\n      searchMembers: 'Rechercher…', labelFilter: 'Filtre texte', valueFilter: 'Filtre valeur',\n      clearFilters: 'Effacer', drillThrough: 'Détail', grandTotalCaption: 'Total général', totals: 'Total',\n    } } },\n  },\n});" },
+
     // ===== Basics =====
     { group: 'Basics', id: 'basic', title: 'Basic pivot', desc:
       '<p>The minimum: a <code>dataSource</code> plus a <code>slice</code> of <b>rows</b>, <b>columns</b> and <b>measures</b>. ProPivot aggregates entirely in the browser.</p>',
