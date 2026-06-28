@@ -1,10 +1,12 @@
 name: Release
 
 # Publishes to npm when a version tag is pushed, e.g. `git tag v0.3.0 && git push --tags`.
+# Can also be dispatched manually from the Actions tab (publishes the version in package.json).
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
