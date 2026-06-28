@@ -14,7 +14,14 @@ the test suite, and how releases work.
 git clone https://github.com/Proteus-Technologies-Private-Limited/ProPivot.git
 cd ProPivot
 npm ci
+git config core.hooksPath .githooks   # regenerate starter zips on relevant commits
 ```
+
+The opt-in pre-commit hook (last line) rebuilds the downloadable starter `.zip`s in
+`docs/downloads/` whenever you commit changes to `src/`, the sample apps, or the
+build config, and stages them — keeping the site's downloads in sync. Enable it once
+per clone; if you skip it, run `bash samples/build-zips.sh` before committing such
+changes.
 
 ## Everyday commands
 
