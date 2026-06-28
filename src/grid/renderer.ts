@@ -59,6 +59,8 @@ export interface PivotController {
   getConditions(): Condition[];
   /** Apply a Top/Bottom-N filter to a row hierarchy ranked by a measure. */
   setTopN(measureUniqueName: string, mode: 'top' | 'bottom' | 'off', quantity: number): void;
+  /** Group a numeric dimension into fixed-width ranges (null/0 clears). */
+  setBinning(uniqueName: string, interval: number | null): void;
 }
 
 export interface RendererOptions {
@@ -133,6 +135,9 @@ export class GridRenderer {
   private focusRC: { r: number; c: number } | null = null;
   private rovingEl: HTMLElement | null = null;
   private bodyTable: HTMLElement | null = null;
+  /** Range-selection corners in logical grid coords (anchor + moving focus). */
+  private selAnchor: { r: number; c: number } | null = null;
+  private selFocus: { r: number; c: number } | null = null;
 
   constructor(container: HTMLElement, private opts: RendererOptions) {
     this.root = container;
@@ -167,7 +172,8 @@ export class GridRenderer {
     this.body = null;
     this.gridEl.innerHTML = '';
 
-    if (this.opts.toolbar) this.gridEl.appendChild(this.buildToolbar());
+    this.applyTheme(ctx);
+    if (this.opts.toolbar) this.gridEl.appendChild(this.buildToolbar(ctx));
     if (ctx.normal.options.configuratorButton !== false) {
       this.gridEl.appendChild(this.buildFieldList(matrix, ctx));
     }
@@ -225,6 +231,8 @@ export class GridRenderer {
     // Roving focus starts on the first body cell (or first header cell if empty).
     this.rovingEl = null;
     this.focusRC = this.body.visualRows.length ? { r: headerRows, c: 0 } : { r: 0, c: 0 };
+    this.selAnchor = null;
+    this.selFocus = null;
 
     scroll.addEventListener('scroll', this.onScroll);
     this.paintBody();
@@ -314,8 +322,10 @@ export class GridRenderer {
     if (virtualize && start > 0) b.tbody.appendChild(spacer(b.colCount, start * b.rowHeight));
     for (let i = start; i < end; i++) b.tbody.appendChild(this.buildRow(b, b.visualRows[i], i));
     if (virtualize && end < total) b.tbody.appendChild(spacer(b.colCount, (total - end) * b.rowHeight));
-    // Keep exactly one navigable cell tabbable after every (re)paint.
+    // Keep exactly one navigable cell tabbable after every (re)paint, and
+    // re-apply the range highlight to freshly painted rows.
     this.applyRoving();
+    this.applyRangeHighlight();
   }
 
   // ---------- accessibility: ARIA tagging + keyboard navigation ----------
@@ -343,7 +353,18 @@ export class GridRenderer {
   private bindNav(table: HTMLElement): void {
     table.addEventListener('keydown', this.onKeyNav);
     table.addEventListener('focusin', this.onFocusIn);
+    table.addEventListener('click', this.onSelectClick);
   }
+
+  /** Click sets the selection anchor; Shift-click extends the range. */
+  private onSelectClick = (e: MouseEvent): void => {
+    const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-r]');
+    if (!el) return;
+    const rc = { r: +(el.dataset.r ?? 0), c: +(el.dataset.c ?? 0) };
+    if (e.shiftKey && this.selAnchor) this.selFocus = rc;
+    else { this.selAnchor = rc; this.selFocus = rc; }
+    this.applyRangeHighlight();
+  };
 
   private onFocusIn = (e: FocusEvent): void => {
     const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-r]');
@@ -383,6 +404,11 @@ export class GridRenderer {
   private onKeyNav = (e: KeyboardEvent): void => {
     const b = this.body;
     if (!b || !this.focusRC) return;
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+      e.preventDefault();
+      this.copySelection();
+      return;
+    }
     const maxR = b.headerRows + b.visualRows.length - 1;
     const maxC = b.colCount - 1;
     // Step relative to the CURRENT cell's span so wide headers advance cleanly.
@@ -418,8 +444,84 @@ export class GridRenderer {
         return;
     }
     e.preventDefault();
+    // Shift extends from the anchor; anchor it at the ORIGIN cell before moving.
+    if (e.shiftKey) { if (!this.selAnchor) this.selAnchor = this.focusRC; }
     this.focusAt(r, c);
+    if (this.focusRC) {
+      this.selFocus = this.focusRC;
+      if (!e.shiftKey) this.selAnchor = this.focusRC;
+      this.applyRangeHighlight();
+    }
   };
+
+  /** Highlight every painted cell inside the current selection rectangle. */
+  private applyRangeHighlight(): void {
+    const scope = this.bodyTable;
+    if (!scope) return;
+    scope.querySelectorAll('.pp-range').forEach((n) => n.classList.remove('pp-range'));
+    const a = this.selAnchor, f = this.selFocus;
+    if (!a || !f) return;
+    const r0 = Math.min(a.r, f.r), r1 = Math.max(a.r, f.r);
+    const c0 = Math.min(a.c, f.c), c1 = Math.max(a.c, f.c);
+    if (r0 === r1 && c0 === c1) return; // single cell — leave it to the focus ring
+    scope.querySelectorAll<HTMLElement>('[data-r]').forEach((el) => {
+      const rr = +(el.dataset.r ?? 0), cc = +(el.dataset.c ?? 0);
+      const rs = +(el.dataset.rs ?? 1), cs = +(el.dataset.cs ?? 1);
+      if (rr <= r1 && rr + rs - 1 >= r0 && cc <= c1 && cc + cs - 1 >= c0) el.classList.add('pp-range');
+    });
+  }
+
+  /** Copy the selected rectangle to the clipboard as TSV (spreadsheet-pasteable). */
+  private copySelection(): void {
+    const b = this.body, a = this.selAnchor, f = this.selFocus;
+    if (!b || !a || !f) return;
+    const r0 = Math.min(a.r, f.r), r1 = Math.max(a.r, f.r);
+    const c0 = Math.min(a.c, f.c), c1 = Math.max(a.c, f.c);
+    const lines: string[] = [];
+    for (let r = r0; r <= r1; r++) {
+      const cells: string[] = [];
+      for (let c = c0; c <= c1; c++) cells.push(this.cellText(r, c));
+      lines.push(cells.join('\t'));
+    }
+    const tsv = lines.join('\n');
+    writeClipboard(tsv);
+    this.opts.emit('copy', { rows: r1 - r0 + 1, columns: c1 - c0 + 1, text: tsv });
+  }
+
+  /** Text for a grid cell — from the matrix model for body rows (works even when
+   *  virtualized off-screen), from the DOM for painted header cells. */
+  private cellText(r: number, c: number): string {
+    const b = this.body;
+    if (!b) return '';
+    if (r >= b.headerRows) return this.modelBodyText(r - b.headerRows, c);
+    const el = this.cellAt(r, c);
+    return el ? (el.textContent ?? '').trim() : '';
+  }
+
+  private modelBodyText(v: number, c: number): string {
+    const b = this.body!;
+    const vr = b.visualRows[v];
+    if (!vr) return '';
+    const loc = b.ctx.normal.localization;
+    if (c < b.rowHeaderCols) {
+      if (b.multi) {
+        if (vr.isGrand) return c === 0 ? loc.grandTotal : '';
+        if (c < vr.path.length) return vr.path[c];
+        if (vr.isSubtotal && c === vr.path.length) return loc.total;
+        return '';
+      }
+      return vr.isGrand ? loc.grandTotal : vr.label;
+    }
+    const vcol = c - b.rowHeaderCols;
+    const measureSpan = Math.max(1, b.measures.length);
+    const leafIdx = Math.floor(vcol / measureSpan);
+    const mIdx = vcol % measureSpan;
+    const isGrandCol = b.showColGrand && leafIdx === b.colLeaves.length;
+    const cp = isGrandCol ? [] : (b.colLeaves[leafIdx]?.path ?? []);
+    const measure = b.measures[mIdx] ?? null;
+    const measureKey = measure?.key ?? b.measures[0]?.key ?? '';
+    return b.matrix.text.get(pathKey(vr.path, cp, measureKey)) ?? '';
+  }
 
   /** Run the focused cell's primary (or context-menu) keyboard action. */
   private activateFocused(context: boolean): void {
@@ -787,6 +889,8 @@ export class GridRenderer {
     pop.append(tabsBar, panes);
     activate(tabDefs[0].id);
 
+    this.themePopup(pop);
+
     document.body.appendChild(pop);
     this.placePopup(pop, ev);
     pop.style.visibility = '';
@@ -823,6 +927,24 @@ export class GridRenderer {
         }
         sel.addEventListener('change', () => this.opts.controller.setMeasureAggregation(measure.uniqueName, sel.value));
         return sel;
+      })()));
+    }
+
+    // Numeric dimension: group values into fixed-width ranges.
+    if (ref.kind === 'field' && fieldTypeOf(ctx, ref.uniqueName) === 'number') {
+      const cur = hierarchyOf(ctx, ref.uniqueName)?.binning?.interval;
+      p.appendChild(fieldRow('Group into ranges', (() => {
+        const wrap = document.createElement('div');
+        wrap.className = 'pp-field-inline';
+        const input = document.createElement('input');
+        input.type = 'number'; input.min = '0'; input.placeholder = 'interval (e.g. 100)';
+        if (cur) input.value = String(cur);
+        const apply = primaryBtn('Apply', () => {
+          const n = Number(input.value);
+          this.opts.controller.setBinning(ref.uniqueName, n > 0 ? n : null);
+        });
+        wrap.append(input, apply);
+        return wrap;
       })()));
     }
 
@@ -977,6 +1099,7 @@ export class GridRenderer {
   }
 
   private buildFilterPane(p: HTMLElement, ctx: RenderContext, ref: ColumnRef, field: string): void {
+    const ui = ctx.normal.localization.ui;
     if (ref.kind === 'measure') {
       // Top/Bottom-N on the first row hierarchy ranked by this measure.
       const wrap = document.createElement('div');
@@ -984,7 +1107,7 @@ export class GridRenderer {
       const mode = document.createElement('select');
       for (const [v, t] of [['off', 'Show all'], ['top', 'Top N'], ['bottom', 'Bottom N']] as const) { const o = document.createElement('option'); o.value = v; o.textContent = t; mode.appendChild(o); }
       const qty = document.createElement('input'); qty.type = 'number'; qty.min = '1'; qty.value = '10';
-      const apply = primaryBtn('Apply', () => this.opts.controller.setTopN(ref.uniqueName, mode.value as 'top' | 'bottom' | 'off', Number(qty.value) || 10));
+      const apply = primaryBtn(ui.apply, () => this.opts.controller.setTopN(ref.uniqueName, mode.value as 'top' | 'bottom' | 'off', Number(qty.value) || 10));
       wrap.append(mode, qty, apply);
       p.appendChild(fieldRow('Rank rows by this measure', wrap));
       const note = document.createElement('div'); note.className = 'pp-muted'; note.textContent = 'Filters the first row field by this measure.';
@@ -1001,13 +1124,13 @@ export class GridRenderer {
     const search = document.createElement('input');
     search.type = 'search';
     search.className = 'pp-member-search';
-    search.placeholder = 'Search members…';
+    search.placeholder = ui.searchMembers;
     p.appendChild(search);
 
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
-    const allLink = document.createElement('a'); allLink.textContent = 'All'; allLink.href = 'javascript:void(0)';
-    const noneLink = document.createElement('a'); noneLink.textContent = 'None'; noneLink.href = 'javascript:void(0)';
+    const allLink = document.createElement('a'); allLink.textContent = ui.all; allLink.href = 'javascript:void(0)';
+    const noneLink = document.createElement('a'); noneLink.textContent = ui.none; noneLink.href = 'javascript:void(0)';
     tools.append(allLink, noneLink);
     p.appendChild(tools);
 
@@ -1034,7 +1157,7 @@ export class GridRenderer {
     allLink.addEventListener('click', () => visible().forEach((b) => (b.checked = true)));
     noneLink.addEventListener('click', () => visible().forEach((b) => (b.checked = false)));
     p.appendChild(listEl);
-    const apply = primaryBtn('Apply', () => {
+    const apply = primaryBtn(ui.apply, () => {
       const checked = boxes.filter((b) => b.checked).map((b) => b.value);
       this.opts.controller.setFilter(field, checked.length === members.length ? null : checked);
     });
@@ -1049,8 +1172,8 @@ export class GridRenderer {
     ], curFilter?.type === 'label' ? curFilter.labelOperator : undefined);
     const lblQuery = document.createElement('input'); lblQuery.type = 'text'; lblQuery.placeholder = 'text…';
     if (curFilter?.type === 'label') lblQuery.value = curFilter.query ?? '';
-    lblWrap.append(lblOp, lblQuery, primaryBtn('Apply', () => this.opts.controller.setLabelFilter(field, lblOp.value as LabelOperator, lblQuery.value)));
-    p.appendChild(fieldRow('Label filter', lblWrap));
+    lblWrap.append(lblOp, lblQuery, primaryBtn(ui.apply, () => this.opts.controller.setLabelFilter(field, lblOp.value as LabelOperator, lblQuery.value)));
+    p.appendChild(fieldRow(ui.labelFilter, lblWrap));
 
     // --- value (measure-threshold) filter ---
     const measures = this.body?.measures ?? [];
@@ -1070,16 +1193,16 @@ export class GridRenderer {
         if (curFilter.value2 !== undefined) v2.value = String(curFilter.value2);
       }
       syncBetween();
-      valWrap.append(valMeasure, valOp, v1, v2, primaryBtn('Apply', () =>
+      valWrap.append(valMeasure, valOp, v1, v2, primaryBtn(ui.apply, () =>
         this.opts.controller.setValueFilter(
           field, valMeasure.value, valOp.value as ValueOperator,
           Number(v1.value) || 0, valOp.value === 'between' ? Number(v2.value) || 0 : undefined,
         )));
-      p.appendChild(fieldRow('Value filter', valWrap));
+      p.appendChild(fieldRow(ui.valueFilter, valWrap));
     }
 
     // --- clear everything ---
-    p.appendChild(plainBtn('Clear filters', () => this.opts.controller.setFilter(field, null)));
+    p.appendChild(plainBtn(ui.clearFilters, () => this.opts.controller.setFilter(field, null)));
   }
 
   // ---------- report-filter area ----------
@@ -1111,6 +1234,7 @@ export class GridRenderer {
   private openFilterEditor(ev: MouseEvent, uniqueName: string, caption: string, selected: string[] | null): void {
     ev.stopPropagation();
     this.closeEditor();
+    const ui = this.body?.ctx.normal.localization.ui;
     const members = this.opts.controller.members(uniqueName);
     const selSet = new Set(selected ?? members);
 
@@ -1130,13 +1254,13 @@ export class GridRenderer {
     const search = document.createElement('input');
     search.type = 'search';
     search.className = 'pp-member-search';
-    search.placeholder = 'Search members…';
+    search.placeholder = ui?.searchMembers ?? 'Search members…';
     pop.appendChild(search);
 
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
-    const all = document.createElement('a'); all.textContent = 'All'; all.href = 'javascript:void(0)';
-    const none = document.createElement('a'); none.textContent = 'None'; none.href = 'javascript:void(0)';
+    const all = document.createElement('a'); all.textContent = ui?.all ?? 'All'; all.href = 'javascript:void(0)';
+    const none = document.createElement('a'); none.textContent = ui?.none ?? 'None'; none.href = 'javascript:void(0)';
     tools.append(all, none);
     pop.appendChild(tools);
 
@@ -1169,7 +1293,7 @@ export class GridRenderer {
 
     const apply = document.createElement('button');
     apply.className = 'pp-popup-apply';
-    apply.textContent = 'Apply';
+    apply.textContent = ui?.apply ?? 'Apply';
     apply.addEventListener('click', () => {
       const checked = boxes.filter((b) => b.checked).map((b) => b.value);
       this.opts.controller.setFilter(uniqueName, checked.length === members.length ? null : checked);
@@ -1180,6 +1304,8 @@ export class GridRenderer {
     actions.className = 'pp-popup-actions';
     actions.appendChild(apply);
     pop.appendChild(actions);
+
+    this.themePopup(pop);
 
     document.body.appendChild(pop);
     this.placePopup(pop, ev);
@@ -1256,7 +1382,7 @@ export class GridRenderer {
       const th = document.createElement('th');
       th.className = 'pp-rowh';
       this.tagCell(th, 'rowheader', rAbs, 0);
-      th.style.paddingLeft = `${8 + vr.depth * 16}px`;
+      th.style.paddingInlineStart = `${8 + vr.depth * 16}px`;
       if (vr.isGroup && vr.node) {
         const node = vr.node;
         th.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
@@ -1446,7 +1572,7 @@ export class GridRenderer {
 
     const h = document.createElement('h3');
     const where = [...(cell.rowPath ?? []), ...(cell.colPath ?? [])].filter(Boolean).join(' · ');
-    h.textContent = `Drill-through${where ? ': ' + where : ''} (${rows.length} rows)`;
+    h.textContent = `${ctx.normal.localization.ui.drillThrough}${where ? ': ' + where : ''} (${rows.length} rows)`;
     dialog.appendChild(h);
 
     const fields = rows.length ? Object.keys(rows[0]) : [];
@@ -1490,6 +1616,7 @@ export class GridRenderer {
 
     backdrop.appendChild(dialog);
     backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) this.closeEditor(); });
+    this.themePopup(backdrop);
     document.body.appendChild(backdrop);
     this.editor = backdrop;
     this.editorKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeEditor(); };
@@ -1498,18 +1625,36 @@ export class GridRenderer {
 
   // ---------- toolbar ----------
 
-  private buildToolbar(): HTMLElement {
+  /** Carry the grid's dark theme onto a body-level popup / modal. */
+  private themePopup(el: HTMLElement): void {
+    if (this.root.classList.contains('pp-theme-dark')) el.classList.add('pp-theme-dark');
+  }
+
+  /** Apply the colour theme (light/dark/auto) and text direction to the root. */
+  private applyTheme(ctx: RenderContext): void {
+    const opt = ctx.normal.options;
+    const theme = opt?.theme ?? 'light';
+    let dark = theme === 'dark';
+    if (theme === 'auto' && typeof window !== 'undefined' && window.matchMedia) {
+      dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    this.root.classList.toggle('pp-theme-dark', dark);
+    this.root.setAttribute('dir', opt?.rtl ? 'rtl' : 'ltr');
+  }
+
+  private buildToolbar(ctx: RenderContext): HTMLElement {
     const bar = document.createElement('div');
     bar.className = 'pp-toolbar';
+    const t = ctx.normal.localization.ui;
 
     // A tabs descriptor consumers can mutate via beforetoolbarcreated.
     const tabs: Array<{ id: string; title: string; handler: () => void }> = [
-      { id: 'pp-tab-fields', title: 'Fields', handler: () => this.toggleFieldList() },
-      { id: 'pp-tab-export-csv', title: 'CSV', handler: () => this.opts.controller.exportTo('csv') },
-      { id: 'pp-tab-export-excel', title: 'Excel', handler: () => this.opts.controller.exportTo('excel') },
-      { id: 'pp-tab-export-pdf', title: 'PDF', handler: () => this.opts.controller.exportTo('pdf') },
-      { id: 'pp-tab-export-html', title: 'HTML', handler: () => this.opts.controller.exportTo('html') },
-      { id: 'pp-tab-fullscreen', title: 'Fullscreen', handler: () => this.toggleFullscreen() },
+      { id: 'pp-tab-fields', title: t.fields, handler: () => this.toggleFieldList() },
+      { id: 'pp-tab-export-csv', title: t.csv, handler: () => this.opts.controller.exportTo('csv') },
+      { id: 'pp-tab-export-excel', title: t.excel, handler: () => this.opts.controller.exportTo('excel') },
+      { id: 'pp-tab-export-pdf', title: t.pdf, handler: () => this.opts.controller.exportTo('pdf') },
+      { id: 'pp-tab-export-html', title: t.html, handler: () => this.opts.controller.exportTo('html') },
+      { id: 'pp-tab-fullscreen', title: t.fullscreen, handler: () => this.toggleFullscreen() },
     ];
     this.opts.emit('beforetoolbarcreated', { getTabs: () => tabs });
 
@@ -1787,6 +1932,25 @@ function sortGlyph(sort?: string): string {
 /** Map an internal sort direction to the ARIA `aria-sort` token. */
 function ariaSort(sort?: string): 'ascending' | 'descending' | 'none' {
   return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : 'none';
+}
+/** Write text to the clipboard, falling back to a hidden textarea + execCommand. */
+function writeClipboard(text: string): void {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch { /* fall through to legacy path */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  } catch { /* clipboard unavailable */ }
 }
 function emptyNode(): AxisNode {
   return { path: [], label: '', field: '', depth: 0, children: [], expanded: true, isLeaf: true };

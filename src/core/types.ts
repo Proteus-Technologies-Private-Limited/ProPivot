@@ -86,11 +86,21 @@ export interface FilterSpec {
   value2?: number;
 }
 
+/** Group a numeric dimension into ranges. Use `interval` for fixed-width buckets
+ *  (e.g. 100 → "0 - 100", "100 - 200") or `breaks` for custom boundaries
+ *  (e.g. [0, 100, 500] → "0 - 100", "100 - 500", "500+"). */
+export interface Binning {
+  interval?: number;
+  breaks?: number[];
+}
+
 export interface Hierarchy {
   uniqueName: string;
   caption?: string;
   sort?: 'asc' | 'desc' | 'unsorted';
   filter?: FilterSpec;
+  /** Bucket this numeric field into ranges when used as a row/column dimension. */
+  binning?: Binning;
   /** Pixel column width (drag-resized or set programmatically). */
   width?: number;
   /** Rich display format applied to this dimension's member cells. */
@@ -160,6 +170,10 @@ export interface GridOptions {
 
 export interface Options {
   grid?: GridOptions;
+  /** Colour theme. 'auto' follows the OS `prefers-color-scheme`. Default 'light'. */
+  theme?: 'light' | 'dark' | 'auto';
+  /** Render right-to-left (Arabic/Hebrew). Default false. */
+  rtl?: boolean;
   viewType?: 'grid';
   configuratorActive?: boolean;
   configuratorButton?: boolean;

@@ -54,7 +54,7 @@
         "tag": "th",
         "text": "<span>Grand Total</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
@@ -77,7 +77,7 @@
         "tag": "th",
         "text": "<span>East</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
@@ -100,7 +100,7 @@
         "tag": "th",
         "text": "<span>West</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",

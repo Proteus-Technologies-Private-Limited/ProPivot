@@ -28,6 +28,25 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `>` `<` `≥` `≤` `=` `≠` and `between`), via new `setLabelFilter()` /
   `setValueFilter()` API and the column **Filter** panel. The member picker
   gained a search box (in both the column panel and the report-filter bar).
+- **Numeric binning** — group a numeric dimension into ranges, by fixed
+  `interval` or custom `breaks`, via `binning` on a row/column field, the new
+  `setBinning()` API, or the column **Properties** panel. Buckets sort
+  numerically and drill-through resolves raw rows by bin.
+- **Range selection + copy** — select a rectangle of cells with Shift+click or
+  Shift+arrows, and copy it as TSV with Ctrl/Cmd+C (pasteable into Excel /
+  Sheets). Off-screen (virtualized) rows are included in the copied text.
+- **Dark mode** — `options.theme: 'dark' | 'auto'` ships a built-in dark palette
+  (the grid, toolbar, field list, popups and modals all theme together; `auto`
+  follows the OS `prefers-color-scheme`).
+- **RTL** — `options.rtl: true` mirrors the grid for right-to-left locales
+  (sticky row headers, indentation and the resize grip flip; numbers stay LTR).
+- **Localization** — toolbar, filter-panel and drill-through strings are now
+  overridable via `localization.grid.*` (e.g. `fields`, `apply`, `all`, `none`,
+  `searchMembers`, `labelFilter`, `valueFilter`, `clearFilters`, `drillThrough`).
+- **Angular subpath** — the `<pro-pivot>` component is now importable as
+  `@proteus/propivot/angular` (compiled by the consumer's Angular toolchain)
+  instead of copy-pasting the source; `@angular/core`/`@angular/common` are
+  optional peer dependencies, and a CI check type-checks the wrapper.
 - New `localization.grid.gridLabel` option for the grid's accessible name.
 
 ### Changed

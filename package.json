@@ -48,6 +48,10 @@
       "import": "./dist/vue.js",
       "require": "./dist/vue.cjs"
     },
+    "./angular": {
+      "types": "./src/wrappers/angular.ts",
+      "default": "./src/wrappers/angular.ts"
+    },
     "./global": "./dist/propivot.global.js",
     "./propivot.css": "./dist/propivot.css"
   },
@@ -73,7 +77,8 @@
     "test:golden": "vitest run test/golden",
     "golden:update": "UPDATE_GOLDENS=1 vitest run test/golden",
     "check:version": "node test-script/check-version.mjs",
-    "ci": "npm run check:version && npm run typecheck && npm run test && npm run build",
+    "check:angular": "tsc -p test-script/angular-typecheck/tsconfig.json",
+    "ci": "npm run check:version && npm run typecheck && npm run check:angular && npm run test && npm run build",
     "prepublishOnly": "npm run ci"
   },
   "devDependencies": {
@@ -87,10 +92,18 @@
     "vue": "^3.4.0"
   },
   "peerDependencies": {
+    "@angular/common": ">=15",
+    "@angular/core": ">=15",
     "react": ">=17",
     "vue": ">=3"
   },
   "peerDependenciesMeta": {
+    "@angular/common": {
+      "optional": true
+    },
+    "@angular/core": {
+      "optional": true
+    },
     "react": {
       "optional": true
     },

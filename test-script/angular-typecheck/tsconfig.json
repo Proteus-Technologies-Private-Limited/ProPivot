@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "baseUrl": "../..",
+    "paths": { "@proteus/propivot": ["src/index.ts"] }
+  },
+  "include": ["../../src/wrappers/angular.ts", "./ng-core.d.ts"]
+}

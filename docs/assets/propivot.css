@@ -1,4 +1,5 @@
-/* ProPivot base theme. Override via CSS variables on .pp-root. */
+/* ProPivot base theme. Override via CSS variables on .pp-root, or use the
+   built-in dark theme with options.theme = 'dark' | 'auto'. */
 .pp-root {
   --pp-border: #e0e0e0;
   --pp-header-bg: #f5f6f8;
@@ -7,15 +8,41 @@
   --pp-selected-bg: #cfe3ff;
   --pp-text: #1f2430;
   --pp-accent: #2f6fdb;
+  /* Chrome surfaces (toolbar, popups, zones, inputs) — themed for dark mode. */
+  --pp-bg: #ffffff;
+  --pp-surface: #ffffff;
+  --pp-surface-2: #fafbfc;
+  --pp-muted: #6b7280;
+  --pp-faint: #9aa1ad;
   font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   color: var(--pp-text);
+  background: var(--pp-bg);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--pp-border);
   box-sizing: border-box;
   overflow: hidden;
 }
+
+.pp-root { color-scheme: light; }
+/* Built-in dark theme (added by options.theme = 'dark', or 'auto' + OS dark). */
+.pp-root.pp-theme-dark {
+  color-scheme: dark;
+  --pp-border: #39414f;
+  --pp-header-bg: #1e2532;
+  --pp-total-bg: #232c3b;
+  --pp-grand-bg: #2b3548;
+  --pp-selected-bg: #2a3a57;
+  --pp-text: #e6e9f0;
+  --pp-accent: #6ea8ff;
+  --pp-bg: #11151c;
+  --pp-surface: #161b24;
+  --pp-surface-2: #1b212c;
+  --pp-muted: #9aa3b2;
+  --pp-faint: #6b7382;
+}
+
 
 .pp-grid-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .pp-scroll { overflow: auto; flex: 1 1 auto; min-height: 0; }
@@ -34,20 +61,21 @@
   text-align: center;
   font-weight: 600;
 }
-.pp-corner { background: var(--pp-header-bg); text-align: left; position: sticky; left: 0; }
+.pp-corner { background: var(--pp-header-bg); text-align: start; position: sticky; inset-inline-start: 0; }
 /* The top-left corner is pinned on BOTH axes, so it must stack above the
  * sticky column headers (z 2) and the sticky row headers (z 1). The extra
  * `thead th` qualifier out-specifies `.pp-table thead th { z-index: 2 }`. */
 .pp-table thead th.pp-corner { z-index: 5; }
 .pp-rowh {
   background: var(--pp-header-bg);
-  text-align: left;
+  text-align: start;
   position: sticky;
-  left: 0;
+  inset-inline-start: 0;
   z-index: 1;
   font-weight: 500;
 }
-.pp-cell { text-align: right; }
+/* Numbers are always LTR (so RTL doesn't reorder thousands-separated groups). */
+.pp-cell { text-align: right; direction: ltr; }
 .pp-total, .pp-total-row > * { background: var(--pp-total-bg); font-weight: 500; }
 .pp-grand, .pp-grand-row > * { background: var(--pp-grand-bg); font-weight: 600; }
 .pp-alt > .pp-cell { background-color: rgba(0, 0, 0, 0.015); }
@@ -66,14 +94,14 @@
   gap: 14px;
   align-items: center;
   padding: 6px 10px;
-  background: #fff;
+  background: var(--pp-surface);
   border-bottom: 1px solid var(--pp-border);
 }
 .pp-tb-group { display: flex; align-items: center; gap: 4px; }
-.pp-tb-label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; margin-right: 2px; }
+.pp-tb-label { font-size: 11px; text-transform: uppercase; color: var(--pp-muted); font-weight: 600; margin-right: 2px; }
 .pp-tb-btn {
   border: 1px solid var(--pp-border);
-  background: #fff;
+  background: var(--pp-surface);
   border-radius: 5px;
   padding: 4px 10px;
   font-size: 12px;
@@ -90,7 +118,7 @@
   display: flex;
   gap: 8px;
   padding: 8px;
-  background: #fafbfc;
+  background: var(--pp-surface-2);
   border-bottom: 1px solid var(--pp-border);
   flex-wrap: wrap;
 }
@@ -99,11 +127,11 @@
   min-width: 120px;
   border: 1px dashed var(--pp-border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--pp-surface);
   padding: 4px;
 }
 .pp-zone.pp-dragover { border-color: var(--pp-accent); background: #f0f6ff; }
-.pp-zone-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+.pp-zone-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; }
 .pp-zone-body { display: flex; flex-direction: column; gap: 4px; min-height: 24px; }
 .pp-chip {
   background: var(--pp-header-bg);
@@ -134,7 +162,7 @@
   font-size: 12px;
   margin-left: 6px;
   padding: 0 2px;
-  color: #6b7280;
+  color: var(--pp-muted);
   opacity: 0;
   transition: opacity .12s;
 }
@@ -155,7 +183,28 @@
   --pp-selected-bg: #cfe3ff;
   --pp-text: #1f2430;
   --pp-accent: #2f6fdb;
+  --pp-bg: #ffffff;
+  --pp-surface: #ffffff;
+  --pp-surface-2: #fafbfc;
+  --pp-muted: #6b7280;
+  --pp-faint: #9aa1ad;
   color: var(--pp-text);
+}
+/* Dark theme for body-level popups (the grid adds this class on open). */
+.pp-popup.pp-theme-dark, .pp-modal-backdrop.pp-theme-dark {
+  --pp-border: #39414f;
+  --pp-header-bg: #1e2532;
+  --pp-total-bg: #232c3b;
+  --pp-grand-bg: #2b3548;
+  --pp-selected-bg: #2a3a57;
+  --pp-text: #e6e9f0;
+  --pp-accent: #6ea8ff;
+  --pp-bg: #11151c;
+  --pp-surface: #161b24;
+  --pp-surface-2: #1b212c;
+  --pp-muted: #9aa3b2;
+  --pp-faint: #6b7382;
+  color-scheme: dark;
 }
 
 /* Centered modal (measure configuration) */
@@ -169,7 +218,7 @@
   justify-content: center;
 }
 .pp-modal {
-  background: #fff;
+  background: var(--pp-surface);
   border-radius: 8px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
   padding: 18px 20px;
@@ -177,10 +226,10 @@
   font-size: 13px;
 }
 .pp-modal h3 { margin: 0 0 12px; font-size: 15px; }
-.pp-modal label { display: block; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+.pp-modal label { display: block; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; }
 .pp-modal select { width: 100%; padding: 7px; border: 1px solid var(--pp-border); border-radius: 5px; }
 .pp-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-.pp-modal-actions button { padding: 7px 14px; border-radius: 5px; border: 1px solid var(--pp-border); background: #fff; cursor: pointer; }
+.pp-modal-actions button { padding: 7px 14px; border-radius: 5px; border: 1px solid var(--pp-border); background: var(--pp-surface); cursor: pointer; }
 .pp-modal-actions .primary { background: var(--pp-accent); color: #fff; border-color: var(--pp-accent); }
 
 /* Report-filter area */
@@ -190,13 +239,13 @@
   gap: 8px;
   align-items: center;
   padding: 6px 8px;
-  background: #fafbfc;
+  background: var(--pp-surface-2);
   border-bottom: 1px solid var(--pp-border);
 }
-.pp-filters-label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; }
+.pp-filters-label { font-size: 11px; text-transform: uppercase; color: var(--pp-muted); font-weight: 600; }
 .pp-filter-btn {
   border: 1px solid var(--pp-border);
-  background: #fff;
+  background: var(--pp-surface);
   border-radius: 5px;
   padding: 4px 10px;
   font-size: 12px;
@@ -209,7 +258,7 @@
 .pp-popup {
   position: fixed;
   z-index: 9999;
-  background: #fff;
+  background: var(--pp-surface);
   border: 1px solid var(--pp-border);
   border-radius: 6px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
@@ -226,12 +275,12 @@
 .pp-popup-actions, .pp-tab-pane > .pp-popup-actions {
   position: sticky;
   bottom: -10px;
-  background: #fff;
+  background: var(--pp-surface);
   padding-top: 6px;
   margin-bottom: -4px;
 }
 .pp-popup-title { font-weight: 600; margin-bottom: 8px; }
-.pp-popup label { display: block; font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+.pp-popup label { display: block; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; }
 .pp-popup select { width: 100%; padding: 6px; border: 1px solid var(--pp-border); border-radius: 5px; }
 .pp-popup-tools { display: flex; gap: 12px; margin-bottom: 6px; }
 .pp-popup-tools a { color: var(--pp-accent); text-decoration: none; font-size: 12px; }
@@ -265,7 +314,7 @@
 .pp-resize {
   position: absolute;
   top: 0;
-  right: -3px;
+  inset-inline-end: -3px;
   width: 7px;
   height: 100%;
   cursor: col-resize;
@@ -276,7 +325,7 @@
 .pp-resize:hover { background: var(--pp-accent); opacity: 0.4; }
 /* Bigger resize grip for touch / pen (coarse) pointers. */
 @media (pointer: coarse) {
-  .pp-resize { right: -9px; width: 20px; }
+  .pp-resize { inset-inline-end: -9px; width: 20px; }
 }
 
 /* Floating label shown while dragging a column header or field-list chip. */
@@ -304,7 +353,7 @@ body.pp-dragging { user-select: none; -webkit-user-select: none; }
   font-size: 10px;
   margin-left: 4px;
   padding: 0 2px;
-  color: #6b7280;
+  color: var(--pp-muted);
   opacity: 0;
   transition: opacity .12s;
 }
@@ -322,14 +371,14 @@ body.pp-dragging { user-select: none; -webkit-user-select: none; }
   padding: 6px 10px;
   cursor: pointer;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--pp-muted);
   border-bottom: 2px solid transparent;
 }
 .pp-tab:hover { color: var(--pp-text); }
 .pp-tab-active { color: var(--pp-accent); border-bottom-color: var(--pp-accent); font-weight: 600; }
 .pp-tab-pane { display: flex; flex-direction: column; gap: 8px; }
 .pp-field { display: flex; flex-direction: column; gap: 3px; text-transform: none; }
-.pp-field-label { font-size: 11px; text-transform: uppercase; color: #6b7280; }
+.pp-field-label { font-size: 11px; text-transform: uppercase; color: var(--pp-muted); }
 .pp-field input[type="text"], .pp-field input[type="number"], .pp-field select { width: 100%; padding: 5px; border: 1px solid var(--pp-border); border-radius: 5px; box-sizing: border-box; }
 .pp-field input[type="color"] { width: 36px; height: 28px; padding: 0; border: 1px solid var(--pp-border); border-radius: 5px; }
 .pp-field-inline { display: flex; gap: 6px; align-items: center; }
@@ -340,9 +389,9 @@ body.pp-dragging { user-select: none; -webkit-user-select: none; }
 .pp-preview-out { flex: 1; text-align: right; }
 .pp-popup-actions { display: flex; gap: 6px; margin-top: 4px; justify-content: flex-end; }
 .pp-popup-actions .pp-popup-apply { margin-top: 0; }
-.pp-btn { padding: 6px 10px; border: 1px solid var(--pp-border); background: #fff; border-radius: 5px; cursor: pointer; font-size: 12px; }
+.pp-btn { padding: 6px 10px; border: 1px solid var(--pp-border); background: var(--pp-surface); border-radius: 5px; cursor: pointer; font-size: 12px; }
 .pp-btn:hover { border-color: var(--pp-accent); color: var(--pp-accent); }
-.pp-muted { font-size: 11px; color: #9ca3af; }
+.pp-muted { font-size: 11px; color: var(--pp-faint); }
 .pp-cond-list { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow: auto; }
 .pp-cond-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .pp-cond-swatch { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 20px; border-radius: 4px; border: 1px solid var(--pp-border); font-size: 10px; }
@@ -362,6 +411,10 @@ body.pp-dragging { user-select: none; -webkit-user-select: none; }
   .pp-zone { flex-basis: 140px; }
   .pp-toolbar { gap: 8px; padding: 6px 8px; }
 }
+
+/* Range selection (Shift+click / Shift+arrows). An inset overlay so it shows
+   even over conditionally-coloured cells. */
+.pp-table .pp-range { box-shadow: inset 0 0 0 9999px rgba(47, 111, 219, 0.13); }
 
 /* Keyboard focus ring for the ARIA grid (roving-tabindex navigation). */
 .pp-table [role="gridcell"]:focus-visible,

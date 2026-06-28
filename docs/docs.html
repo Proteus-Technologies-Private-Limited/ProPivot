@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ProPivot — documentation</title>
   <meta name="description" content="ProPivot documentation: a step-by-step getting-started guide, a detailed feature reference, and ready-to-paste React, Angular, Vue, and plain-JavaScript sample code for the enterprise-grade, open-source pivot-table library that handles millions of rows entirely in the browser." />
-  <link rel="stylesheet" href="./assets/propivot.css?v=5e78402f" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=f337c07d" />
   <link rel="stylesheet" href="./assets/site.css?v=ccf56706" />
   <script defer src="./assets/site.js?v=8e036f93"></script>
   <style>
@@ -321,8 +321,7 @@ function onCellClick(cell: any) { console.log(cell.value); }
 &lt;/pro-pivot&gt;</code></pre>
         <h3>Component</h3>
         <pre><code>import { Component } from '@angular/core';
-// Copy pro-pivot.component.ts into your app (see the Angular starter), then:
-import { ProPivotComponent } from './pro-pivot.component';
+import { ProPivotComponent } from '@proteus/propivot/angular';
 import '@proteus/propivot/propivot.css';
 
 @Component({
@@ -448,7 +447,7 @@ pivot.exportTo('image', { filename: 'report' }); // SVG → PNG, in-browser</cod
         <pre><code>new ProPivot({
   container: '#pivot',
   worker: true,
-  workerUrl: '/assets/propivot.worker.js?v=d68c5319',
+  workerUrl: '/assets/propivot.worker.js?v=0cbba496',
   accelerator: 'duckdb',            // opt-in
   duckdb: { threshold: 200000 },    // switch on above N rows
   report,
@@ -469,7 +468,7 @@ pivot.exportTo('image', { filename: 'report' }); // SVG → PNG, in-browser</cod
     </main>
   </div>
 
-  <script src="./assets/propivot.global.js?v=b5faa058"></script>
+  <script src="./assets/propivot.global.js?v=d88c04a5"></script>
   <script>
     (function () {
       // Live "first pivot" in the step-by-step guide.

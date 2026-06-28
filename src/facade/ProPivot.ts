@@ -3,7 +3,7 @@
 
 import type {
   Report, Condition, Measure, Hierarchy, Options, DisplayFormat,
-  FilterSpec, LabelOperator, ValueOperator,
+  FilterSpec, LabelOperator, ValueOperator, Binning,
 } from '../core/types';
 import { normalizeReport, type NormalReport } from '../core/normalize';
 import type { CellMatrix, AxisNode } from '../core/matrix';
@@ -114,6 +114,7 @@ export class ProPivot {
           removeCondition: (id) => this.removeCondition(id),
           getConditions: () => this.getAllConditions(),
           setTopN: (measureUniqueName, mode, quantity) => this.setTopN(measureUniqueName, mode, quantity),
+          setBinning: (uniqueName, interval) => this.setBinning(uniqueName, interval ? { interval } : null),
         },
       });
     }
@@ -212,12 +213,17 @@ export class ProPivot {
   /** Underlying raw rows that aggregate into a cell (drill-through). */
   getDrillThroughData(cell: CellData): Array<Record<string, unknown>> {
     if (!this.normal) return [];
+    const binners: Record<string, Binning> = {};
+    for (const h of [...(this.report.slice?.rows ?? []), ...(this.report.slice?.columns ?? [])]) {
+      if (h.binning) binners[h.uniqueName] = h.binning;
+    }
     return drillThroughRows(this.engine.rawRows(), {
       rowFields: this.normal.rowFields,
       rowPath: cell.rowPath ?? [],
       colFields: this.normal.colFields,
       colPath: cell.colPath ?? [],
       limit: 10000,
+      binners,
     });
   }
 
@@ -376,6 +382,16 @@ export class ProPivot {
       if (!spec) delete ff[uniqueName];
       else ff[uniqueName] = spec;
     }
+    this.refresh();
+  }
+
+  /** Bucket a numeric row/column field into ranges (or clear with null). */
+  setBinning(uniqueName: string, binning: Binning | null): void {
+    const slice = this.report.slice ?? (this.report.slice = {});
+    const h = [...(slice.rows ?? []), ...(slice.columns ?? [])].find((x) => x.uniqueName === uniqueName);
+    if (!h) return;
+    if (!binning || (!binning.interval && !(binning.breaks && binning.breaks.length))) delete h.binning;
+    else h.binning = binning;
     this.refresh();
   }
 

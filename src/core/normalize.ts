@@ -28,7 +28,43 @@ export interface ResolvedLocalization {
   dateInvalid: string;
   /** Accessible name announced for the grid as a whole (ARIA). */
   gridLabel: string;
+  /** Localizable UI chrome strings (toolbar, filter panel, drill-through). */
+  ui: UIStrings;
 }
+
+export interface UIStrings {
+  fields: string;
+  csv: string;
+  excel: string;
+  pdf: string;
+  html: string;
+  fullscreen: string;
+  apply: string;
+  all: string;
+  none: string;
+  searchMembers: string;
+  labelFilter: string;
+  valueFilter: string;
+  clearFilters: string;
+  drillThrough: string;
+}
+
+const DEFAULT_UI: UIStrings = {
+  fields: 'Fields',
+  csv: 'CSV',
+  excel: 'Excel',
+  pdf: 'PDF',
+  html: 'HTML',
+  fullscreen: 'Fullscreen',
+  apply: 'Apply',
+  all: 'All',
+  none: 'None',
+  searchMembers: 'Search members…',
+  labelFilter: 'Label filter',
+  valueFilter: 'Value filter',
+  clearFilters: 'Clear filters',
+  drillThrough: 'Drill-through',
+};
 
 export interface NormalReport {
   report: Report;
@@ -56,7 +92,17 @@ export function resolveLocalization(report: Report): ResolvedLocalization {
     blankMember: grid.blankMember ?? '(blank)',
     dateInvalid: grid.dateInvalidCaption ?? '',
     gridLabel: grid.gridLabel ?? 'Pivot table',
+    ui: resolveUI(grid),
   };
+}
+
+/** Merge UI-string overrides (report.options.localization.grid.*) over defaults. */
+function resolveUI(grid: Record<string, string>): UIStrings {
+  const out = { ...DEFAULT_UI };
+  for (const k of Object.keys(out) as Array<keyof UIStrings>) {
+    if (typeof grid[k] === 'string') out[k] = grid[k];
+  }
+  return out;
 }
 
 export interface NormalMeasure extends Measure {
