@@ -45,6 +45,72 @@
 .ppnav-links a.active { color: #fff; }
 .ppnav-gh { background: #fff; color: #0b1020 !important; padding: 7px 14px; border-radius: 8px; font-weight: 650; }
 .ppnav-gh:hover { background: #e8eaf2; text-decoration: none; }
+
+/* Hamburger toggle — injected by site.js, hidden on desktop, shown on mobile. */
+.ppnav-toggle {
+  display: none;
+  margin-left: auto;
+  width: 40px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+.ppnav-toggle:hover { background: rgba(255, 255, 255, 0.16); }
+.ppnav-toggle .bar,
+.ppnav-toggle .bar::before,
+.ppnav-toggle .bar::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+}
+.ppnav-toggle .bar { position: relative; }
+.ppnav-toggle .bar::before,
+.ppnav-toggle .bar::after { content: ""; position: absolute; left: 0; transition: transform 0.18s ease, top 0.18s ease; }
+.ppnav-toggle .bar::before { top: -6px; }
+.ppnav-toggle .bar::after { top: 6px; }
+/* Animate to an X when the menu is open. */
+.ppnav-toggle[aria-expanded="true"] .bar { background: transparent; }
+.ppnav-toggle[aria-expanded="true"] .bar::before { top: 0; transform: rotate(45deg); }
+.ppnav-toggle[aria-expanded="true"] .bar::after { top: 0; transform: rotate(-45deg); }
+
 @media (max-width: 880px) {
-  .ppnav-links a:not(.ppnav-gh) { display: none; }
+  .ppnav-inner { position: relative; }
+  .ppnav-toggle { display: inline-flex; }
+  /* Collapse the links into a dropdown panel revealed by the hamburger. */
+  .ppnav-links {
+    margin-left: 0;
+    position: absolute;
+    top: 58px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px 0 10px;
+    background: rgba(11, 16, 32, 0.98);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    max-height: calc(100vh - 58px);
+    overflow: auto;
+    display: none;
+  }
+  .ppnav-links.open { display: flex; }
+  .ppnav-links a { padding: 12px 22px; font-size: 15px; }
+  .ppnav-links a.ppnav-gh {
+    background: transparent;
+    color: #fff !important;
+    border-radius: 0;
+    font-weight: 650;
+  }
+  .ppnav-links a.ppnav-gh:hover { background: rgba(255, 255, 255, 0.08); }
 }

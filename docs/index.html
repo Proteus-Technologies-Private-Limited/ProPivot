@@ -7,6 +7,7 @@
   <meta name="description" content="ProPivot is an enterprise-grade, open-source JavaScript library for building pivot tables over millions of rows. Works with React, Angular, Vue, and any framework — or plain JavaScript via a script tag. Lightning fast, lightweight, feature-rich, highly configurable — and instantly embedded in any project. 100% client-side, MIT licensed." />
   <link rel="stylesheet" href="./assets/propivot.css?v=9979e86f" />
   <link rel="stylesheet" href="./assets/site.css?v=a4a99571" />
+  <script defer src="./assets/site.js?v=1"></script>
   <style>
     :root {
       --bg: #0b1020;
@@ -93,6 +94,7 @@
     /* ---------- code ---------- */
     .alt { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+    .two > div { min-width: 0; } /* let code blocks shrink instead of widening the page */
     pre.code { background: var(--code-bg); color: #e7ecff; border-radius: 12px; padding: 18px 20px; overflow: auto; font-size: 13.5px; line-height: 1.65; border: 1px solid #1c264d; margin: 0; }
     pre.code .c { color: #7c88b8; } /* comment */
     pre.code .k { color: #c4b5fd; } /* keyword */
