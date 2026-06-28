@@ -3,6 +3,7 @@
 
 import type {
   Report, Condition, Measure, Hierarchy, Options, DisplayFormat,
+  FilterSpec, LabelOperator, ValueOperator,
 } from '../core/types';
 import { normalizeReport, type NormalReport } from '../core/normalize';
 import type { CellMatrix, AxisNode } from '../core/matrix';
@@ -99,6 +100,8 @@ export class ProPivot {
           setMeasureAggregation: (uniqueName, agg) => this.setMeasureAggregation(uniqueName, agg),
           members: (uniqueName) => this.getMembers(uniqueName),
           setFilter: (uniqueName, members) => this.setFilter(uniqueName, members),
+          setLabelFilter: (uniqueName, op, query) => this.setLabelFilter(uniqueName, op, query),
+          setValueFilter: (uniqueName, measure, op, value, value2) => this.setValueFilter(uniqueName, measure, op, value, value2),
           drillThrough: (cell) => this.getDrillThroughData(cell),
           exportTo: (type) => this.exportTo(type as ExportType),
           toggleSort: (uniqueName) => this.toggleSort(uniqueName),
@@ -341,19 +344,37 @@ export class ProPivot {
 
   /** Set the active member filter for a hierarchy (used by the report-filter UI). */
   setFilter(uniqueName: string, members: string[] | null): void {
+    this.applyFieldFilter(uniqueName, members && members.length ? { type: 'members', members } : null);
+  }
+
+  /** Label (member-text) filter — keep members whose name matches `query`. */
+  setLabelFilter(uniqueName: string, operator: LabelOperator, query: string): void {
+    this.applyFieldFilter(uniqueName, query ? { type: 'label', labelOperator: operator, query } : null);
+  }
+
+  /** Value filter — keep members whose `measure` aggregate passes the threshold. */
+  setValueFilter(uniqueName: string, measure: string, operator: ValueOperator, value: number, value2?: number): void {
+    this.applyFieldFilter(
+      uniqueName,
+      measure && operator ? { type: 'value', measure, operator, value, value2 } : null,
+    );
+  }
+
+  /** Write (or clear, when spec is null) a field's filter, then re-render. */
+  private applyFieldFilter(uniqueName: string, spec: FilterSpec | null): void {
     const slice = this.report.slice ?? (this.report.slice = {});
     const all = [
       ...(slice.rows ?? []), ...(slice.columns ?? []), ...(slice.reportFilters ?? []),
     ];
     const h = all.find((x) => x.uniqueName === uniqueName);
     if (h) {
-      if (!members) delete h.filter;
-      else h.filter = { type: 'members', members };
+      if (!spec) delete h.filter;
+      else h.filter = spec;
     } else {
       // Not a standalone hierarchy (e.g. an expanded date level) — key it by field.
       const ff = slice.fieldFilters ?? (slice.fieldFilters = {});
-      if (!members) delete ff[uniqueName];
-      else ff[uniqueName] = { type: 'members', members };
+      if (!spec) delete ff[uniqueName];
+      else ff[uniqueName] = spec;
     }
     this.refresh();
   }

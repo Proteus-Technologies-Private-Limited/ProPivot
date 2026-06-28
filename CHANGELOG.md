@@ -23,6 +23,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Touch support** — column resize, column reorder, and field-list dragging now
   use Pointer Events, so they work on touch and pen devices (previously
   mouse-only via HTML5 drag-and-drop). Larger resize grip on coarse pointers.
+- **Filtering** — label (member-text) filters (`contains` / `beginsWith` /
+  `endsWith` / `equals` and negations) and value filters (measure thresholds:
+  `>` `<` `≥` `≤` `=` `≠` and `between`), via new `setLabelFilter()` /
+  `setValueFilter()` API and the column **Filter** panel. The member picker
+  gained a search box (in both the column panel and the report-filter bar).
 - New `localization.grid.gridLabel` option for the grid's accessible name.
 
 ### Changed

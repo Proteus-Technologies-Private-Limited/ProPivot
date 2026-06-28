@@ -236,6 +236,7 @@
 .pp-popup-tools { display: flex; gap: 12px; margin-bottom: 6px; }
 .pp-popup-tools a { color: var(--pp-accent); text-decoration: none; font-size: 12px; }
 .pp-popup-list { max-height: 240px; overflow: auto; border: 1px solid var(--pp-border); border-radius: 5px; padding: 4px; }
+.pp-member-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 5px 8px; border: 1px solid var(--pp-border); border-radius: 5px; font-size: 12px; }
 /* `label.pp-popup-item` to out-specify `.pp-popup label` (which would otherwise
    force uppercase/grey/block onto the member rows). Keeps member names in their
    real case and inline with the checkbox. */

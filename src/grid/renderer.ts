@@ -11,7 +11,7 @@ import type { NormalReport } from '../core/normalize';
 import { totalsEnabled } from '../core/normalize';
 import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import type { CompiledCondition } from '../core/conditions';
-import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy } from '../core/types';
+import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy, LabelOperator, ValueOperator } from '../core/types';
 import { formatVisual, evalConditionStyle, formatsForType } from '../core/cellStyle';
 import { CellBuilder, type CellData, type CellTupleItem } from '../facade/cell';
 import { startPointerDrag } from './drag';
@@ -31,6 +31,10 @@ export interface PivotController {
   members(uniqueName: string): string[];
   /** Apply (or clear, when members is null) a member filter. */
   setFilter(uniqueName: string, members: string[] | null): void;
+  /** Apply (or clear, when query is empty) a label (member-text) filter. */
+  setLabelFilter(uniqueName: string, operator: LabelOperator, query: string): void;
+  /** Apply (or clear, when measure is empty) a value (measure-threshold) filter. */
+  setValueFilter(uniqueName: string, measure: string, operator: ValueOperator, value: number, value2?: number): void;
   /** Underlying raw rows that aggregate into a cell (drill-through). */
   drillThrough(cell: CellData): Array<Record<string, unknown>>;
   /** Export the current view. */
@@ -987,19 +991,30 @@ export class GridRenderer {
       p.appendChild(note);
       return;
     }
-    // Dimension column: distinct-value member filter.
+    // Dimension column: member, label and value filters.
+    const curFilter = hierarchyOf(ctx, field)?.filter ?? ctx.normal.report.slice?.fieldFilters?.[field];
     const members = this.opts.controller.members(field);
-    const selected = (hierarchyOf(ctx, field)?.filter ?? ctx.normal.report.slice?.fieldFilters?.[field])?.members ?? null;
+    const selected = curFilter?.members ?? null;
     const selSet = new Set(selected ?? members);
+
+    // --- members, with a search box to filter long lists ---
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'pp-member-search';
+    search.placeholder = 'Search members…';
+    p.appendChild(search);
+
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
     const allLink = document.createElement('a'); allLink.textContent = 'All'; allLink.href = 'javascript:void(0)';
     const noneLink = document.createElement('a'); noneLink.textContent = 'None'; noneLink.href = 'javascript:void(0)';
     tools.append(allLink, noneLink);
     p.appendChild(tools);
+
     const listEl = document.createElement('div');
     listEl.className = 'pp-popup-list';
     const boxes: HTMLInputElement[] = [];
+    const rows: HTMLElement[] = [];
     for (const m of members) {
       const rowL = document.createElement('label');
       rowL.className = 'pp-popup-item';
@@ -1008,9 +1023,16 @@ export class GridRenderer {
       const sp = document.createElement('span'); sp.textContent = m || '(blank)';
       rowL.append(cb, sp);
       listEl.appendChild(rowL);
+      rows.push(rowL);
     }
-    allLink.addEventListener('click', () => boxes.forEach((b) => (b.checked = true)));
-    noneLink.addEventListener('click', () => boxes.forEach((b) => (b.checked = false)));
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      members.forEach((m, i) => { rows[i].style.display = m.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+    // All/None act on the rows currently visible (respecting the search filter).
+    const visible = () => boxes.filter((_, i) => rows[i].style.display !== 'none');
+    allLink.addEventListener('click', () => visible().forEach((b) => (b.checked = true)));
+    noneLink.addEventListener('click', () => visible().forEach((b) => (b.checked = false)));
     p.appendChild(listEl);
     const apply = primaryBtn('Apply', () => {
       const checked = boxes.filter((b) => b.checked).map((b) => b.value);
@@ -1018,6 +1040,46 @@ export class GridRenderer {
     });
     const actions = document.createElement('div'); actions.className = 'pp-popup-actions'; actions.appendChild(apply);
     p.appendChild(actions);
+
+    // --- label (member-text) filter ---
+    const lblWrap = document.createElement('div'); lblWrap.className = 'pp-field-inline';
+    const lblOp = selectEl([
+      ['contains', 'contains'], ['notContains', 'does not contain'], ['beginsWith', 'begins with'],
+      ['endsWith', 'ends with'], ['equals', 'equals'], ['notEquals', 'not equals'],
+    ], curFilter?.type === 'label' ? curFilter.labelOperator : undefined);
+    const lblQuery = document.createElement('input'); lblQuery.type = 'text'; lblQuery.placeholder = 'text…';
+    if (curFilter?.type === 'label') lblQuery.value = curFilter.query ?? '';
+    lblWrap.append(lblOp, lblQuery, primaryBtn('Apply', () => this.opts.controller.setLabelFilter(field, lblOp.value as LabelOperator, lblQuery.value)));
+    p.appendChild(fieldRow('Label filter', lblWrap));
+
+    // --- value (measure-threshold) filter ---
+    const measures = this.body?.measures ?? [];
+    if (measures.length) {
+      const valWrap = document.createElement('div'); valWrap.className = 'pp-field-inline';
+      const valMeasure = selectEl(measures.map((m) => [m.uniqueName, m.caption]), curFilter?.type === 'value' ? curFilter.measure : undefined);
+      const valOp = selectEl([
+        ['greaterThan', '>'], ['greaterEqual', '≥'], ['lessThan', '<'], ['lessEqual', '≤'],
+        ['equal', '='], ['notEqual', '≠'], ['between', 'between'],
+      ], curFilter?.type === 'value' ? curFilter.operator : undefined);
+      const v1 = document.createElement('input'); v1.type = 'number'; v1.placeholder = 'value';
+      const v2 = document.createElement('input'); v2.type = 'number'; v2.placeholder = '…and';
+      const syncBetween = () => { v2.style.display = valOp.value === 'between' ? '' : 'none'; };
+      valOp.addEventListener('change', syncBetween);
+      if (curFilter?.type === 'value') {
+        if (curFilter.value !== undefined) v1.value = String(curFilter.value);
+        if (curFilter.value2 !== undefined) v2.value = String(curFilter.value2);
+      }
+      syncBetween();
+      valWrap.append(valMeasure, valOp, v1, v2, primaryBtn('Apply', () =>
+        this.opts.controller.setValueFilter(
+          field, valMeasure.value, valOp.value as ValueOperator,
+          Number(v1.value) || 0, valOp.value === 'between' ? Number(v2.value) || 0 : undefined,
+        )));
+      p.appendChild(fieldRow('Value filter', valWrap));
+    }
+
+    // --- clear everything ---
+    p.appendChild(plainBtn('Clear filters', () => this.opts.controller.setFilter(field, null)));
   }
 
   // ---------- report-filter area ----------
@@ -1065,6 +1127,12 @@ export class GridRenderer {
     title.textContent = caption;
     pop.appendChild(title);
 
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'pp-member-search';
+    search.placeholder = 'Search members…';
+    pop.appendChild(search);
+
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
     const all = document.createElement('a'); all.textContent = 'All'; all.href = 'javascript:void(0)';
@@ -1075,6 +1143,7 @@ export class GridRenderer {
     const list = document.createElement('div');
     list.className = 'pp-popup-list';
     const boxes: HTMLInputElement[] = [];
+    const rows: HTMLElement[] = [];
     for (const m of members) {
       const row = document.createElement('label');
       row.className = 'pp-popup-item';
@@ -1087,9 +1156,15 @@ export class GridRenderer {
       span.textContent = m || '(blank)';
       row.append(cb, span);
       list.appendChild(row);
+      rows.push(row);
     }
-    all.addEventListener('click', () => boxes.forEach((b) => (b.checked = true)));
-    none.addEventListener('click', () => boxes.forEach((b) => (b.checked = false)));
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      members.forEach((m, i) => { rows[i].style.display = m.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+    const visible = () => boxes.filter((_, i) => rows[i].style.display !== 'none');
+    all.addEventListener('click', () => visible().forEach((b) => (b.checked = true)));
+    none.addEventListener('click', () => visible().forEach((b) => (b.checked = false)));
     pop.appendChild(list);
 
     const apply = document.createElement('button');
@@ -1619,6 +1694,12 @@ function fieldRow(label: string, control: HTMLElement): HTMLElement {
   return row;
 }
 function labelSpan(text: string): HTMLElement { const s = document.createElement('span'); s.className = 'pp-field-label'; s.textContent = text; return s; }
+function selectEl(options: Array<[string, string]>, value?: string): HTMLSelectElement {
+  const s = document.createElement('select');
+  for (const [v, t] of options) { const o = document.createElement('option'); o.value = v; o.textContent = t; s.appendChild(o); }
+  if (value !== undefined) s.value = value;
+  return s;
+}
 function primaryBtn(text: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-popup-apply'; b.textContent = text;
   b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });

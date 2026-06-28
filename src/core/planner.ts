@@ -320,7 +320,9 @@ function applySortByMeasure(
 export function applyFilters(store: ColumnStore, normal: NormalReport): number[] {
   const datePattern = normal.options.datePattern;
   const memberFilters: Array<{ field: string; members: Set<string>; negation: boolean }> = [];
+  const labelFilters: Array<{ field: string; match: (s: string) => boolean }> = [];
   const rankFilters: Array<{ field: string; spec: FilterSpec }> = [];
+  const valueFilters: Array<{ field: string; spec: FilterSpec }> = [];
 
   const collect = (hs: { uniqueName: string; filter?: FilterSpec }[]) => {
     for (const h of hs) {
@@ -328,6 +330,10 @@ export function applyFilters(store: ColumnStore, normal: NormalReport): number[]
       if (!f || f.type === 'none') continue;
       if ((f.type === 'top' || f.type === 'bottom') && f.measure) {
         rankFilters.push({ field: h.uniqueName, spec: f });
+      } else if (f.type === 'value' && f.measure && f.operator) {
+        valueFilters.push({ field: h.uniqueName, spec: f });
+      } else if (f.type === 'label' && f.query) {
+        labelFilters.push({ field: h.uniqueName, match: labelMatcher(f.labelOperator, f.query) });
       } else if (f.members && f.members.length) {
         memberFilters.push({ field: h.uniqueName, members: new Set(f.members), negation: Boolean(f.negation) });
       }
@@ -348,25 +354,76 @@ export function applyFilters(store: ColumnStore, normal: NormalReport): number[]
       const inSet = f.members.has(val);
       if (f.negation ? inSet : !inSet) { keep = false; break; }
     }
+    if (keep) {
+      for (const f of labelFilters) {
+        if (!f.match(displayValue(store, f.field, i, datePattern))) { keep = false; break; }
+      }
+    }
     if (keep) out.push(i);
   }
 
   // Top/Bottom-N: rank members by the named measure (sum), keep N, restrict selection.
   for (const rf of rankFilters) {
     const q = rf.spec.quantity ?? 10;
-    const sums = new Map<string, number>();
-    for (const i of out) {
-      const member = displayValue(store, rf.field, i, datePattern);
-      const v = numericValue(store, rf.spec.measure!, i);
-      sums.set(member, (sums.get(member) ?? 0) + (Number.isNaN(v) ? 0 : v));
-    }
+    const sums = memberSums(store, out, rf.field, rf.spec.measure!, datePattern);
     const ranked = [...sums.entries()].sort((a, b) => b[1] - a[1]);
     const chosen = rf.spec.type === 'bottom' ? ranked.slice(-q) : ranked.slice(0, q);
     const keepMembers = new Set(chosen.map((e) => e[0]));
     out = out.filter((i) => keepMembers.has(displayValue(store, rf.field, i, datePattern)));
   }
 
+  // Value filters: keep members whose measure aggregate (sum) passes the threshold.
+  for (const vf of valueFilters) {
+    const sums = memberSums(store, out, vf.field, vf.spec.measure!, datePattern);
+    const test = valueTester(vf.spec);
+    const keepMembers = new Set([...sums.entries()].filter(([, v]) => test(v)).map(([m]) => m));
+    out = out.filter((i) => keepMembers.has(displayValue(store, vf.field, i, datePattern)));
+  }
+
   return out;
+}
+
+/** Sum a measure per display member of a field over the selected rows. */
+function memberSums(
+  store: ColumnStore, selection: number[], field: string, measure: string, datePattern?: string,
+): Map<string, number> {
+  const sums = new Map<string, number>();
+  for (const i of selection) {
+    const member = displayValue(store, field, i, datePattern);
+    const v = numericValue(store, measure, i);
+    sums.set(member, (sums.get(member) ?? 0) + (Number.isNaN(v) ? 0 : v));
+  }
+  return sums;
+}
+
+/** Build a case-insensitive text predicate for a label filter. */
+function labelMatcher(op: FilterSpec['labelOperator'], query: string): (s: string) => boolean {
+  const q = query.toLowerCase();
+  switch (op) {
+    case 'notContains': return (s) => !s.toLowerCase().includes(q);
+    case 'beginsWith': return (s) => s.toLowerCase().startsWith(q);
+    case 'endsWith': return (s) => s.toLowerCase().endsWith(q);
+    case 'equals': return (s) => s.toLowerCase() === q;
+    case 'notEquals': return (s) => s.toLowerCase() !== q;
+    case 'contains':
+    default: return (s) => s.toLowerCase().includes(q);
+  }
+}
+
+/** Build a numeric predicate for a value filter. */
+function valueTester(spec: FilterSpec): (v: number) => boolean {
+  const a = spec.value ?? 0;
+  const b = spec.value2 ?? 0;
+  switch (spec.operator) {
+    case 'lessThan': return (v) => v < a;
+    case 'greaterEqual': return (v) => v >= a;
+    case 'lessEqual': return (v) => v <= a;
+    case 'equal': return (v) => v === a;
+    case 'notEqual': return (v) => v !== a;
+    case 'between': return (v) => v >= Math.min(a, b) && v <= Math.max(a, b);
+    case 'greaterThan':
+    default: return (v) => v > a;
+  }
 }
 
 // ---------------------------------------------------------------------------
