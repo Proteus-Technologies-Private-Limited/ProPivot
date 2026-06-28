@@ -26,6 +26,8 @@ export interface ResolvedLocalization {
   total: string;
   blankMember: string;
   dateInvalid: string;
+  /** Accessible name announced for the grid as a whole (ARIA). */
+  gridLabel: string;
 }
 
 export interface NormalReport {
@@ -53,6 +55,7 @@ export function resolveLocalization(report: Report): ResolvedLocalization {
     total: grid.totals ?? 'Total',
     blankMember: grid.blankMember ?? '(blank)',
     dateInvalid: grid.dateInvalidCaption ?? '',
+    gridLabel: grid.gridLabel ?? 'Pivot table',
   };
 }
 

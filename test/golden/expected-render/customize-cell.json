@@ -3,20 +3,20 @@
     [
       {
         "tag": "th",
-        "text": "region<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "region<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
         "cls": "pp-corner pp-draggable",
         "style": "top: 0px;",
         "rs": 2
       },
       {
         "tag": "th",
-        "text": "2023<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
+        "text": "2023<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button>",
         "cls": "pp-colh pp-draggable",
         "style": "top: 0px;"
       },
       {
         "tag": "th",
-        "text": "2024<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button>",
+        "text": "2024<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button>",
         "cls": "pp-colh pp-draggable",
         "style": "top: 0px;"
       },
@@ -30,19 +30,19 @@
     [
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
         "cls": "pp-measureh pp-draggable",
         "style": "top: 0px;"
       },
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
         "cls": "pp-measureh pp-draggable",
         "style": "top: 0px;"
       },
       {
         "tag": "th",
-        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\"></span>",
+        "text": "<span class=\"pp-measureh-cap pp-sortable\" title=\"Click to sort rows by this measure\">sales</span><button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
         "cls": "pp-measureh pp-grand pp-draggable",
         "style": "top: 0px;"
       }
