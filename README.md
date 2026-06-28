@@ -72,8 +72,9 @@ const pivot = new ProPivot({
   (real, dependency-free `.pdf`), and `image` (a deterministic `.svg` of the grid;
   `exportTo('image', { imageFormat: 'png' })` rasterizes it to PNG in the browser).
 - **Wrappers**: React (`@proteus/propivot/react`), Vue (`@proteus/propivot/vue`), and
-  Angular (`<pro-pivot>` source). Or read `window.ProPivot` from the global `<script>`
-  build for any other stack.
+  Angular (`@proteus/propivot/angular` — the `<pro-pivot>` component, compiled by your
+  Angular toolchain). Or read `window.ProPivot` from the global `<script>` build for any
+  other stack.
 
 ### Off-thread compute (optional)
 

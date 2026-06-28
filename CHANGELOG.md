@@ -43,6 +43,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Localization** — toolbar, filter-panel and drill-through strings are now
   overridable via `localization.grid.*` (e.g. `fields`, `apply`, `all`, `none`,
   `searchMembers`, `labelFilter`, `valueFilter`, `clearFilters`, `drillThrough`).
+- **Angular subpath** — the `<pro-pivot>` component is now importable as
+  `@proteus/propivot/angular` (compiled by the consumer's Angular toolchain)
+  instead of copy-pasting the source; `@angular/core`/`@angular/common` are
+  optional peer dependencies, and a CI check type-checks the wrapper.
 - New `localization.grid.gridLabel` option for the grid's accessible name.
 
 ### Changed

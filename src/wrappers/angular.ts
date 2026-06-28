@@ -11,9 +11,10 @@ import {
   Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy,
   Output, SimpleChanges, ViewChild,
 } from '@angular/core';
-import { ProPivot } from '../facade/ProPivot';
-import type { Report } from '../core/types';
-import type { CellData, CellBuilder } from '../facade/cell';
+// Import the engine from the published package entry (the built core) so the
+// consumer's Angular toolchain only has to compile this small wrapper.
+import { ProPivot } from '@proteus/propivot';
+import type { Report, CellData, CellBuilder } from '@proteus/propivot';
 
 const FORWARDED_EVENTS = [
   'cellclick', 'celldoubleclick', 'dataloaded', 'datachanged', 'dataerror',
@@ -91,11 +92,11 @@ export class ProPivotComponent implements OnChanges, OnDestroy {
       toolbar: this.toolbar,
       report: this.report,
       global: this.global,
-      customizeCell: this.customizeCell,
+      customizeCell: this.customizeCell as (cell: unknown, data: CellData) => void,
     });
     for (const ev of FORWARDED_EVENTS) {
       const emitter = (this as any)[ev] as EventEmitter<any> | undefined;
-      if (emitter) this.pivot.on(ev, (arg?: any) => emitter.next(arg));
+      if (emitter) this.pivot.on(ev, (arg?: any) => emitter.emit(arg));
     }
   }
 
