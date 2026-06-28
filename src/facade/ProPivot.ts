@@ -50,7 +50,8 @@ export interface LoadDataOptions extends InferOptions {
 }
 
 export class ProPivot {
-  static version = '0.2.0';
+  // Keep in sync with package.json "version" — enforced by test-script/check-version.mjs.
+  static version = '0.3.0';
 
   private container: HTMLElement | null = null;
   private emitter = new EventEmitter();
