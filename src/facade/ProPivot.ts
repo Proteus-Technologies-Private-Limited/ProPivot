@@ -106,6 +106,7 @@ export class ProPivot {
           moveField: (uniqueName, zone) => this.moveField(uniqueName, zone),
           setMeasureAggregation: (uniqueName, agg) => this.setMeasureAggregation(uniqueName, agg),
           setMeasureFormula: (ref, formula) => this.setMeasureFormula(ref, formula),
+          addCalculation: (opts) => this.addCalculation(opts),
           members: (uniqueName) => this.getMembers(uniqueName),
           setFilter: (uniqueName, members) => this.setFilter(uniqueName, members),
           setLabelFilter: (uniqueName, op, query) => this.setLabelFilter(uniqueName, op, query),
@@ -386,6 +387,28 @@ export class ProPivot {
    */
   validateFormula(formula: string): { ok: boolean; message?: string } {
     return validateFormula(formula, this.getAllHierarchies().map((h) => h.uniqueName));
+  }
+
+  /**
+   * Add a brand-new calculated measure to the Values zone. `uniqueName` defaults to
+   * a slug of the caption and is de-duplicated against existing measures and source
+   * fields so it never collides. Returns the resolved `uniqueName`.
+   */
+  addCalculation(opts: { caption: string; formula: string; uniqueName?: string }): string {
+    const slice = this.report.slice ?? (this.report.slice = {});
+    slice.measures = slice.measures ?? [];
+    const caption = (opts.caption || '').trim() || 'Calculation';
+    const base = ((opts.uniqueName || caption).trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '')) || 'calc';
+    const taken = new Set<string>([
+      ...slice.measures.map((m) => m.uniqueName),
+      ...this.getAllHierarchies().map((h) => h.uniqueName),
+    ]);
+    let uniqueName = base;
+    for (let i = 2; taken.has(uniqueName); i++) uniqueName = `${base}_${i}`;
+    slice.measures.push({ uniqueName, caption, formula: opts.formula.trim(), aggregation: 'none', active: true });
+    this.refresh();
+    this.emitter.emit('columnpropertychange', { ref: { kind: 'measure', uniqueName }, property: 'formula', value: opts.formula.trim() });
+    return uniqueName;
   }
 
   /** Set the active member filter for a hierarchy (used by the report-filter UI). */

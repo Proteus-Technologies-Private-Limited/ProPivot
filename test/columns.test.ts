@@ -229,6 +229,17 @@ describe('column-properties facade (no DOM)', () => {
     expect(m.aggregation).toBe('sum');
   });
 
+  it('addCalculation appends a calculated measure and de-duplicates the uniqueName', () => {
+    const p = make();
+    const n1 = p.addCalculation({ caption: 'Double', formula: "sum('sales') * 2" });
+    const n2 = p.addCalculation({ caption: 'Double', formula: "sum('sales') * 3" });
+    expect(n1).toBe('Double');
+    expect(n2).toBe('Double_2'); // collision deduped
+    const ms = p.getReport().slice!.measures!;
+    expect(ms.find((m) => m.uniqueName === 'Double')!.formula).toBe("sum('sales') * 2");
+    expect(ms.find((m) => m.uniqueName === 'Double_2')!.aggregation).toBe('none'); // calculated
+  });
+
   it('validateFormula flags unknown fields / aggregations / functions, accepts sound ones', () => {
     const p = make(); // data fields: region, year, sales, qty
     expect(p.validateFormula("sum('sales') - sum('qty')")).toEqual({ ok: true });

@@ -131,7 +131,15 @@
   padding: 4px;
 }
 .pp-zone.pp-dragover { border-color: var(--pp-accent); background: #f0f6ff; }
-.pp-zone-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; }
+.pp-zone-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.pp-add-calc {
+  font-size: 11px; font-weight: 700; line-height: 1; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--pp-border); background: var(--pp-surface); color: var(--pp-accent);
+  cursor: pointer; text-transform: none;
+}
+.pp-add-calc:hover { border-color: var(--pp-accent); background: var(--pp-accent); color: #fff; }
+.pp-calc-new { min-width: 340px; max-width: min(92vw, 560px); }
+.pp-calc-new input[type="text"] { width: 100%; padding: 6px; border: 1px solid var(--pp-border); border-radius: 5px; box-sizing: border-box; }
 .pp-zone-body { display: flex; flex-direction: column; gap: 4px; min-height: 24px; }
 .pp-chip {
   background: var(--pp-header-bg);

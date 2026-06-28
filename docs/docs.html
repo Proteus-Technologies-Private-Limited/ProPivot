@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ProPivot — documentation</title>
   <meta name="description" content="ProPivot documentation: a step-by-step getting-started guide, a detailed feature reference, and ready-to-paste React, Angular, Vue, and plain-JavaScript sample code for the enterprise-grade, open-source pivot-table library that handles millions of rows entirely in the browser." />
-  <link rel="stylesheet" href="./assets/propivot.css?v=da89833b" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=c1983c58" />
   <link rel="stylesheet" href="./assets/site.css?v=ccf56706" />
   <script defer src="./assets/site.js?v=8e036f93"></script>
   <style>
@@ -435,7 +435,8 @@ export class SalesComponent {
           <tr><td><code>expandAllData()</code> / <code>collapseAllData()</code></td><td>Expand or collapse every group.</td></tr>
           <tr><td><code>setLabelFilter(field, op, query)</code> / <code>setValueFilter(field, measure, op, value, value2?)</code></td><td>Apply a label (text) or value (measure-threshold) filter; pass an empty query / clear with <code>setFilter(field, null)</code>.</td></tr>
           <tr><td><code>setBinning(field, binning)</code></td><td>Group a numeric dimension into ranges (<code>{ interval }</code> or <code>{ breaks }</code>); <code>null</code> clears it.</td></tr>
-          <tr><td><code>setMeasureFormula(ref, formula)</code></td><td>Define/change a measure's calculation (empty string reverts it to a plain <code>sum</code>). Also editable in the column ▾ → <b>Calculation</b> tab.</td></tr>
+          <tr><td><code>addCalculation({ caption, formula })</code></td><td>Add a new calculated measure to Values (also the <b>ƒ +</b> button in the field list). Returns the resolved <code>uniqueName</code>.</td></tr>
+          <tr><td><code>setMeasureFormula(ref, formula)</code></td><td>Change a measure's calculation (empty string reverts it to a plain <code>sum</code>). Also editable in the column ▾ → <b>Calculation</b> tab.</td></tr>
           <tr><td><code>validateFormula(formula)</code></td><td>Pre-flight a formula → <code>{ ok, message }</code>, flagging unknown fields / aggregations / functions.</td></tr>
           <tr><td><code>on(evt, fn)</code> / <code>off(evt, fn)</code></td><td>Subscribe / unsubscribe to events.</td></tr>
           <tr><td><code>dispose()</code></td><td>Tear down and free resources.</td></tr>
@@ -562,7 +563,7 @@ pivot.exportTo('image', { filename: 'report' }); // SVG → PNG, in-browser</cod
     </main>
   </div>
 
-  <script src="./assets/propivot.global.js?v=58ef3256"></script>
+  <script src="./assets/propivot.global.js?v=2c6df0cf"></script>
   <script>
     (function () {
       // Live "first pivot" in the step-by-step guide.

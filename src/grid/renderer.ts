@@ -30,6 +30,8 @@ export interface PivotController {
   setMeasureAggregation(uniqueName: string, aggregation: string): void;
   /** Set/clear a measure's calculation formula (empty string reverts to a plain sum). */
   setMeasureFormula(ref: ColumnRef, formula: string): void;
+  /** Add a new calculated measure to the Values zone. */
+  addCalculation(opts: { caption: string; formula: string; uniqueName?: string }): void;
   /** Distinct display members of a field (for the report-filter picker). */
   members(uniqueName: string): string[];
   /** Apply (or clear, when members is null) a member filter. */
@@ -1115,11 +1117,19 @@ export class GridRenderer {
       p.appendChild(bar);
     }
 
-    // Click-to-insert reference: source fields, then the built-in function catalog.
+    this.appendFormulaReference(p, fields, canEdit ? insert : null);
+  }
+
+  /** Click-to-insert reference: source fields, then the built-in function catalog. */
+  private appendFormulaReference(
+    p: HTMLElement,
+    fields: Array<{ uniqueName: string; caption: string }>,
+    insert: ((snippet: string) => void) | null,
+  ): void {
     if (fields.length) {
       p.appendChild(this.calcChipGroup('Fields', fields.map((f) => ({
         syntax: `'${f.uniqueName}'`, label: f.caption, desc: f.uniqueName,
-      })), canEdit ? insert : null));
+      })), insert));
     }
     const groups: Array<[string, typeof FORMULA_HELP.aggregations]> = [
       ['Aggregations', FORMULA_HELP.aggregations],
@@ -1131,7 +1141,7 @@ export class GridRenderer {
       p.appendChild(this.calcChipGroup(
         title,
         items.map((it) => ({ syntax: it.syntax, label: it.syntax, desc: it.desc })),
-        canEdit ? insert : null,
+        insert,
       ));
     }
   }
@@ -1951,6 +1961,71 @@ export class GridRenderer {
     this.fieldListModalBody = null;
   }
 
+  /** Modal to define a brand-new calculated value (name + formula + reference). */
+  private openNewCalculationDialog(ctx: RenderContext): void {
+    this.closeEditor();
+    const fields = this.opts.controller.allFields();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'pp-modal-backdrop';
+    const dialog = document.createElement('div');
+    dialog.className = 'pp-modal pp-calc-new';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+
+    const title = document.createElement('div');
+    title.className = 'pp-modal-title';
+    title.textContent = 'New calculated value';
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'e.g. Profit';
+
+    const ta = document.createElement('textarea');
+    ta.className = 'pp-calc-formula';
+    ta.rows = 3;
+    ta.spellcheck = false;
+    ta.placeholder = "e.g.  sum('sales') - sum('cost')";
+
+    const err = document.createElement('div');
+    err.className = 'pp-calc-error';
+    err.style.display = 'none';
+
+    const insert = (snippet: string): void => {
+      const s = ta.selectionStart ?? ta.value.length;
+      const e = ta.selectionEnd ?? ta.value.length;
+      ta.value = ta.value.slice(0, s) + snippet + ta.value.slice(e);
+      const caret = s + snippet.length;
+      ta.focus();
+      ta.setSelectionRange(caret, caret);
+    };
+    const refWrap = document.createElement('div');
+    this.appendFormulaReference(refWrap, fields, insert);
+
+    const actions = document.createElement('div');
+    actions.className = 'pp-modal-actions';
+    const create = primaryBtn('Create', () => {
+      const name = nameInput.value.trim();
+      if (!name) { err.textContent = 'Enter a name for the calculation.'; err.style.display = ''; nameInput.focus(); return; }
+      if (!ta.value.trim()) { err.textContent = 'Enter a formula.'; err.style.display = ''; ta.focus(); return; }
+      const check = validateFormula(ta.value, fields.map((f) => f.uniqueName));
+      if (!check.ok) { err.textContent = check.message ?? 'Invalid formula'; err.style.display = ''; return; }
+      this.opts.controller.addCalculation({ caption: name, formula: ta.value });
+      this.closeEditor();
+    });
+    actions.append(plainBtn('Cancel', () => this.closeEditor()), create);
+
+    dialog.append(title, fieldRow('Name', nameInput), fieldRow('Formula', ta), err, refWrap, actions);
+    backdrop.appendChild(dialog);
+    backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) this.closeEditor(); });
+    this.themePopup(backdrop);
+    document.body.appendChild(backdrop);
+    this.editor = backdrop;
+    this.editorKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeEditor(); };
+    document.addEventListener('keydown', this.editorKey);
+    nameInput.focus();
+  }
+
   private buildFieldList(matrix: CellMatrix, ctx: RenderContext): HTMLElement {
     const panel = document.createElement('div');
     panel.className = 'pp-fieldlist';
@@ -1960,13 +2035,16 @@ export class GridRenderer {
     ]);
     const available = this.opts.controller.allFields().filter((f) => !used.has(f.uniqueName));
 
-    const makeZone = (title: string, zone: Zone, fields: Array<{ uniqueName: string; caption: string }>) => {
+    const makeZone = (title: string, zone: Zone, fields: Array<{ uniqueName: string; caption: string }>, action?: HTMLElement) => {
       const z = document.createElement('div');
       z.className = 'pp-zone';
       z.dataset.zone = zone;
       const h = document.createElement('div');
       h.className = 'pp-zone-title';
-      h.textContent = title;
+      const label = document.createElement('span');
+      label.textContent = title;
+      h.appendChild(label);
+      if (action) h.appendChild(action);
       z.appendChild(h);
       const body = document.createElement('div');
       body.className = 'pp-zone-body';
@@ -1977,11 +2055,26 @@ export class GridRenderer {
       return z;
     };
 
+    // "+ Calculation" lives on the Values zone — calculated measures only live there.
+    // Gated by editFormula (defining a calculation is an edit).
+    let addCalc: HTMLElement | undefined;
+    if (ctx.normal.columnProps.editFormula) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pp-add-calc';
+      b.textContent = 'ƒ +';
+      b.title = 'Add a calculated value';
+      b.setAttribute('aria-label', 'Add a calculated value');
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.addEventListener('click', (e) => { e.stopPropagation(); this.openNewCalculationDialog(ctx); });
+      addCalc = b;
+    }
+
     panel.appendChild(makeZone('Fields', 'available', available));
     panel.appendChild(makeZone('Filters', 'filters', this.fieldDefs(ctx, (ctx.normal.reportFilters ?? []).map((x) => x.uniqueName))));
     panel.appendChild(makeZone('Rows', 'rows', this.fieldDefs(ctx, matrix.rowFields)));
     panel.appendChild(makeZone('Columns', 'columns', this.fieldDefs(ctx, matrix.colFields)));
-    panel.appendChild(makeZone('Values', 'measures', matrix.measures.map((m) => ({ uniqueName: m.uniqueName, caption: m.caption }))));
+    panel.appendChild(makeZone('Values', 'measures', matrix.measures.map((m) => ({ uniqueName: m.uniqueName, caption: m.caption })), addCalc));
     return panel;
   }
 

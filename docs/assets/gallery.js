@@ -134,10 +134,10 @@
     // ===== Calculated & formatting =====
     { group: 'Calculated & formatting', id: 'calculated', title: 'Calculated measures', desc:
       '<p>Define a measure from a <code>formula</code> over other aggregations, e.g. profit and margin. ' +
-      'Open a column ▾ → <b>Calculation</b> tab to see its type, edit the formula, and browse the ' +
-      'built-in functions; or do it in code with <code>pivot.setMeasureFormula()</code>. Gate the panel ' +
-      'with <code>options.columnProperties</code> (<code>showType</code> / <code>showFormula</code> / <code>editFormula</code>).</p>',
-      hint: 'Open the ▾ on the Profit or Margin header → Calculation tab to edit the formula.',
+      'Add new ones at runtime with the <b>ƒ +</b> button in the Values box (or <code>pivot.addCalculation()</code>), ' +
+      'and edit an existing one from its column ▾ → <b>Calculation</b> tab (type, formula, built-in-function reference). ' +
+      'Gate it all with <code>options.columnProperties</code> (<code>showType</code> / <code>showFormula</code> / <code>editFormula</code>).</p>',
+      hint: 'Click ƒ+ in the Values box to add a new calculation, or the ▾ on Profit / Margin → Calculation tab to edit one.',
       body:
 "const pivot = new PP({\n  container: '#pivot',\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }],\n      measures: [\n        { uniqueName: 'sales', aggregation: 'sum', format: 'cur' },\n        { uniqueName: 'profit', formula: \"sum('sales') - sum('cost')\", caption: 'Profit', format: 'cur' },\n        { uniqueName: 'margin', formula: \"(sum('sales') - sum('cost')) / sum('sales')\", caption: 'Margin', format: 'pct' },\n      ],\n    },\n    formats: [\n      { name: 'cur', currencySymbol: '$', decimalPlaces: 0, thousandsSeparator: ',' },\n      { name: 'pct', isPercent: true, decimalPlaces: 1 },\n    ],\n  },\n});" },
 

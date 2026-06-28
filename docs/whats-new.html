@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPivot — what's new: accessibility, touch, filters, binning, dark mode, calculated columns &amp; more</title>
   <meta name="description" content="Live showcase of the latest ProPivot features: full keyboard navigation & ARIA, touch dragging, label & value filters, numeric binning, range selection with copy-to-clipboard, dark mode, RTL, and localization." />
-  <link rel="stylesheet" href="./assets/propivot.css?v=da89833b" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=c1983c58" />
   <link rel="stylesheet" href="./assets/site.css?v=ccf56706" />
   <script defer src="./assets/site.js?v=8e036f93"></script>
   <style>
@@ -136,7 +136,8 @@
         or do it in code with <code>pivot.setMeasureFormula()</code> / <code>pivot.validateFormula()</code>. Gate the
         panel with <code>options.columnProperties</code> (<code>showType</code> / <code>showFormula</code> /
         <code>editFormula</code>).</p>
-      <div class="try">▶ Open the ▾ on the <b>Sales / Unit</b> header → <b>Calculation</b> tab to view and edit its formula.</div>
+      <div class="try">▶ Click <b>ƒ +</b> in the <b>Values</b> box of the field list to add a new calculation, or open the ▾ on the
+        <b>Sales / Unit</b> header → <b>Calculation</b> tab to edit this one.</div>
       <div class="pivot" id="d-calc"></div>
     </section>
 
@@ -157,7 +158,7 @@
     </p>
   </main>
 
-  <script src="./assets/propivot.global.js?v=58ef3256"></script>
+  <script src="./assets/propivot.global.js?v=2c6df0cf"></script>
   <script>
     (function () {
       var PP = window.ProPivot;

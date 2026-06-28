@@ -138,6 +138,35 @@ describe('touch / pointer drag', () => {
     expect(document.querySelector('.pp-fieldlist-modal')).toBeNull();
   });
 
+  it('the Values zone has an Add-calculation button that creates a new calculated measure', async () => {
+    document.querySelectorAll('.pp-calc-new').forEach((n) => n.remove());
+    const { container, pivot } = await mount(report);
+    const addBtn = container.querySelector('.pp-zone[data-zone="measures"] .pp-add-calc') as HTMLElement;
+    expect(addBtn).toBeTruthy();
+    addBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const dialog = document.querySelector('.pp-calc-new') as HTMLElement;
+    expect(dialog).toBeTruthy();
+    (dialog.querySelector('input[type="text"]') as HTMLInputElement).value = 'Double Sales';
+    (dialog.querySelector('.pp-calc-formula') as HTMLTextAreaElement).value = "sum('sales') * 2";
+    const create = [...dialog.querySelectorAll('.pp-modal-actions button')].find((b) => b.textContent === 'Create') as HTMLElement;
+    create.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const measures = pivot.getReport().slice!.measures!;
+    const made = measures.find((m) => m.formula === "sum('sales') * 2");
+    expect(made).toBeTruthy();
+    expect(made!.caption).toBe('Double Sales');
+    expect(document.querySelector('.pp-calc-new')).toBeNull(); // dialog closed
+    pivot.dispose();
+  });
+
+  it('hides the Add-calculation button when columnProperties.editFormula is false', async () => {
+    const { container, pivot } = await mount({
+      ...report,
+      options: { columnProperties: { editFormula: false } },
+    } as Report);
+    expect(container.querySelector('.pp-add-calc')).toBeNull();
+    pivot.dispose();
+  });
+
   it('a tap (no movement past threshold) does not move anything', async () => {
     const { container, pivot } = await mount(report);
     const chip = Array.from(container.querySelectorAll('.pp-chip')).find(

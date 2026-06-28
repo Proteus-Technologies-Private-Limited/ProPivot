@@ -14,8 +14,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **calculated value**, lets you define/edit the formula, and surfaces the
   available source fields and the full built-in-function reference (aggregations,
   scalar functions, operators, `if(…)`, `#field#`) as click-to-insert chips.
-- **`setMeasureFormula(ref, formula)`** — define, change, or clear (empty string)
-  a measure's calculation programmatically.
+- **Add-calculation button** — the Values zone of the field list has an **ƒ +**
+  button that opens a dialog to define a brand-new calculated value (name +
+  formula, with the field/function reference). Backed by the new
+  **`addCalculation({ caption, formula })`** API. Gated by `columnProperties.editFormula`.
+- **`setMeasureFormula(ref, formula)`** — change or clear (empty string) an
+  existing measure's calculation programmatically.
 - **`pivot.validateFormula(formula)`** and core `validateFormula()` — pre-flight
   check returning `{ ok, message }`, flagging unknown fields / aggregations /
   functions for friendly editor feedback.
