@@ -759,8 +759,8 @@ export class GridRenderer {
         if ((pe.target as HTMLElement).closest('.pp-colprops, .pp-resize')) return;
         startPointerDrag(pe, {
           label: o.ref.uniqueName,
-          move: (el) => this.highlightDrop(el),
-          drop: (el, _x, y) => this.dropField(o.ref.uniqueName, o.zone, o.index, el, y),
+          move: (el, x, y) => this.highlightDrop(el, x, y),
+          drop: (el, x, y) => this.dropField(o.ref.uniqueName, o.zone, o.index, el, x, y),
           end: () => this.clearDropHighlights(),
         });
       });
@@ -800,38 +800,64 @@ export class GridRenderer {
     handle.addEventListener('pointercancel', up);
   }
 
-  /** Highlight the field-list zone / chip currently under a drag. */
-  private highlightDrop(el: Element | null): void {
-    this.clearDropHighlights();
-    const chip = el?.closest?.('.pp-chip[data-pp-name]') as HTMLElement | null;
-    const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
-    if (chip && chip.dataset.ppZone !== 'available') chip.classList.add('pp-chip-dragover');
-    else if (zone) zone.classList.add('pp-dragover');
+  /**
+   * Resolve the drop target under the pointer for an ordered (reorderable) zone.
+   * One shared resolver so the live indicator and the committed drop always agree.
+   * Field-list chips stack vertically (split by pointer y); grid column headers sit
+   * side-by-side (split by pointer x) — `after` says whether to land past the target.
+   */
+  private resolveDrop(el: Element | null, x: number, y: number):
+    { target: HTMLElement; isChip: boolean; toZone: Zone; toIndex: number; after: 0 | 1 } | null {
+    const target = el?.closest?.('.pp-chip[data-pp-name], [data-pp-name]') as HTMLElement | null;
+    if (!target || !target.dataset.ppName || !target.dataset.ppZone || target.dataset.ppZone === 'available') return null;
+    const isChip = target.classList.contains('pp-chip');
+    const rect = target.getBoundingClientRect();
+    const after: 0 | 1 = (isChip ? y > rect.top + rect.height / 2 : x > rect.left + rect.width / 2) ? 1 : 0;
+    return { target, isChip, toZone: target.dataset.ppZone as Zone, toIndex: Number(target.dataset.ppIndex), after };
   }
+
+  /**
+   * Show where the drag will land: a before/after insertion line on the chip /
+   * column under the pointer (its leading or trailing edge), or a zone outline when
+   * hovering empty zone space (a plain move-to-zone).
+   */
+  private highlightDrop(el: Element | null, x: number, y: number): void {
+    this.clearDropHighlights();
+    const hit = this.resolveDrop(el, x, y);
+    if (hit) {
+      const cls = hit.isChip
+        ? (hit.after ? 'pp-chip-drop-after' : 'pp-chip-drop-before')
+        : (hit.after ? 'pp-col-drop-after' : 'pp-col-drop-before');
+      hit.target.classList.add(cls);
+      return;
+    }
+    const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
+    if (zone) zone.classList.add('pp-dragover');
+  }
+
+  private static readonly DROP_CLASSES =
+    'pp-dragover pp-chip-dragover pp-chip-drop-before pp-chip-drop-after pp-col-dragover pp-col-drop-before pp-col-drop-after';
 
   private clearDropHighlights(): void {
     if (!this.bodyTable && !this.gridEl) return;
-    this.gridEl.querySelectorAll('.pp-dragover, .pp-chip-dragover').forEach((n) => n.classList.remove('pp-dragover', 'pp-chip-dragover'));
+    const classes = GridRenderer.DROP_CLASSES.split(' ');
+    this.gridEl.querySelectorAll('.' + classes.join(', .')).forEach((n) => n.classList.remove(...classes));
   }
 
   /**
    * Commit a pointer-drag drop. `fromZone`/`fromIndex` identify the dragged source
    * slot. Dropping onto a chip/header in an ordered zone reorders relative to it
-   * (before/after by pointer y) — staying in the reorder path even when the target
-   * shares the dragged field's uniqueName, so we never fall through to moveField
-   * (which would rebuild the zone and drop duplicate measures). Dropping on empty
-   * zone space moves the field to that zone.
+   * (before/after via the shared resolver) — staying in the reorder path even when
+   * the target shares the dragged field's uniqueName, so we never fall through to
+   * moveField (which would rebuild the zone and drop duplicate measures). Dropping
+   * on empty zone space moves the field to that zone.
    */
-  private dropField(name: string, fromZone: Zone, fromIndex: number, el: Element | null, y: number): void {
-    const target = el?.closest?.('.pp-chip[data-pp-name], [data-pp-name]') as HTMLElement | null;
-    if (target && target.dataset.ppName && target.dataset.ppZone && target.dataset.ppZone !== 'available') {
-      const toZone = target.dataset.ppZone as Zone;
-      const toIndex = Number(target.dataset.ppIndex);
+  private dropField(name: string, fromZone: Zone, fromIndex: number, el: Element | null, x: number, y: number): void {
+    const hit = this.resolveDrop(el, x, y);
+    if (hit) {
       // Dropping onto the exact same slot is a no-op.
-      if (toZone !== fromZone || toIndex !== fromIndex) {
-        const rect = target.getBoundingClientRect();
-        const after = y > rect.top + rect.height / 2 ? 1 : 0;
-        this.opts.controller.reorderColumn(name, toZone, toIndex + after, { zone: fromZone, index: fromIndex });
+      if (hit.toZone !== fromZone || hit.toIndex !== fromIndex) {
+        this.opts.controller.reorderColumn(name, hit.toZone, hit.toIndex + hit.after, { zone: fromZone, index: fromIndex });
       }
       return;
     }
@@ -1759,10 +1785,10 @@ export class GridRenderer {
     chip.addEventListener('pointerdown', (e) => {
       startPointerDrag(e as PointerEvent, {
         label: field.caption,
-        move: (el) => this.highlightDrop(el),
-        // Dropping onto a chip reorders relative to it (before/after by pointer y);
-        // dropping on empty zone space moves the field to that zone.
-        drop: (el, _x, y) => this.dropField(field.uniqueName, zone, index, el, y),
+        move: (el, x, y) => this.highlightDrop(el, x, y),
+        // Dropping onto a chip reorders relative to it (before/after by pointer
+        // position); dropping on empty zone space moves the field to that zone.
+        drop: (el, x, y) => this.dropField(field.uniqueName, zone, index, el, x, y),
         end: () => this.clearDropHighlights(),
       });
     });

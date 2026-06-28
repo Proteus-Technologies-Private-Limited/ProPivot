@@ -22,6 +22,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `moveField()` carry the dragged entry's caption.
 - **`copy` event** — added to the bindable event set so an inline
   `new ProPivot({ copy: … })` handler fires, matching `pivot.on('copy', …)`.
+- **Drag-reorder insertion indicator** — restored the before/after drop line that
+  shows where a dragged chip / column will land (lost when chip dragging moved to
+  Pointer Events). The live indicator and the committed drop now share one
+  resolver, and it's axis-aware: vertical for field-list chips, horizontal for
+  grid column headers (which also fixes header reorder using the wrong axis).
 
 ## [0.3.0] - 2026-06-28
 

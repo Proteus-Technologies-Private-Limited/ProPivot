@@ -76,6 +76,41 @@ describe('touch / pointer drag', () => {
     pivot.dispose();
   });
 
+  it('shows a before/after insertion indicator on the chip under the pointer, then reorders', async () => {
+    const twoRows: Report = {
+      dataSource: { type: 'json', data: DATA, mapping },
+      slice: {
+        rows: [{ uniqueName: 'region' }, { uniqueName: 'category' }],
+        measures: [{ uniqueName: 'sales', aggregation: 'sum' }],
+      },
+    } as Report;
+    const { container, pivot } = await mount(twoRows);
+    const chips = Array.from(container.querySelectorAll('.pp-zone[data-zone="rows"] .pp-chip')) as HTMLElement[];
+    const regionChip = chips.find((c) => c.dataset.ppName === 'region')!;
+    const categoryChip = chips.find((c) => c.dataset.ppName === 'category')!;
+
+    // Stand in for layout: the pointer is "over" the region chip, whose top half
+    // (y < midpoint 110) means "insert before".
+    regionChip.getBoundingClientRect = () =>
+      ({ top: 100, height: 20, bottom: 120, left: 0, width: 100, right: 100, x: 0, y: 100, toJSON() {} }) as DOMRect;
+    const orig = document.elementFromPoint;
+    (document as unknown as { elementFromPoint: () => Element }).elementFromPoint = () => regionChip;
+    try {
+      pointer(categoryChip, 'pointerdown', 10, 200);
+      pointer(categoryChip, 'pointermove', 40, 105); // over region chip, top half
+      // The insertion line is shown on the target — the lost-then-restored indicator.
+      expect(regionChip.classList.contains('pp-chip-drop-before')).toBe(true);
+      pointer(categoryChip, 'pointerup', 40, 105);
+    } finally {
+      (document as unknown as { elementFromPoint: typeof orig }).elementFromPoint = orig;
+    }
+    // Dropped before region → category now leads the Rows zone…
+    expect(rowNames(pivot)).toEqual(['category', 'region']);
+    // …and the indicator is cleared once the drag ends.
+    expect(regionChip.classList.contains('pp-chip-drop-before')).toBe(false);
+    pivot.dispose();
+  });
+
   it('a tap (no movement past threshold) does not move anything', async () => {
     const { container, pivot } = await mount(report);
     const chip = Array.from(container.querySelectorAll('.pp-chip')).find(

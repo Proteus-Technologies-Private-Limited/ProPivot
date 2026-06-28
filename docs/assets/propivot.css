@@ -311,6 +311,9 @@
 .pp-draggable { cursor: grab; touch-action: none; }
 .pp-draggable:active { cursor: grabbing; }
 .pp-col-dragover { box-shadow: inset 3px 0 0 var(--pp-accent); }
+/* Positional drop indicators while reordering columns (left/right edge). */
+.pp-col-drop-before { box-shadow: inset 3px 0 0 var(--pp-accent); }
+.pp-col-drop-after { box-shadow: inset -3px 0 0 var(--pp-accent); }
 .pp-resize {
   position: absolute;
   top: 0;
