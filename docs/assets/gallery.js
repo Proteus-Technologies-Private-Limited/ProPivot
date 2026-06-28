@@ -203,6 +203,15 @@
       body:
 "const pivot = new PP({\n  container: '#pivot',\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }],\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }],\n    },\n  },\n  columnpropertychange: (e) => log('columnpropertychange → ' + JSON.stringify(e)),\n});\nlog('Click the ▾ on any header.');" },
 
+    { group: 'Column UX', id: 'fieldlist-modal', title: 'Field list as a ⚙ modal', desc:
+      '<p>By default the drag-drop field list sits inline above the grid. Pass ' +
+      '<code>options.fieldList: { mode: \'icon\', placement }</code> to replace it with a ' +
+      '<b>⚙ button</b> (in any corner) that opens the same rearrange UI in a modal — handy for tight layouts. ' +
+      'Omit the option and it stays inline (unchanged).</p>',
+      hint: 'Click the ⚙ in the top-right corner to open the rearrange modal, then drag fields between zones.',
+      body:
+"const pivot = new PP({\n  container: '#pivot',\n  report: {\n    dataSource: { type: 'json', data },\n    slice: {\n      rows: [{ uniqueName: 'region' }],\n      columns: [{ uniqueName: 'category' }],\n      measures: [{ uniqueName: 'sales', aggregation: 'sum' }, { uniqueName: 'qty', aggregation: 'sum', caption: 'Qty' }],\n    },\n    options: { fieldList: { mode: 'icon', placement: 'top-right' } },\n  },\n});\nlog('Click the ⚙ (top-right) to rearrange fields in a modal.');" },
+
     { group: 'Column UX', id: 'read-only', title: 'Read-only columns', desc:
       '<p>Disable the column UX with <code>options.columnProperties: false</code> (or fine-tune <code>{ edit, resize, reorder }</code>) — no ▾, no drag.</p>',
       body:

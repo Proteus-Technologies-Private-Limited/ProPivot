@@ -75,11 +75,12 @@ describe('column-properties: calculation panel', () => {
     return document.querySelector('.pp-colprops-popup') as HTMLElement;
   };
 
-  it('shows a Source-field type badge and no formula for a plain measure', async () => {
+  it('shows a Source-field type badge + internal name and NO Calculation tab for a plain measure', async () => {
     const { c } = await mount(baseReport);
     const pop = openProps(c, 'sales');
     expect(pop.querySelector('.pp-type-badge')!.textContent).toMatch(/Source field/);
-    expect(pop.querySelector('[data-tab="calc"]')).toBeTruthy(); // tab exists (editable)
+    expect(pop.querySelector('.pp-internal-name')!.textContent).toBe('sales'); // internal column name
+    expect(pop.querySelector('[data-tab="calc"]')).toBeNull(); // no calc tab for a source column
   });
 
   it('shows the Calculated badge and the formula text for a calculated measure', async () => {

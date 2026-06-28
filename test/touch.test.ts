@@ -111,6 +111,33 @@ describe('touch / pointer drag', () => {
     pivot.dispose();
   });
 
+  it('renders the field list inline by default (no ⚙ button)', async () => {
+    const { container, pivot } = await mount(report);
+    expect(container.querySelector('.pp-fieldlist')).toBeTruthy();
+    expect(container.querySelector('.pp-fieldlist-btn')).toBeNull();
+    pivot.dispose();
+  });
+
+  it('fieldList.mode "icon" shows a ⚙ button that opens the rearrange UI in a modal', async () => {
+    document.querySelectorAll('.pp-fieldlist-modal').forEach((n) => n.remove());
+    const { container, pivot } = await mount({
+      ...report,
+      options: { fieldList: { mode: 'icon', placement: 'top-left' } },
+    } as Report);
+    // No inline panel; a gear button instead.
+    expect(container.querySelector('.pp-fieldlist')).toBeNull();
+    const btn = container.querySelector('.pp-fieldlist-btn') as HTMLElement;
+    expect(btn).toBeTruthy();
+    expect(btn.classList.contains('pp-fl-top-left')).toBe(true);
+    // Opening it surfaces the field list (with its zones) inside a modal.
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const modal = document.querySelector('.pp-fieldlist-modal') as HTMLElement;
+    expect(modal).toBeTruthy();
+    expect(modal.querySelector('.pp-fieldlist .pp-zone[data-zone="rows"]')).toBeTruthy();
+    pivot.dispose(); // disposing also closes the modal
+    expect(document.querySelector('.pp-fieldlist-modal')).toBeNull();
+  });
+
   it('a tap (no movement past threshold) does not move anything', async () => {
     const { container, pivot } = await mount(report);
     const chip = Array.from(container.querySelectorAll('.pp-chip')).find(

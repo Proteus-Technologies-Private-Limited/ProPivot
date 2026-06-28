@@ -177,6 +177,13 @@ export interface Options {
   viewType?: 'grid';
   configuratorActive?: boolean;
   configuratorButton?: boolean;
+  /**
+   * How the drag-drop field list (the rearrange UI) is presented. Omitted or
+   * `'inline'` (default) renders it as a panel above the grid — the current
+   * behaviour. `'icon'` hides the panel and shows a ⚙ button that opens the same
+   * rearrange UI in a modal. Ignored when `configuratorButton` is `false`.
+   */
+  fieldList?: FieldListOptions;
   showAggregations?: boolean;
   showCalculatedValuesButton?: boolean;
   drillThrough?: boolean;
@@ -196,6 +203,13 @@ export interface Options {
    * disables all of it (read-only columns).
    */
   columnProperties?: boolean | ColumnPropertiesOptions;
+}
+
+export interface FieldListOptions {
+  /** `'inline'` (default) panel above the grid, or `'icon'` ⚙ button → modal. */
+  mode?: 'inline' | 'icon';
+  /** Corner for the ⚙ button when `mode: 'icon'`. Default `'top-right'`. */
+  placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 }
 
 export interface ColumnPropertiesOptions {

@@ -135,6 +135,11 @@ export class GridRenderer {
   private editor: HTMLElement | null = null;
   private editorOutside?: (e: MouseEvent) => void;
   private editorKey?: (e: KeyboardEvent) => void;
+  // Field-list (rearrange) modal — tracked apart from `editor` so a re-render driven
+  // by a drag inside it doesn't tear it down; its body is rebuilt in render() instead.
+  private fieldListModal: HTMLElement | null = null;
+  private fieldListModalBody: HTMLElement | null = null;
+  private fieldListModalKey?: (e: KeyboardEvent) => void;
   /** Per-measure-slot value range, used to auto-scale data_bar / heatmap. */
   private colStats = new Map<string, { min: number; max: number }>();
   /** Roving-tabindex focus position, in 0-based logical grid coords
@@ -161,6 +166,7 @@ export class GridRenderer {
 
   destroy(): void {
     this.closeEditor();
+    this.closeFieldListModal();
     if (this.body) this.body.scroll.removeEventListener('scroll', this.onScroll);
     this.root.innerHTML = '';
     this.root.classList.remove('pp-root');
@@ -182,7 +188,16 @@ export class GridRenderer {
     this.applyTheme(ctx);
     if (this.opts.toolbar) this.gridEl.appendChild(this.buildToolbar(ctx));
     if (ctx.normal.options.configuratorButton !== false) {
-      this.gridEl.appendChild(this.buildFieldList(matrix, ctx));
+      if (ctx.normal.options.fieldList?.mode === 'icon') {
+        this.gridEl.appendChild(this.buildFieldListButton(matrix, ctx));
+      } else {
+        this.gridEl.appendChild(this.buildFieldList(matrix, ctx));
+      }
+    }
+    // Keep an open rearrange modal in sync with the recomputed layout (a drag inside
+    // it triggers this re-render); rebuild its body rather than letting it go stale.
+    if (this.fieldListModal && this.fieldListModalBody) {
+      this.fieldListModalBody.replaceChildren(this.buildFieldList(matrix, ctx));
     }
     const filtersBar = this.buildFiltersBar(ctx);
     if (filtersBar) this.gridEl.appendChild(filtersBar);
@@ -901,7 +916,9 @@ export class GridRenderer {
     const tabDefs: Array<{ id: string; label: string; build: (p: HTMLElement) => void }> = [];
 
     tabDefs.push({ id: 'props', label: 'Properties', build: (p) => this.buildPropsPane(p, ctx, ref, measure, caption) });
-    if (isMeasure && ctx.normal.columnProps.showFormula) {
+    // The Calculation tab is only meaningful for calculated measures — a plain
+    // source column has no formula, so showing it there is just confusing.
+    if (isMeasure && measure?.calculated && ctx.normal.columnProps.showFormula) {
       tabDefs.push({ id: 'calc', label: 'Calculation', build: (p) => this.buildCalculationPane(p, ctx, ref, measure) });
     }
     tabDefs.push({ id: 'display', label: 'Display', build: (p) => this.buildDisplayPane(p, ctx, ref, fieldType, currentDisplay) });
@@ -961,6 +978,12 @@ export class GridRenderer {
       badge.className = 'pp-type-badge' + (calc ? ' pp-type-calc' : '');
       badge.textContent = calc ? 'Calculated value' : `Source field${ft ? ` (${ft})` : ''}`;
       p.appendChild(fieldRow('Type', badge));
+
+      // The internal name used in code / formulas (the slice `uniqueName`).
+      const code = document.createElement('code');
+      code.className = 'pp-internal-name';
+      code.textContent = ref.kind === 'measure' ? (measure?.uniqueName ?? ref.uniqueName) : ref.uniqueName;
+      p.appendChild(fieldRow('Field name', code));
     }
 
     p.appendChild(fieldRow('Heading', (() => {
@@ -1871,6 +1894,62 @@ export class GridRenderer {
   }
 
   // ---------- drag-drop field list ----------
+
+  /** ⚙ button (placed in a grid corner) that opens the rearrange UI as a modal. */
+  private buildFieldListButton(matrix: CellMatrix, ctx: RenderContext): HTMLElement {
+    const placement = ctx.normal.options.fieldList?.placement ?? 'top-right';
+    const label = ctx.normal.localization.ui.fields;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `pp-fieldlist-btn pp-fl-${placement}`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.textContent = '⚙';
+    btn.addEventListener('click', (e) => { e.stopPropagation(); this.openFieldListModal(matrix, ctx); });
+    return btn;
+  }
+
+  /** Open the field-list rearrange UI inside a modal dialog. */
+  private openFieldListModal(matrix: CellMatrix, ctx: RenderContext): void {
+    this.closeFieldListModal();
+    const backdrop = document.createElement('div');
+    backdrop.className = 'pp-modal-backdrop';
+    const dialog = document.createElement('div');
+    dialog.className = 'pp-modal pp-fieldlist-modal';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+
+    const head = document.createElement('div');
+    head.className = 'pp-modal-title';
+    head.textContent = ctx.normal.localization.ui.fields;
+
+    const body = document.createElement('div');
+    body.className = 'pp-fieldlist-modal-body';
+    body.appendChild(this.buildFieldList(matrix, ctx));
+
+    const actions = document.createElement('div');
+    actions.className = 'pp-modal-actions';
+    actions.appendChild(primaryBtn(ctx.normal.localization.ui.apply, () => this.closeFieldListModal()));
+
+    dialog.append(head, body, actions);
+    backdrop.appendChild(dialog);
+    backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) this.closeFieldListModal(); });
+    this.themePopup(backdrop);
+    document.body.appendChild(backdrop);
+
+    this.fieldListModal = backdrop;
+    this.fieldListModalBody = body;
+    this.fieldListModalKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeFieldListModal(); };
+    document.addEventListener('keydown', this.fieldListModalKey);
+  }
+
+  private closeFieldListModal(): void {
+    if (this.fieldListModalKey) { document.removeEventListener('keydown', this.fieldListModalKey); this.fieldListModalKey = undefined; }
+    this.fieldListModal?.remove();
+    this.fieldListModal = null;
+    this.fieldListModalBody = null;
+  }
 
   private buildFieldList(matrix: CellMatrix, ctx: RenderContext): HTMLElement {
     const panel = document.createElement('div');

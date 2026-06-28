@@ -22,6 +22,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`columnProperties` gains `showType`, `showFormula`, `editFormula`** so
   developers control what's visible/editable in the panel (e.g. a read-only
   formula view, or hiding calculations entirely).
+- **Column properties show the internal field name** (`uniqueName`) used in code
+  and formulas, alongside the type.
+- **Field-list display mode** — `options.fieldList: { mode: 'icon', placement }`
+  hides the inline rearrange panel and shows a ⚙ button (in a chosen corner) that
+  opens the drag-drop rearrange UI in a modal. Default stays the inline panel, so
+  existing apps are unchanged.
+
+### Changed
+- The **Calculation tab only appears for calculated measures** now — a plain
+  source column has no formula, so the tab is no longer shown there.
 
 ### Fixed
 - **Dragging a calculated measure no longer destroys it.** Its `uniqueName` isn't

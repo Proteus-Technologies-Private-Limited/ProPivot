@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPivot — what's new: accessibility, touch, filters, binning, dark mode, calculated columns &amp; more</title>
   <meta name="description" content="Live showcase of the latest ProPivot features: full keyboard navigation & ARIA, touch dragging, label & value filters, numeric binning, range selection with copy-to-clipboard, dark mode, RTL, and localization." />
-  <link rel="stylesheet" href="./assets/propivot.css?v=606d1e32" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=da89833b" />
   <link rel="stylesheet" href="./assets/site.css?v=ccf56706" />
   <script defer src="./assets/site.js?v=8e036f93"></script>
   <style>
@@ -140,6 +140,15 @@
       <div class="pivot" id="d-calc"></div>
     </section>
 
+    <section class="feature">
+      <h2>⚙ Field list as a modal <span class="tag">v0.4</span></h2>
+      <p class="desc">Keep the layout tidy: <code>options.fieldList: { mode: 'icon', placement }</code> swaps the
+        inline rearrange panel for a ⚙ button (in any corner) that opens the drag-drop field list in a modal. Omit
+        it and the inline panel stays — existing apps are unchanged.</p>
+      <div class="try">▶ Click the ⚙ in the grid's top-right corner, then drag fields between Rows / Columns / Values.</div>
+      <div class="pivot" id="d-fieldlist"></div>
+    </section>
+
     <p style="color:var(--ink-soft);font-size:13.5px;max-width:820px">
       📱 <b>Touch:</b> column resize, reorder and the drag-drop field list now use Pointer Events, so every grid on
       this page is fully usable on a phone or tablet. See the full <a href="./docs.html">documentation</a> for the
@@ -148,7 +157,7 @@
     </p>
   </main>
 
-  <script src="./assets/propivot.global.js?v=e70f220c"></script>
+  <script src="./assets/propivot.global.js?v=58ef3256"></script>
   <script>
     (function () {
       var PP = window.ProPivot;
@@ -227,6 +236,7 @@
             ] },
             formats: [cur],
           } },
+          { el: 'd-fieldlist', opt: { theme: theme, fieldList: { mode: 'icon', placement: 'top-right' } }, report: themeReport() },
         ];
       }
       function themeReport() {

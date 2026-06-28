@@ -44,7 +44,7 @@
 }
 
 
-.pp-grid-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.pp-grid-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; position: relative; }
 .pp-scroll { overflow: auto; flex: 1 1 auto; min-height: 0; }
 
 .pp-table { border-collapse: collapse; width: max-content; min-width: 100%; }
@@ -225,7 +225,29 @@
   min-width: 300px;
   font-size: 13px;
 }
-.pp-modal h3 { margin: 0 0 12px; font-size: 15px; }
+.pp-modal h3, .pp-modal-title { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+
+/* ⚙ field-list trigger + the modal that hosts the rearrange UI. */
+.pp-fieldlist-btn {
+  position: absolute; z-index: 6; width: 30px; height: 30px; line-height: 1;
+  border: 1px solid var(--pp-border); border-radius: 6px; background: var(--pp-surface);
+  color: var(--pp-text); cursor: pointer; font-size: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.pp-fieldlist-btn:hover { border-color: var(--pp-accent); color: var(--pp-accent); }
+.pp-fl-top-right { top: 8px; right: 8px; }
+.pp-fl-top-left { top: 8px; left: 8px; }
+.pp-fl-bottom-right { bottom: 8px; right: 8px; }
+.pp-fl-bottom-left { bottom: 8px; left: 8px; }
+.pp-fieldlist-modal { min-width: 320px; max-width: min(92vw, 720px); max-height: 86vh; display: flex; flex-direction: column; }
+.pp-fieldlist-modal-body { overflow: auto; }
+/* Inside the modal the field list fills the dialog (no inline max-height clamp). */
+.pp-fieldlist-modal-body .pp-fieldlist { padding: 0; border: 0; max-height: none; }
+.pp-internal-name {
+  align-self: flex-start; padding: 2px 7px; border-radius: 4px; background: var(--pp-bg, #f6f7f9);
+  border: 1px solid var(--pp-border); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; color: var(--pp-text); user-select: all;
+}
 .pp-modal label { display: block; font-size: 11px; text-transform: uppercase; color: var(--pp-muted); margin-bottom: 4px; }
 .pp-modal select { width: 100%; padding: 7px; border: 1px solid var(--pp-border); border-radius: 5px; }
 .pp-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ProPivot — documentation</title>
   <meta name="description" content="ProPivot documentation: a step-by-step getting-started guide, a detailed feature reference, and ready-to-paste React, Angular, Vue, and plain-JavaScript sample code for the enterprise-grade, open-source pivot-table library that handles millions of rows entirely in the browser." />
-  <link rel="stylesheet" href="./assets/propivot.css?v=606d1e32" />
+  <link rel="stylesheet" href="./assets/propivot.css?v=da89833b" />
   <link rel="stylesheet" href="./assets/site.css?v=ccf56706" />
   <script defer src="./assets/site.js?v=8e036f93"></script>
   <style>
@@ -386,7 +386,7 @@ export class SalesComponent {
           <div class="feat"><h3>Calculated measures</h3><p>Formula parser &amp; evaluator: <code>sum('sales')/sum('qty')</code>. Mix calculated and native measures freely. Define/edit formulas in the column ▾ → <b>Calculation</b> tab (with a built-in function reference) or via <code>setMeasureFormula()</code>; gate the panel with <code>columnProperties.showType</code> / <code>showFormula</code> / <code>editFormula</code>.</p></div>
           <div class="feat"><h3>Conditional formatting</h3><p>Colour cells by threshold with the <code>#value</code> dialect, or bring your own classes via <code>customizeCell</code>.</p></div>
           <div class="feat"><h3>Display formats</h3><p>Rich column rendering: data bars, heatmaps, status tags, ratings, dates, currencies and more — per column, identical in exports.</p></div>
-          <div class="feat"><h3>Column UX</h3><p>Drag to resize, drag to reorder across zones, and a per-column properties panel (aggregation, heading, formatting, filter).</p></div>
+          <div class="feat"><h3>Column UX</h3><p>Drag to resize, drag to reorder across zones, and a per-column properties panel (type, internal field name, aggregation, heading, formatting, filter). The drag-drop field list is inline by default, or set <code>options.fieldList: { mode: 'icon', placement }</code> for a ⚙ button that opens it in a modal.</p></div>
           <div class="feat"><h3>Date hierarchies</h3><p>A date field typed <code>year/quarter/month/day</code> auto-expands into drillable levels.</p></div>
           <div class="feat"><h3>Sorting &amp; Top-N</h3><p>Sort members or by a measure, and keep only the top/bottom N.</p></div>
           <div class="feat"><h3>Five exports</h3><p>CSV, HTML, real <code>.xlsx</code>, dependency-free <code>.pdf</code>, and an <code>.svg</code>/PNG image — all matching the on-screen grid.</p></div>
@@ -562,7 +562,7 @@ pivot.exportTo('image', { filename: 'report' }); // SVG → PNG, in-browser</cod
     </main>
   </div>
 
-  <script src="./assets/propivot.global.js?v=e70f220c"></script>
+  <script src="./assets/propivot.global.js?v=58ef3256"></script>
   <script>
     (function () {
       // Live "first pivot" in the step-by-step guide.
