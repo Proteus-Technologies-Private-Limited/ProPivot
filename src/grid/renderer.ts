@@ -11,9 +11,10 @@ import type { NormalReport } from '../core/normalize';
 import { totalsEnabled } from '../core/normalize';
 import { ALL_AGGREGATIONS, AGGREGATION_CAPTIONS } from '../core/aggregations';
 import type { CompiledCondition } from '../core/conditions';
-import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy } from '../core/types';
+import type { DisplayFormat, DisplayFormatType, Condition, FieldType, Hierarchy, LabelOperator, ValueOperator } from '../core/types';
 import { formatVisual, evalConditionStyle, formatsForType } from '../core/cellStyle';
 import { CellBuilder, type CellData, type CellTupleItem } from '../facade/cell';
+import { startPointerDrag } from './drag';
 
 export type Zone = 'rows' | 'columns' | 'measures' | 'filters' | 'available';
 
@@ -30,6 +31,10 @@ export interface PivotController {
   members(uniqueName: string): string[];
   /** Apply (or clear, when members is null) a member filter. */
   setFilter(uniqueName: string, members: string[] | null): void;
+  /** Apply (or clear, when query is empty) a label (member-text) filter. */
+  setLabelFilter(uniqueName: string, operator: LabelOperator, query: string): void;
+  /** Apply (or clear, when measure is empty) a value (measure-threshold) filter. */
+  setValueFilter(uniqueName: string, measure: string, operator: ValueOperator, value: number, value2?: number): void;
   /** Underlying raw rows that aggregate into a cell (drill-through). */
   drillThrough(cell: CellData): Array<Record<string, unknown>>;
   /** Export the current view. */
@@ -77,6 +82,12 @@ export interface RenderContext {
   selected: CellData | null;
 }
 
+/** A grid cell that carries keyboard primary / context-menu actions. */
+interface ActionCell extends HTMLElement {
+  _ppAct?: () => void;
+  _ppMenu?: () => void;
+}
+
 interface VisualRow {
   node: AxisNode | null;
   path: string[];
@@ -96,6 +107,8 @@ interface BodyState {
   showColGrand: boolean;
   colCount: number;
   rowHeaderCols: number;
+  /** Number of stacked header rows (column-field rows + the measure row). */
+  headerRows: number;
   multi: boolean;
   rowHeight: number;
   tbody: HTMLElement;
@@ -115,6 +128,11 @@ export class GridRenderer {
   private editorKey?: (e: KeyboardEvent) => void;
   /** Per-measure-slot value range, used to auto-scale data_bar / heatmap. */
   private colStats = new Map<string, { min: number; max: number }>();
+  /** Roving-tabindex focus position, in 0-based logical grid coords
+   *  (header rows occupy r = 0..headerRows-1; body rows follow). */
+  private focusRC: { r: number; c: number } | null = null;
+  private rovingEl: HTMLElement | null = null;
+  private bodyTable: HTMLElement | null = null;
 
   constructor(container: HTMLElement, private opts: RendererOptions) {
     this.root = container;
@@ -160,6 +178,8 @@ export class GridRenderer {
     const mode = ctx.normal.grid.type ?? 'compact';
     const multi = mode !== 'compact' && R > 0;
     const rowHeaderCols = multi ? R : 1;
+    // Stacked header rows: one per column-field level, plus the measure row.
+    const headerRows = matrix.colFields.length + 1;
 
     const table = document.createElement('table');
     table.className = 'pp-table';
@@ -188,9 +208,24 @@ export class GridRenderer {
     this.body = {
       matrix, ctx,
       visualRows: this.collectVisualRows(matrix, ctx, mode),
-      colLeaves, measures, showColGrand, colCount, rowHeaderCols, multi,
+      colLeaves, measures, showColGrand, colCount, rowHeaderCols, headerRows, multi,
       rowHeight: this.rowHeight, tbody, scroll,
     };
+
+    // ---- accessibility: expose the pivot as an ARIA grid ----
+    this.bodyTable = table;
+    table.setAttribute('role', 'grid');
+    table.setAttribute('aria-readonly', 'true');
+    table.setAttribute('aria-multiselectable', 'false');
+    const label = ctx.normal.localization.gridLabel;
+    if (label) table.setAttribute('aria-label', label);
+    table.setAttribute('aria-rowcount', String(headerRows + this.body.visualRows.length));
+    table.setAttribute('aria-colcount', String(colCount));
+    this.bindNav(table);
+    // Roving focus starts on the first body cell (or first header cell if empty).
+    this.rovingEl = null;
+    this.focusRC = this.body.visualRows.length ? { r: headerRows, c: 0 } : { r: 0, c: 0 };
+
     scroll.addEventListener('scroll', this.onScroll);
     this.paintBody();
     this.applyStickyHeader(table);
@@ -279,6 +314,146 @@ export class GridRenderer {
     if (virtualize && start > 0) b.tbody.appendChild(spacer(b.colCount, start * b.rowHeight));
     for (let i = start; i < end; i++) b.tbody.appendChild(this.buildRow(b, b.visualRows[i], i));
     if (virtualize && end < total) b.tbody.appendChild(spacer(b.colCount, (total - end) * b.rowHeight));
+    // Keep exactly one navigable cell tabbable after every (re)paint.
+    this.applyRoving();
+  }
+
+  // ---------- accessibility: ARIA tagging + keyboard navigation ----------
+
+  /** Tag a header/body cell with its ARIA role and 0-based logical grid coords. */
+  private tagCell(
+    el: HTMLElement, role: 'columnheader' | 'rowheader' | 'gridcell',
+    r: number, c: number, rs = 1, cs = 1,
+  ): void {
+    el.setAttribute('role', role);
+    el.dataset.r = String(r);
+    el.dataset.c = String(c);
+    if (rs !== 1) el.dataset.rs = String(rs);
+    if (cs !== 1) el.dataset.cs = String(cs);
+    el.setAttribute('aria-colindex', String(c + 1));
+    el.tabIndex = -1;
+  }
+
+  /** Attach a cell's keyboard primary (Enter/Space) and/or context (Shift+F10) actions. */
+  private setAct(el: HTMLElement, primary?: () => void, context?: () => void): void {
+    if (primary) (el as ActionCell)._ppAct = primary;
+    if (context) (el as ActionCell)._ppMenu = context;
+  }
+
+  private bindNav(table: HTMLElement): void {
+    table.addEventListener('keydown', this.onKeyNav);
+    table.addEventListener('focusin', this.onFocusIn);
+  }
+
+  private onFocusIn = (e: FocusEvent): void => {
+    const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-r]');
+    if (!el) return;
+    this.focusRC = { r: +(el.dataset.r ?? 0), c: +(el.dataset.c ?? 0) };
+    this.setRoving(el);
+  };
+
+  /** Make `el` the single tab-stop within the grid (roving tabindex). */
+  private setRoving(el: HTMLElement): void {
+    if (this.rovingEl && this.rovingEl !== el && this.rovingEl.isConnected) this.rovingEl.tabIndex = -1;
+    el.tabIndex = 0;
+    this.rovingEl = el;
+  }
+
+  /** After a (re)paint, re-mark the focused coordinate as the tab-stop. */
+  private applyRoving(): void {
+    if (!this.focusRC) return;
+    const el = this.cellAt(this.focusRC.r, this.focusRC.c);
+    if (el) this.setRoving(el);
+  }
+
+  /** The painted cell that owns logical coord (r,c), honouring row/col spans. */
+  private cellAt(r: number, c: number): HTMLElement | null {
+    const scope = this.bodyTable;
+    if (!scope) return null;
+    const cells = scope.querySelectorAll<HTMLElement>('[data-r]');
+    for (let i = 0; i < cells.length; i++) {
+      const el = cells[i];
+      const r0 = +(el.dataset.r ?? 0), c0 = +(el.dataset.c ?? 0);
+      const rs = +(el.dataset.rs ?? 1), cs = +(el.dataset.cs ?? 1);
+      if (r >= r0 && r < r0 + rs && c >= c0 && c < c0 + cs) return el;
+    }
+    return null;
+  }
+
+  private onKeyNav = (e: KeyboardEvent): void => {
+    const b = this.body;
+    if (!b || !this.focusRC) return;
+    const maxR = b.headerRows + b.visualRows.length - 1;
+    const maxC = b.colCount - 1;
+    // Step relative to the CURRENT cell's span so wide headers advance cleanly.
+    const cur = this.cellAt(this.focusRC.r, this.focusRC.c);
+    const r0 = cur ? +(cur.dataset.r ?? this.focusRC.r) : this.focusRC.r;
+    const c0 = cur ? +(cur.dataset.c ?? this.focusRC.c) : this.focusRC.c;
+    const rs = cur ? +(cur.dataset.rs ?? 1) : 1;
+    const cs = cur ? +(cur.dataset.cs ?? 1) : 1;
+    let r = r0, c = c0;
+    const page = Math.max(1, Math.floor((b.scroll.clientHeight || 400) / b.rowHeight) - 1);
+    switch (e.key) {
+      case 'ArrowRight': c = Math.min(maxC, c0 + cs); break;
+      case 'ArrowLeft': c = Math.max(0, c0 - 1); break;
+      case 'ArrowDown': r = Math.min(maxR, r0 + rs); break;
+      case 'ArrowUp': r = Math.max(0, r0 - 1); break;
+      case 'Home': c = 0; if (e.ctrlKey) r = 0; break;
+      case 'End': c = maxC; if (e.ctrlKey) r = maxR; break;
+      case 'PageDown': r = Math.min(maxR, r0 + page); break;
+      case 'PageUp': r = Math.max(0, r0 - page); break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        this.activateFocused(false);
+        return;
+      case 'F10':
+        if (e.shiftKey) { e.preventDefault(); this.activateFocused(true); }
+        return;
+      case 'ContextMenu':
+        e.preventDefault();
+        this.activateFocused(true);
+        return;
+      default:
+        return;
+    }
+    e.preventDefault();
+    this.focusAt(r, c);
+  };
+
+  /** Run the focused cell's primary (or context-menu) keyboard action. */
+  private activateFocused(context: boolean): void {
+    if (!this.focusRC) return;
+    const el = this.cellAt(this.focusRC.r, this.focusRC.c) as ActionCell | null;
+    if (!el) return;
+    const fn = context ? el._ppMenu : el._ppAct;
+    if (fn) fn();
+  }
+
+  /** Focus logical coord (r,c), scrolling a virtualized body row into view first. */
+  private focusAt(r: number, c: number): void {
+    const b = this.body;
+    if (!b) return;
+    if (r >= b.headerRows) this.ensureRowPainted(r - b.headerRows);
+    const el = this.cellAt(r, c);
+    if (!el) return;
+    this.focusRC = { r: +(el.dataset.r ?? r), c: +(el.dataset.c ?? c) };
+    this.setRoving(el);
+    el.focus();
+  }
+
+  /** Scroll + repaint so visual row `v` lands inside the rendered (virtual) window. */
+  private ensureRowPainted(v: number): void {
+    const b = this.body;
+    if (!b || b.visualRows.length <= this.threshold) return;
+    const rowH = b.rowHeight;
+    const viewport = b.scroll.clientHeight || 400;
+    const y = v * rowH;
+    const top = b.scroll.scrollTop;
+    if (y < top) b.scroll.scrollTop = y;
+    else if (y + rowH > top + viewport) b.scroll.scrollTop = y + rowH - viewport;
+    else return;
+    this.paintBody();
   }
 
   // ---------- header ----------
@@ -292,14 +467,18 @@ export class GridRenderer {
     const measureSpan = Math.max(1, measures.length);
     const colDepth = matrix.colFields.length;
     const combinedCaption = matrix.rowFields.map((f) => captionOf(ctx, f)).join(' / ') || ' ';
+    const valueBase = rowHeaderCols; // logical column where value columns begin
 
     for (let d = 0; d < colDepth; d++) {
       const tr = document.createElement('tr');
+      tr.setAttribute('role', 'row');
+      tr.setAttribute('aria-rowindex', String(d + 1));
       if (d === 0) {
         const corner = document.createElement('th');
         corner.className = 'pp-corner';
         corner.colSpan = rowHeaderCols;
         corner.rowSpan = multi ? colDepth : colDepth + 1;
+        this.tagCell(corner, 'columnheader', 0, 0, corner.rowSpan, rowHeaderCols);
         if (!multi) {
           corner.textContent = combinedCaption;
           // Compact mode nests every row field into this one corner column — give it
@@ -316,11 +495,14 @@ export class GridRenderer {
         const th = document.createElement('th');
         th.className = 'pp-colh';
         th.colSpan = span * measureSpan;
+        this.tagCell(th, 'columnheader', d, valueBase + i * measureSpan, 1, span * measureSpan);
         this.renderMember(th, ctx, matrix.colFields[d], label);
         this.decorateHeader(th, ctx, { ref: { kind: 'field', uniqueName: matrix.colFields[d] }, zone: 'columns', index: d, resizable: false });
         const colTuplePath = colLeaves[i].path.slice(0, d + 1);
         const colTupleIdx = i;
-        th.addEventListener('click', () => this.emitHeaderClick(ctx, 'columns', matrix.colFields, colTuplePath, -1, colTupleIdx));
+        const onActivate = () => this.emitHeaderClick(ctx, 'columns', matrix.colFields, colTuplePath, -1, colTupleIdx);
+        th.addEventListener('click', onActivate);
+        this.setAct(th, onActivate);
         tr.appendChild(th);
         i += span;
       }
@@ -329,42 +511,53 @@ export class GridRenderer {
         th.className = 'pp-colh pp-grand';
         th.colSpan = measureSpan;
         if (d === 0) { th.rowSpan = colDepth; th.textContent = ctx.normal.localization.grandTotal; }
+        this.tagCell(th, 'columnheader', d, valueBase + colLeaves.length * measureSpan, d === 0 ? colDepth : 1, measureSpan);
         tr.appendChild(th);
       }
       thead.appendChild(tr);
     }
 
     const trM = document.createElement('tr');
+    trM.setAttribute('role', 'row');
+    trM.setAttribute('aria-rowindex', String(colDepth + 1));
     if (multi) {
       for (const f of matrix.rowFields) {
+        const j = matrix.rowFields.indexOf(f);
         const th = document.createElement('th');
         th.className = 'pp-corner';
+        this.tagCell(th, 'columnheader', colDepth, j);
         const hier = hierarchyOf(ctx, f);
         th.textContent = captionOf(ctx, f) + (hier ? sortGlyph(hier.sort) : '');
         if (hier) {
           th.classList.add('pp-sortable');
           th.title = 'Click to sort';
-          th.addEventListener('click', () => this.opts.controller.toggleSort(f));
+          th.setAttribute('aria-sort', ariaSort(hier.sort));
+          const onActivate = () => this.opts.controller.toggleSort(f);
+          th.addEventListener('click', onActivate);
+          this.setAct(th, onActivate);
         }
-        this.decorateHeader(th, ctx, { ref: { kind: 'field', uniqueName: f }, zone: 'rows', index: matrix.rowFields.indexOf(f) });
+        this.decorateHeader(th, ctx, { ref: { kind: 'field', uniqueName: f }, zone: 'rows', index: j });
         trM.appendChild(th);
       }
     } else if (colDepth === 0) {
       const corner = document.createElement('th');
       corner.className = 'pp-corner';
+      this.tagCell(corner, 'columnheader', 0, 0, 1, rowHeaderCols);
       corner.textContent = combinedCaption;
       if (matrix.rowFields.length) this.decorateHeader(corner, ctx, { ref: { kind: 'field', uniqueName: matrix.rowFields[0] }, zone: 'rows', index: 0 });
       trM.appendChild(corner);
     }
+    let mcol = valueBase;
     const measureHeaders = (count: number, grand: boolean) => {
       for (let c = 0; c < count; c++) {
         if (!measures.length) {
           const th = document.createElement('th');
           th.className = 'pp-measureh' + (grand ? ' pp-grand' : '');
+          this.tagCell(th, 'columnheader', colDepth, mcol++);
           trM.appendChild(th);
           continue;
         }
-        for (let mi = 0; mi < measures.length; mi++) trM.appendChild(this.measureHeader(measures[mi], grand, ctx, mi));
+        for (let mi = 0; mi < measures.length; mi++) trM.appendChild(this.measureHeader(measures[mi], grand, ctx, mi, colDepth, mcol++));
       }
     };
     measureHeaders(colLeaves.length, false);
@@ -373,17 +566,25 @@ export class GridRenderer {
     return thead;
   }
 
-  private measureHeader(m: CellMatrix['measures'][number], grand: boolean, ctx: RenderContext, index: number): HTMLElement {
+  private measureHeader(
+    m: CellMatrix['measures'][number], grand: boolean, ctx: RenderContext, index: number,
+    rowIndex: number, colIndex: number,
+  ): HTMLElement {
     const th = document.createElement('th');
     th.className = 'pp-measureh' + (grand ? ' pp-grand' : '');
+    this.tagCell(th, 'columnheader', rowIndex, colIndex);
     // The heading stays clean — caption only (clicking it sorts rows by this measure).
     const cap = document.createElement('span');
     cap.className = 'pp-measureh-cap pp-sortable';
     const rowSort = ctx.normal.report.slice?.sorting?.row;
-    const sorted = rowSort && rowSort.measure === m.uniqueName ? (rowSort.type === 'desc' ? ' ▼' : ' ▲') : '';
+    const isSorted = rowSort && rowSort.measure === m.uniqueName;
+    const sorted = isSorted ? (rowSort!.type === 'desc' ? ' ▼' : ' ▲') : '';
     cap.textContent = m.caption + sorted;
     cap.title = 'Click to sort rows by this measure';
-    cap.addEventListener('click', (e) => { e.stopPropagation(); this.opts.controller.sortByMeasure(m.uniqueName); });
+    th.setAttribute('aria-sort', isSorted ? (rowSort!.type === 'desc' ? 'descending' : 'ascending') : 'none');
+    const onSort = () => this.opts.controller.sortByMeasure(m.uniqueName);
+    cap.addEventListener('click', (e) => { e.stopPropagation(); onSort(); });
+    this.setAct(th, onSort);
     th.appendChild(cap);
     // Aggregation now lives in the column-properties panel (the ▾ button added by
     // decorateHeader) — no separate gear button, so the two no longer duplicate.
@@ -409,8 +610,6 @@ export class GridRenderer {
     if (this.editor) { this.editor.remove(); this.editor = null; }
     if (this.editorOutside) { document.removeEventListener('mousedown', this.editorOutside); this.editorOutside = undefined; }
     if (this.editorKey) { document.removeEventListener('keydown', this.editorKey); this.editorKey = undefined; }
-    if (this.resizeMove) { document.removeEventListener('mousemove', this.resizeMove); this.resizeMove = undefined; }
-    if (this.resizeUp) { document.removeEventListener('mouseup', this.resizeUp); this.resizeUp = undefined; }
   }
 
   // ---------- column controls (resize / reorder / properties) ----------
@@ -428,25 +627,36 @@ export class GridRenderer {
       btn.type = 'button';
       btn.className = 'pp-colprops';
       btn.title = 'Column properties';
+      btn.setAttribute('aria-label', 'Column properties');
       btn.textContent = '▾';
+      // Not a separate tab stop — reachable via the cell's context action (Shift+F10).
+      btn.tabIndex = -1;
       btn.addEventListener('click', (e) => { e.stopPropagation(); this.openColumnPropsEditor(e as MouseEvent, ctx, o.ref); });
       th.appendChild(btn);
+      // Keyboard: Shift+F10 / ContextMenu on the header opens its properties panel.
+      this.setAct(th, undefined, () => {
+        const r = th.getBoundingClientRect();
+        this.openColumnPropsEditor({ clientX: r.left, clientY: r.bottom } as MouseEvent, ctx, o.ref);
+      });
     }
 
     if (cp.reorder) {
-      th.draggable = true;
       th.classList.add('pp-draggable');
-      th.addEventListener('dragstart', (e) => {
-        e.dataTransfer?.setData('text/plain', o.ref.uniqueName);
-        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-      });
-      th.addEventListener('dragover', (e) => { e.preventDefault(); th.classList.add('pp-col-dragover'); });
-      th.addEventListener('dragleave', () => th.classList.remove('pp-col-dragover'));
-      th.addEventListener('drop', (e) => {
-        e.preventDefault();
-        th.classList.remove('pp-col-dragover');
-        const name = e.dataTransfer?.getData('text/plain');
-        if (name && name !== o.ref.uniqueName) this.opts.controller.reorderColumn(name, o.zone, o.index);
+      // Mark the header as both a draggable source and a drop target (data attrs
+      // are read back via elementFromPoint during a pointer drag).
+      th.dataset.ppName = o.ref.uniqueName;
+      th.dataset.ppZone = o.zone;
+      th.dataset.ppIndex = String(o.index);
+      th.addEventListener('pointerdown', (e) => {
+        const pe = e as PointerEvent;
+        // Don't start a reorder from the ▾ button or the resize grip.
+        if ((pe.target as HTMLElement).closest('.pp-colprops, .pp-resize')) return;
+        startPointerDrag(pe, {
+          label: o.ref.uniqueName,
+          move: (el) => this.highlightDrop(el),
+          drop: (el, _x, y) => this.dropField(o.ref.uniqueName, el, y),
+          end: () => this.clearDropHighlights(),
+        });
       });
     }
 
@@ -454,34 +664,61 @@ export class GridRenderer {
       const handle = document.createElement('span');
       handle.className = 'pp-resize';
       handle.title = 'Drag to resize';
+      handle.setAttribute('aria-hidden', 'true');
       handle.addEventListener('click', (e) => e.stopPropagation());
-      handle.addEventListener('mousedown', (e) => this.startResize(e as MouseEvent, th, o.ref));
-      handle.draggable = false;
+      handle.addEventListener('pointerdown', (e) => this.startResize(e as PointerEvent, th, o.ref));
       th.appendChild(handle);
     }
   }
 
-  private resizeMove?: (e: MouseEvent) => void;
-  private resizeUp?: (e: MouseEvent) => void;
-
-  private startResize(e: MouseEvent, th: HTMLElement, ref: ColumnRef): void {
+  /** Live column-resize via pointer events (mouse, touch and pen). */
+  private startResize(e: PointerEvent, th: HTMLElement, ref: ColumnRef): void {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
+    const handle = e.currentTarget as HTMLElement;
     const startX = e.clientX;
     const startW = th.getBoundingClientRect().width || 80;
-    this.resizeMove = (ev: MouseEvent) => {
-      const w = Math.max(24, startW + (ev.clientX - startX));
-      th.style.width = `${w}px`;
+    const widthAt = (ev: PointerEvent) => Math.max(24, startW + (ev.clientX - startX));
+    const move = (ev: PointerEvent) => { th.style.width = `${widthAt(ev)}px`; };
+    const up = (ev: PointerEvent) => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      try { handle.releasePointerCapture(ev.pointerId); } catch { /* not captured */ }
+      this.opts.controller.setColumnWidth(ref, widthAt(ev));
     };
-    this.resizeUp = (ev: MouseEvent) => {
-      if (this.resizeMove) document.removeEventListener('mousemove', this.resizeMove);
-      if (this.resizeUp) document.removeEventListener('mouseup', this.resizeUp);
-      this.resizeMove = undefined; this.resizeUp = undefined;
-      const w = Math.max(24, startW + (ev.clientX - startX));
-      this.opts.controller.setColumnWidth(ref, w);
-    };
-    document.addEventListener('mousemove', this.resizeMove);
-    document.addEventListener('mouseup', this.resizeUp);
+    try { handle.setPointerCapture(e.pointerId); } catch { /* unsupported */ }
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  }
+
+  /** Highlight the field-list zone / chip currently under a drag. */
+  private highlightDrop(el: Element | null): void {
+    this.clearDropHighlights();
+    const chip = el?.closest?.('.pp-chip[data-pp-name]') as HTMLElement | null;
+    const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
+    if (chip && chip.dataset.ppZone !== 'available') chip.classList.add('pp-chip-dragover');
+    else if (zone) zone.classList.add('pp-dragover');
+  }
+
+  private clearDropHighlights(): void {
+    if (!this.bodyTable && !this.gridEl) return;
+    this.gridEl.querySelectorAll('.pp-dragover, .pp-chip-dragover').forEach((n) => n.classList.remove('pp-dragover', 'pp-chip-dragover'));
+  }
+
+  /** Commit a pointer-drag drop: reorder onto a chip/header, else move to a zone. */
+  private dropField(name: string, el: Element | null, y: number): void {
+    const chip = el?.closest?.('.pp-chip[data-pp-name], [data-pp-name]') as HTMLElement | null;
+    if (chip && chip.dataset.ppName && chip.dataset.ppName !== name && chip.dataset.ppZone && chip.dataset.ppZone !== 'available') {
+      const rect = chip.getBoundingClientRect();
+      const after = y > rect.top + rect.height / 2 ? 1 : 0;
+      this.opts.controller.reorderColumn(name, chip.dataset.ppZone as Zone, Number(chip.dataset.ppIndex) + after);
+      return;
+    }
+    const zone = el?.closest?.('.pp-zone[data-zone]') as HTMLElement | null;
+    if (zone?.dataset.zone) this.opts.controller.moveField(name, zone.dataset.zone as Zone);
   }
 
   // ---------- column-properties panel ----------
@@ -754,19 +991,30 @@ export class GridRenderer {
       p.appendChild(note);
       return;
     }
-    // Dimension column: distinct-value member filter.
+    // Dimension column: member, label and value filters.
+    const curFilter = hierarchyOf(ctx, field)?.filter ?? ctx.normal.report.slice?.fieldFilters?.[field];
     const members = this.opts.controller.members(field);
-    const selected = (hierarchyOf(ctx, field)?.filter ?? ctx.normal.report.slice?.fieldFilters?.[field])?.members ?? null;
+    const selected = curFilter?.members ?? null;
     const selSet = new Set(selected ?? members);
+
+    // --- members, with a search box to filter long lists ---
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'pp-member-search';
+    search.placeholder = 'Search members…';
+    p.appendChild(search);
+
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
     const allLink = document.createElement('a'); allLink.textContent = 'All'; allLink.href = 'javascript:void(0)';
     const noneLink = document.createElement('a'); noneLink.textContent = 'None'; noneLink.href = 'javascript:void(0)';
     tools.append(allLink, noneLink);
     p.appendChild(tools);
+
     const listEl = document.createElement('div');
     listEl.className = 'pp-popup-list';
     const boxes: HTMLInputElement[] = [];
+    const rows: HTMLElement[] = [];
     for (const m of members) {
       const rowL = document.createElement('label');
       rowL.className = 'pp-popup-item';
@@ -775,9 +1023,16 @@ export class GridRenderer {
       const sp = document.createElement('span'); sp.textContent = m || '(blank)';
       rowL.append(cb, sp);
       listEl.appendChild(rowL);
+      rows.push(rowL);
     }
-    allLink.addEventListener('click', () => boxes.forEach((b) => (b.checked = true)));
-    noneLink.addEventListener('click', () => boxes.forEach((b) => (b.checked = false)));
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      members.forEach((m, i) => { rows[i].style.display = m.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+    // All/None act on the rows currently visible (respecting the search filter).
+    const visible = () => boxes.filter((_, i) => rows[i].style.display !== 'none');
+    allLink.addEventListener('click', () => visible().forEach((b) => (b.checked = true)));
+    noneLink.addEventListener('click', () => visible().forEach((b) => (b.checked = false)));
     p.appendChild(listEl);
     const apply = primaryBtn('Apply', () => {
       const checked = boxes.filter((b) => b.checked).map((b) => b.value);
@@ -785,6 +1040,46 @@ export class GridRenderer {
     });
     const actions = document.createElement('div'); actions.className = 'pp-popup-actions'; actions.appendChild(apply);
     p.appendChild(actions);
+
+    // --- label (member-text) filter ---
+    const lblWrap = document.createElement('div'); lblWrap.className = 'pp-field-inline';
+    const lblOp = selectEl([
+      ['contains', 'contains'], ['notContains', 'does not contain'], ['beginsWith', 'begins with'],
+      ['endsWith', 'ends with'], ['equals', 'equals'], ['notEquals', 'not equals'],
+    ], curFilter?.type === 'label' ? curFilter.labelOperator : undefined);
+    const lblQuery = document.createElement('input'); lblQuery.type = 'text'; lblQuery.placeholder = 'text…';
+    if (curFilter?.type === 'label') lblQuery.value = curFilter.query ?? '';
+    lblWrap.append(lblOp, lblQuery, primaryBtn('Apply', () => this.opts.controller.setLabelFilter(field, lblOp.value as LabelOperator, lblQuery.value)));
+    p.appendChild(fieldRow('Label filter', lblWrap));
+
+    // --- value (measure-threshold) filter ---
+    const measures = this.body?.measures ?? [];
+    if (measures.length) {
+      const valWrap = document.createElement('div'); valWrap.className = 'pp-field-inline';
+      const valMeasure = selectEl(measures.map((m) => [m.uniqueName, m.caption]), curFilter?.type === 'value' ? curFilter.measure : undefined);
+      const valOp = selectEl([
+        ['greaterThan', '>'], ['greaterEqual', '≥'], ['lessThan', '<'], ['lessEqual', '≤'],
+        ['equal', '='], ['notEqual', '≠'], ['between', 'between'],
+      ], curFilter?.type === 'value' ? curFilter.operator : undefined);
+      const v1 = document.createElement('input'); v1.type = 'number'; v1.placeholder = 'value';
+      const v2 = document.createElement('input'); v2.type = 'number'; v2.placeholder = '…and';
+      const syncBetween = () => { v2.style.display = valOp.value === 'between' ? '' : 'none'; };
+      valOp.addEventListener('change', syncBetween);
+      if (curFilter?.type === 'value') {
+        if (curFilter.value !== undefined) v1.value = String(curFilter.value);
+        if (curFilter.value2 !== undefined) v2.value = String(curFilter.value2);
+      }
+      syncBetween();
+      valWrap.append(valMeasure, valOp, v1, v2, primaryBtn('Apply', () =>
+        this.opts.controller.setValueFilter(
+          field, valMeasure.value, valOp.value as ValueOperator,
+          Number(v1.value) || 0, valOp.value === 'between' ? Number(v2.value) || 0 : undefined,
+        )));
+      p.appendChild(fieldRow('Value filter', valWrap));
+    }
+
+    // --- clear everything ---
+    p.appendChild(plainBtn('Clear filters', () => this.opts.controller.setFilter(field, null)));
   }
 
   // ---------- report-filter area ----------
@@ -832,6 +1127,12 @@ export class GridRenderer {
     title.textContent = caption;
     pop.appendChild(title);
 
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'pp-member-search';
+    search.placeholder = 'Search members…';
+    pop.appendChild(search);
+
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
     const all = document.createElement('a'); all.textContent = 'All'; all.href = 'javascript:void(0)';
@@ -842,6 +1143,7 @@ export class GridRenderer {
     const list = document.createElement('div');
     list.className = 'pp-popup-list';
     const boxes: HTMLInputElement[] = [];
+    const rows: HTMLElement[] = [];
     for (const m of members) {
       const row = document.createElement('label');
       row.className = 'pp-popup-item';
@@ -854,9 +1156,15 @@ export class GridRenderer {
       span.textContent = m || '(blank)';
       row.append(cb, span);
       list.appendChild(row);
+      rows.push(row);
     }
-    all.addEventListener('click', () => boxes.forEach((b) => (b.checked = true)));
-    none.addEventListener('click', () => boxes.forEach((b) => (b.checked = false)));
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      members.forEach((m, i) => { rows[i].style.display = m.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+    const visible = () => boxes.filter((_, i) => rows[i].style.display !== 'none');
+    all.addEventListener('click', () => visible().forEach((b) => (b.checked = true)));
+    none.addEventListener('click', () => visible().forEach((b) => (b.checked = false)));
     pop.appendChild(list);
 
     const apply = document.createElement('button');
@@ -919,7 +1227,10 @@ export class GridRenderer {
   private buildRow(b: BodyState, vr: VisualRow, rowIdx: number): HTMLElement {
     const { matrix, ctx, colLeaves, measures, showColGrand, multi } = b;
     const R = matrix.rowFields.length;
+    const rAbs = b.headerRows + rowIdx; // 0-based logical grid row
     const tr = document.createElement('tr');
+    tr.setAttribute('role', 'row');
+    tr.setAttribute('aria-rowindex', String(rAbs + 1));
     tr.style.height = `${b.rowHeight}px`;
     if (rowIdx % 2 === 1) tr.classList.add('pp-alt');
     if (vr.isGrand) tr.classList.add('pp-grand-row');
@@ -929,11 +1240,14 @@ export class GridRenderer {
       for (let j = 0; j < R; j++) {
         const th = document.createElement('th');
         th.className = 'pp-rowh';
+        this.tagCell(th, 'rowheader', rAbs, j);
         if (vr.isGrand) th.textContent = j === 0 ? b.ctx.normal.localization.grandTotal : '';
         else if (j < vr.path.length) {
           this.renderMember(th, b.ctx, matrix.rowFields[j], vr.path[j]);
           const rPath = vr.path.slice(0, j + 1);
-          th.addEventListener('click', () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, rPath, rowIdx, -1));
+          const onActivate = () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, rPath, rowIdx, -1);
+          th.addEventListener('click', onActivate);
+          this.setAct(th, onActivate);
         } else if (vr.isSubtotal && j === vr.path.length) th.textContent = b.ctx.normal.localization.total;
         else th.textContent = '';
         tr.appendChild(th);
@@ -941,19 +1255,32 @@ export class GridRenderer {
     } else {
       const th = document.createElement('th');
       th.className = 'pp-rowh';
+      this.tagCell(th, 'rowheader', rAbs, 0);
       th.style.paddingLeft = `${8 + vr.depth * 16}px`;
       if (vr.isGroup && vr.node) {
+        const node = vr.node;
+        th.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
         const toggle = document.createElement('span');
         toggle.className = 'pp-toggle';
-        toggle.textContent = vr.node.expanded ? '▾' : '▸';
-        toggle.addEventListener('click', (e) => { e.stopPropagation(); this.opts.onToggle(vr.node!); });
+        toggle.setAttribute('aria-hidden', 'true');
+        toggle.textContent = node.expanded ? '▾' : '▸';
+        toggle.addEventListener('click', (e) => { e.stopPropagation(); this.opts.onToggle(node); });
         th.appendChild(toggle);
+        // Keyboard: Enter/Space expands or collapses this group; context-menu still
+        // emits the row header click for listeners.
+        const onClick = () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, vr.path, rowIdx, -1);
+        this.setAct(th, () => this.opts.onToggle(node), onClick);
+        if (!(vr.isGrand || R === 0)) th.addEventListener('click', onClick);
       }
       const labelEl = document.createElement('span');
       if (vr.isGrand || R === 0) labelEl.textContent = vr.label;
       else {
         this.renderMember(labelEl, b.ctx, matrix.rowFields[Math.min(vr.depth, R - 1)], vr.label);
-        th.addEventListener('click', () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, vr.path, rowIdx, -1));
+        if (!vr.isGroup) {
+          const onActivate = () => this.emitHeaderClick(b.ctx, 'rows', matrix.rowFields, vr.path, rowIdx, -1);
+          th.addEventListener('click', onActivate);
+          this.setAct(th, onActivate);
+        }
       }
       th.appendChild(labelEl);
       tr.appendChild(th);
@@ -962,7 +1289,7 @@ export class GridRenderer {
     let colIdx = 0;
     const renderGroup = (cp: string[], grandCol: boolean) => {
       for (const m of measures.length ? measures : [null]) {
-        tr.appendChild(this.buildValueCell(matrix, ctx, vr, cp, m, rowIdx, colIdx++, grandCol));
+        tr.appendChild(this.buildValueCell(b, matrix, ctx, vr, cp, m, rowIdx, colIdx++, grandCol));
       }
     };
     for (const leaf of colLeaves) renderGroup(leaf.path, false);
@@ -1015,7 +1342,7 @@ export class GridRenderer {
   }
 
   private buildValueCell(
-    matrix: CellMatrix, ctx: RenderContext, vr: VisualRow, cp: string[],
+    b: BodyState, matrix: CellMatrix, ctx: RenderContext, vr: VisualRow, cp: string[],
     measure: CellMatrix['measures'][number] | null, rowIdx: number, colIdx: number, grandCol: boolean,
   ): HTMLElement {
     const R = matrix.rowFields.length;
@@ -1088,15 +1415,21 @@ export class GridRenderer {
     td.innerHTML = cb.text;
     for (const [k, v] of Object.entries(cb.style)) td.style.setProperty(toKebab(k), v ?? '');
     for (const [k, v] of Object.entries(cb.attr)) td.setAttribute(k, v);
+    this.tagCell(td, 'gridcell', b.headerRows + rowIdx, b.rowHeaderCols + colIdx);
 
     this.cellIndex.set(`${rowIdx}:${colIdx}`, data);
-    if (ctx.selected && ctx.selected.rowIndex === rowIdx && ctx.selected.columnIndex === colIdx) td.classList.add('pp-selected');
+    const selected = !!(ctx.selected && ctx.selected.rowIndex === rowIdx && ctx.selected.columnIndex === colIdx);
+    if (selected) td.classList.add('pp-selected');
+    td.setAttribute('aria-selected', selected ? 'true' : 'false');
 
+    const canDrill = !!measure && ctx.normal.options.drillThrough !== false;
     td.addEventListener('click', () => this.opts.onCellClick(data));
     td.addEventListener('dblclick', () => {
       this.opts.onCellDoubleClick(data);
-      if (measure && ctx.normal.options.drillThrough !== false) this.openDrillModal(ctx, data);
+      if (canDrill) this.openDrillModal(ctx, data);
     });
+    // Keyboard: Enter/Space selects the cell; Shift+F10 drills through (if enabled).
+    this.setAct(td, () => this.opts.onCellClick(data), canDrill ? () => this.openDrillModal(ctx, data) : undefined);
     return td;
   }
 
@@ -1237,14 +1570,8 @@ export class GridRenderer {
       body.className = 'pp-zone-body';
       fields.forEach((f, i) => body.appendChild(this.makeChip(f, zone, i)));
       z.appendChild(body);
-      z.addEventListener('dragover', (e) => { e.preventDefault(); z.classList.add('pp-dragover'); });
-      z.addEventListener('dragleave', () => z.classList.remove('pp-dragover'));
-      z.addEventListener('drop', (e) => {
-        e.preventDefault();
-        z.classList.remove('pp-dragover');
-        const uniqueName = e.dataTransfer?.getData('text/plain');
-        if (uniqueName) this.opts.controller.moveField(uniqueName, zone);
-      });
+      // The zone is a passive drop target — pointer drags resolve it via
+      // elementFromPoint (see dropField / highlightDrop).
       return z;
     };
 
@@ -1264,37 +1591,20 @@ export class GridRenderer {
     const chip = document.createElement('div');
     chip.className = 'pp-chip';
     chip.textContent = field.caption;
-    chip.draggable = true;
-    chip.addEventListener('dragstart', (e) => {
-      e.dataTransfer?.setData('text/plain', field.uniqueName);
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    // Drag source + drop target descriptors, read back via elementFromPoint.
+    chip.dataset.ppName = field.uniqueName;
+    chip.dataset.ppZone = zone;
+    chip.dataset.ppIndex = String(index);
+    chip.addEventListener('pointerdown', (e) => {
+      startPointerDrag(e as PointerEvent, {
+        label: field.caption,
+        move: (el) => this.highlightDrop(el),
+        // Dropping onto a chip reorders relative to it (before/after by pointer y);
+        // dropping on empty zone space moves the field to that zone.
+        drop: (el, _x, y) => this.dropField(field.uniqueName, el, y),
+        end: () => this.clearDropHighlights(),
+      });
     });
-
-    // Positional drop: dropping ONTO a chip reorders relative to it (insert before
-    // the chip when over its top half, after it over the bottom half) instead of
-    // appending to the end of the zone (which is what dropping on empty zone space
-    // does). The "Fields" pool isn't an ordered slice zone, so skip it there.
-    if (zone !== 'available') {
-      const clear = () => chip.classList.remove('pp-chip-drop-before', 'pp-chip-drop-after');
-      chip.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // don't also trigger the zone's append-on-drop highlight
-        const rect = chip.getBoundingClientRect();
-        const after = e.clientY > rect.top + rect.height / 2;
-        chip.classList.toggle('pp-chip-drop-after', after);
-        chip.classList.toggle('pp-chip-drop-before', !after);
-      });
-      chip.addEventListener('dragleave', clear);
-      chip.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // prevent the zone drop handler from appending instead
-        const after = chip.classList.contains('pp-chip-drop-after');
-        clear();
-        const name = e.dataTransfer?.getData('text/plain');
-        if (!name || name === field.uniqueName) return;
-        this.opts.controller.reorderColumn(name, zone, index + (after ? 1 : 0));
-      });
-    }
     return chip;
   }
 }
@@ -1384,6 +1694,12 @@ function fieldRow(label: string, control: HTMLElement): HTMLElement {
   return row;
 }
 function labelSpan(text: string): HTMLElement { const s = document.createElement('span'); s.className = 'pp-field-label'; s.textContent = text; return s; }
+function selectEl(options: Array<[string, string]>, value?: string): HTMLSelectElement {
+  const s = document.createElement('select');
+  for (const [v, t] of options) { const o = document.createElement('option'); o.value = v; o.textContent = t; s.appendChild(o); }
+  if (value !== undefined) s.value = value;
+  return s;
+}
 function primaryBtn(text: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-popup-apply'; b.textContent = text;
   b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
@@ -1467,6 +1783,10 @@ function fieldTypeOf(ctx: RenderContext, field: string): FieldType | undefined {
 }
 function sortGlyph(sort?: string): string {
   return sort === 'asc' ? ' ▲' : sort === 'desc' ? ' ▼' : '';
+}
+/** Map an internal sort direction to the ARIA `aria-sort` token. */
+function ariaSort(sort?: string): 'ascending' | 'descending' | 'none' {
+  return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : 'none';
 }
 function emptyNode(): AxisNode {
   return { path: [], label: '', field: '', depth: 0, children: [], expanded: true, isLeaf: true };

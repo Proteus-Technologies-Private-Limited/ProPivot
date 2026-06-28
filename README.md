@@ -1,5 +1,8 @@
 # ProPivot (`@proteus/propivot`)
 
+[![CI](https://github.com/Proteus-Technologies-Private-Limited/ProPivot/actions/workflows/ci.yml/badge.svg)](https://github.com/Proteus-Technologies-Private-Limited/ProPivot/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 > **Pivot millions of rows in a heartbeat — right inside your app.**
 
 An **enterprise-grade, open-source JavaScript library** for building pivot tables
@@ -89,12 +92,16 @@ Falls back to the main-thread engine automatically when `Worker` is unavailable 
 
 ```bash
 npm install
-npm test               # vitest — engine unit + end-to-end pivot + golden tests
+npm test               # vitest — engine unit + e2e pivot + golden + a11y + touch
 npm run test:golden    # just the golden suite
 npm run golden:update  # re-record golden reference outputs after an intended change
 npm run build          # tsup -> dist (ESM + CJS + d.ts + browser global + css)
 npm run typecheck
+npm run ci             # everything CI runs: version check + typecheck + test + build
 ```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and the release
+process, and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
 Open `demo/index.html` after a build to see it run.
 

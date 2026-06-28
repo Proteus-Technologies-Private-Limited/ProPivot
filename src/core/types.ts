@@ -63,12 +63,27 @@ export interface DataSource {
   browseForFile?: boolean;
 }
 
+/** Text-match operators for a label filter (case-insensitive). */
+export type LabelOperator = 'contains' | 'notContains' | 'beginsWith' | 'endsWith' | 'equals' | 'notEquals';
+/** Threshold operators for a value filter (measure aggregated per member). */
+export type ValueOperator = 'greaterThan' | 'lessThan' | 'greaterEqual' | 'lessEqual' | 'equal' | 'notEqual' | 'between';
+
 export interface FilterSpec {
   members?: string[];
   negation?: boolean;
-  type?: 'none' | 'members' | 'top' | 'bottom';
+  type?: 'none' | 'members' | 'top' | 'bottom' | 'label' | 'value';
+  /** Measure a Top/Bottom-N or value filter ranks/tests members by. */
   measure?: string;
+  /** Keep-count for Top/Bottom-N. */
   quantity?: number;
+  /** Label (member-text) filter: keep members whose name matches `query`. */
+  labelOperator?: LabelOperator;
+  query?: string;
+  /** Value filter: keep members whose `measure` aggregate satisfies the test. */
+  operator?: ValueOperator;
+  value?: number;
+  /** Upper bound for the `between` value operator. */
+  value2?: number;
 }
 
 export interface Hierarchy {
