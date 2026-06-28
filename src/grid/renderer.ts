@@ -172,7 +172,8 @@ export class GridRenderer {
     this.body = null;
     this.gridEl.innerHTML = '';
 
-    if (this.opts.toolbar) this.gridEl.appendChild(this.buildToolbar());
+    this.applyTheme(ctx);
+    if (this.opts.toolbar) this.gridEl.appendChild(this.buildToolbar(ctx));
     if (ctx.normal.options.configuratorButton !== false) {
       this.gridEl.appendChild(this.buildFieldList(matrix, ctx));
     }
@@ -888,6 +889,8 @@ export class GridRenderer {
     pop.append(tabsBar, panes);
     activate(tabDefs[0].id);
 
+    this.themePopup(pop);
+
     document.body.appendChild(pop);
     this.placePopup(pop, ev);
     pop.style.visibility = '';
@@ -1096,6 +1099,7 @@ export class GridRenderer {
   }
 
   private buildFilterPane(p: HTMLElement, ctx: RenderContext, ref: ColumnRef, field: string): void {
+    const ui = ctx.normal.localization.ui;
     if (ref.kind === 'measure') {
       // Top/Bottom-N on the first row hierarchy ranked by this measure.
       const wrap = document.createElement('div');
@@ -1103,7 +1107,7 @@ export class GridRenderer {
       const mode = document.createElement('select');
       for (const [v, t] of [['off', 'Show all'], ['top', 'Top N'], ['bottom', 'Bottom N']] as const) { const o = document.createElement('option'); o.value = v; o.textContent = t; mode.appendChild(o); }
       const qty = document.createElement('input'); qty.type = 'number'; qty.min = '1'; qty.value = '10';
-      const apply = primaryBtn('Apply', () => this.opts.controller.setTopN(ref.uniqueName, mode.value as 'top' | 'bottom' | 'off', Number(qty.value) || 10));
+      const apply = primaryBtn(ui.apply, () => this.opts.controller.setTopN(ref.uniqueName, mode.value as 'top' | 'bottom' | 'off', Number(qty.value) || 10));
       wrap.append(mode, qty, apply);
       p.appendChild(fieldRow('Rank rows by this measure', wrap));
       const note = document.createElement('div'); note.className = 'pp-muted'; note.textContent = 'Filters the first row field by this measure.';
@@ -1120,13 +1124,13 @@ export class GridRenderer {
     const search = document.createElement('input');
     search.type = 'search';
     search.className = 'pp-member-search';
-    search.placeholder = 'Search members…';
+    search.placeholder = ui.searchMembers;
     p.appendChild(search);
 
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
-    const allLink = document.createElement('a'); allLink.textContent = 'All'; allLink.href = 'javascript:void(0)';
-    const noneLink = document.createElement('a'); noneLink.textContent = 'None'; noneLink.href = 'javascript:void(0)';
+    const allLink = document.createElement('a'); allLink.textContent = ui.all; allLink.href = 'javascript:void(0)';
+    const noneLink = document.createElement('a'); noneLink.textContent = ui.none; noneLink.href = 'javascript:void(0)';
     tools.append(allLink, noneLink);
     p.appendChild(tools);
 
@@ -1153,7 +1157,7 @@ export class GridRenderer {
     allLink.addEventListener('click', () => visible().forEach((b) => (b.checked = true)));
     noneLink.addEventListener('click', () => visible().forEach((b) => (b.checked = false)));
     p.appendChild(listEl);
-    const apply = primaryBtn('Apply', () => {
+    const apply = primaryBtn(ui.apply, () => {
       const checked = boxes.filter((b) => b.checked).map((b) => b.value);
       this.opts.controller.setFilter(field, checked.length === members.length ? null : checked);
     });
@@ -1168,8 +1172,8 @@ export class GridRenderer {
     ], curFilter?.type === 'label' ? curFilter.labelOperator : undefined);
     const lblQuery = document.createElement('input'); lblQuery.type = 'text'; lblQuery.placeholder = 'text…';
     if (curFilter?.type === 'label') lblQuery.value = curFilter.query ?? '';
-    lblWrap.append(lblOp, lblQuery, primaryBtn('Apply', () => this.opts.controller.setLabelFilter(field, lblOp.value as LabelOperator, lblQuery.value)));
-    p.appendChild(fieldRow('Label filter', lblWrap));
+    lblWrap.append(lblOp, lblQuery, primaryBtn(ui.apply, () => this.opts.controller.setLabelFilter(field, lblOp.value as LabelOperator, lblQuery.value)));
+    p.appendChild(fieldRow(ui.labelFilter, lblWrap));
 
     // --- value (measure-threshold) filter ---
     const measures = this.body?.measures ?? [];
@@ -1189,16 +1193,16 @@ export class GridRenderer {
         if (curFilter.value2 !== undefined) v2.value = String(curFilter.value2);
       }
       syncBetween();
-      valWrap.append(valMeasure, valOp, v1, v2, primaryBtn('Apply', () =>
+      valWrap.append(valMeasure, valOp, v1, v2, primaryBtn(ui.apply, () =>
         this.opts.controller.setValueFilter(
           field, valMeasure.value, valOp.value as ValueOperator,
           Number(v1.value) || 0, valOp.value === 'between' ? Number(v2.value) || 0 : undefined,
         )));
-      p.appendChild(fieldRow('Value filter', valWrap));
+      p.appendChild(fieldRow(ui.valueFilter, valWrap));
     }
 
     // --- clear everything ---
-    p.appendChild(plainBtn('Clear filters', () => this.opts.controller.setFilter(field, null)));
+    p.appendChild(plainBtn(ui.clearFilters, () => this.opts.controller.setFilter(field, null)));
   }
 
   // ---------- report-filter area ----------
@@ -1230,6 +1234,7 @@ export class GridRenderer {
   private openFilterEditor(ev: MouseEvent, uniqueName: string, caption: string, selected: string[] | null): void {
     ev.stopPropagation();
     this.closeEditor();
+    const ui = this.body?.ctx.normal.localization.ui;
     const members = this.opts.controller.members(uniqueName);
     const selSet = new Set(selected ?? members);
 
@@ -1249,13 +1254,13 @@ export class GridRenderer {
     const search = document.createElement('input');
     search.type = 'search';
     search.className = 'pp-member-search';
-    search.placeholder = 'Search members…';
+    search.placeholder = ui?.searchMembers ?? 'Search members…';
     pop.appendChild(search);
 
     const tools = document.createElement('div');
     tools.className = 'pp-popup-tools';
-    const all = document.createElement('a'); all.textContent = 'All'; all.href = 'javascript:void(0)';
-    const none = document.createElement('a'); none.textContent = 'None'; none.href = 'javascript:void(0)';
+    const all = document.createElement('a'); all.textContent = ui?.all ?? 'All'; all.href = 'javascript:void(0)';
+    const none = document.createElement('a'); none.textContent = ui?.none ?? 'None'; none.href = 'javascript:void(0)';
     tools.append(all, none);
     pop.appendChild(tools);
 
@@ -1288,7 +1293,7 @@ export class GridRenderer {
 
     const apply = document.createElement('button');
     apply.className = 'pp-popup-apply';
-    apply.textContent = 'Apply';
+    apply.textContent = ui?.apply ?? 'Apply';
     apply.addEventListener('click', () => {
       const checked = boxes.filter((b) => b.checked).map((b) => b.value);
       this.opts.controller.setFilter(uniqueName, checked.length === members.length ? null : checked);
@@ -1299,6 +1304,8 @@ export class GridRenderer {
     actions.className = 'pp-popup-actions';
     actions.appendChild(apply);
     pop.appendChild(actions);
+
+    this.themePopup(pop);
 
     document.body.appendChild(pop);
     this.placePopup(pop, ev);
@@ -1375,7 +1382,7 @@ export class GridRenderer {
       const th = document.createElement('th');
       th.className = 'pp-rowh';
       this.tagCell(th, 'rowheader', rAbs, 0);
-      th.style.paddingLeft = `${8 + vr.depth * 16}px`;
+      th.style.paddingInlineStart = `${8 + vr.depth * 16}px`;
       if (vr.isGroup && vr.node) {
         const node = vr.node;
         th.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
@@ -1565,7 +1572,7 @@ export class GridRenderer {
 
     const h = document.createElement('h3');
     const where = [...(cell.rowPath ?? []), ...(cell.colPath ?? [])].filter(Boolean).join(' · ');
-    h.textContent = `Drill-through${where ? ': ' + where : ''} (${rows.length} rows)`;
+    h.textContent = `${ctx.normal.localization.ui.drillThrough}${where ? ': ' + where : ''} (${rows.length} rows)`;
     dialog.appendChild(h);
 
     const fields = rows.length ? Object.keys(rows[0]) : [];
@@ -1609,6 +1616,7 @@ export class GridRenderer {
 
     backdrop.appendChild(dialog);
     backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) this.closeEditor(); });
+    this.themePopup(backdrop);
     document.body.appendChild(backdrop);
     this.editor = backdrop;
     this.editorKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closeEditor(); };
@@ -1617,18 +1625,36 @@ export class GridRenderer {
 
   // ---------- toolbar ----------
 
-  private buildToolbar(): HTMLElement {
+  /** Carry the grid's dark theme onto a body-level popup / modal. */
+  private themePopup(el: HTMLElement): void {
+    if (this.root.classList.contains('pp-theme-dark')) el.classList.add('pp-theme-dark');
+  }
+
+  /** Apply the colour theme (light/dark/auto) and text direction to the root. */
+  private applyTheme(ctx: RenderContext): void {
+    const opt = ctx.normal.options;
+    const theme = opt?.theme ?? 'light';
+    let dark = theme === 'dark';
+    if (theme === 'auto' && typeof window !== 'undefined' && window.matchMedia) {
+      dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    this.root.classList.toggle('pp-theme-dark', dark);
+    this.root.setAttribute('dir', opt?.rtl ? 'rtl' : 'ltr');
+  }
+
+  private buildToolbar(ctx: RenderContext): HTMLElement {
     const bar = document.createElement('div');
     bar.className = 'pp-toolbar';
+    const t = ctx.normal.localization.ui;
 
     // A tabs descriptor consumers can mutate via beforetoolbarcreated.
     const tabs: Array<{ id: string; title: string; handler: () => void }> = [
-      { id: 'pp-tab-fields', title: 'Fields', handler: () => this.toggleFieldList() },
-      { id: 'pp-tab-export-csv', title: 'CSV', handler: () => this.opts.controller.exportTo('csv') },
-      { id: 'pp-tab-export-excel', title: 'Excel', handler: () => this.opts.controller.exportTo('excel') },
-      { id: 'pp-tab-export-pdf', title: 'PDF', handler: () => this.opts.controller.exportTo('pdf') },
-      { id: 'pp-tab-export-html', title: 'HTML', handler: () => this.opts.controller.exportTo('html') },
-      { id: 'pp-tab-fullscreen', title: 'Fullscreen', handler: () => this.toggleFullscreen() },
+      { id: 'pp-tab-fields', title: t.fields, handler: () => this.toggleFieldList() },
+      { id: 'pp-tab-export-csv', title: t.csv, handler: () => this.opts.controller.exportTo('csv') },
+      { id: 'pp-tab-export-excel', title: t.excel, handler: () => this.opts.controller.exportTo('excel') },
+      { id: 'pp-tab-export-pdf', title: t.pdf, handler: () => this.opts.controller.exportTo('pdf') },
+      { id: 'pp-tab-export-html', title: t.html, handler: () => this.opts.controller.exportTo('html') },
+      { id: 'pp-tab-fullscreen', title: t.fullscreen, handler: () => this.toggleFullscreen() },
     ];
     this.opts.emit('beforetoolbarcreated', { getTabs: () => tabs });
 

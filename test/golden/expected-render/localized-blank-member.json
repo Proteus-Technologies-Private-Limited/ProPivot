@@ -42,7 +42,7 @@
         "tag": "th",
         "text": "<span>— none —</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
@@ -60,7 +60,7 @@
         "tag": "th",
         "text": "<span>West</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
@@ -78,7 +78,7 @@
         "tag": "th",
         "text": "<span>All Regions</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",

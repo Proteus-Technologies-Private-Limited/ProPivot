@@ -35,6 +35,14 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Range selection + copy** — select a rectangle of cells with Shift+click or
   Shift+arrows, and copy it as TSV with Ctrl/Cmd+C (pasteable into Excel /
   Sheets). Off-screen (virtualized) rows are included in the copied text.
+- **Dark mode** — `options.theme: 'dark' | 'auto'` ships a built-in dark palette
+  (the grid, toolbar, field list, popups and modals all theme together; `auto`
+  follows the OS `prefers-color-scheme`).
+- **RTL** — `options.rtl: true` mirrors the grid for right-to-left locales
+  (sticky row headers, indentation and the resize grip flip; numbers stay LTR).
+- **Localization** — toolbar, filter-panel and drill-through strings are now
+  overridable via `localization.grid.*` (e.g. `fields`, `apply`, `all`, `none`,
+  `searchMembers`, `labelFilter`, `valueFilter`, `clearFilters`, `drillThrough`).
 - New `localization.grid.gridLabel` option for the grid's accessible name.
 
 ### Changed

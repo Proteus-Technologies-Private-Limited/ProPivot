@@ -170,6 +170,10 @@ export interface GridOptions {
 
 export interface Options {
   grid?: GridOptions;
+  /** Colour theme. 'auto' follows the OS `prefers-color-scheme`. Default 'light'. */
+  theme?: 'light' | 'dark' | 'auto';
+  /** Render right-to-left (Arabic/Hebrew). Default false. */
+  rtl?: boolean;
   viewType?: 'grid';
   configuratorActive?: boolean;
   configuratorButton?: boolean;

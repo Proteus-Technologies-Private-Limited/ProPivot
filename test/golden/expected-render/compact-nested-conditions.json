@@ -54,7 +54,7 @@
         "tag": "th",
         "text": "<span class=\"pp-toggle\" aria-hidden=\"true\">▾</span><span>East</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
@@ -77,7 +77,7 @@
         "tag": "th",
         "text": "<span>Furniture</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 24px;"
+        "style": "padding-inline-start: 24px;"
       },
       {
         "tag": "td",
@@ -100,7 +100,7 @@
         "tag": "th",
         "text": "<span>Tech</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 24px;"
+        "style": "padding-inline-start: 24px;"
       },
       {
         "tag": "td",
@@ -123,7 +123,7 @@
         "tag": "th",
         "text": "<span class=\"pp-toggle\" aria-hidden=\"true\">▾</span><span>West</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
@@ -148,7 +148,7 @@
         "tag": "th",
         "text": "<span>Furniture</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 24px;"
+        "style": "padding-inline-start: 24px;"
       },
       {
         "tag": "td",
@@ -171,7 +171,7 @@
         "tag": "th",
         "text": "<span>Tech</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 24px;"
+        "style": "padding-inline-start: 24px;"
       },
       {
         "tag": "td",
@@ -196,7 +196,7 @@
         "tag": "th",
         "text": "<span>Grand Total</span>",
         "cls": "pp-rowh",
-        "style": "padding-left: 8px;"
+        "style": "padding-inline-start: 8px;"
       },
       {
         "tag": "td",
