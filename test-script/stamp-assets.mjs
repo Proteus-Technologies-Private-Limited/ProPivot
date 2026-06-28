@@ -26,7 +26,7 @@ for (const a of ASSETS) {
 
 const HTML = [
   'docs/index.html', 'docs/gallery.html', 'docs/demo.html', 'docs/features.html', 'docs/docs.html',
-  'docs/upload.html', 'docs/starters.html',
+  'docs/upload.html', 'docs/starters.html', 'docs/whats-new.html',
 ];
 
 // Build one regex per asset basename that matches the path with optional ?v=… .
