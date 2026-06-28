@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ASSET_DIR = resolve(ROOT, 'docs/assets');
 
-const ASSETS = ['propivot.global.js', 'propivot.css', 'gallery.js', 'propivot.worker.js', 'site.css'];
+const ASSETS = ['propivot.global.js', 'propivot.css', 'gallery.js', 'propivot.worker.js', 'site.css', 'site.js'];
 const hashes = {};
 for (const a of ASSETS) {
   const p = resolve(ASSET_DIR, a);
@@ -26,6 +26,7 @@ for (const a of ASSETS) {
 
 const HTML = [
   'docs/index.html', 'docs/gallery.html', 'docs/demo.html', 'docs/features.html', 'docs/docs.html',
+  'docs/upload.html', 'docs/starters.html',
 ];
 
 // Build one regex per asset basename that matches the path with optional ?v=… .
