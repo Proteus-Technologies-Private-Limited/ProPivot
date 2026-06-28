@@ -59,7 +59,7 @@ function isCalculated(entry: Hierarchy | Measure | undefined): boolean {
 
 export class ProPivot {
   // Keep in sync with package.json "version" — enforced by test-script/check-version.mjs.
-  static version = '0.4.0';
+  static version = '0.4.1';
 
   private container: HTMLElement | null = null;
   private emitter = new EventEmitter();

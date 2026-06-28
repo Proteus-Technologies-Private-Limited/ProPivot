@@ -6,6 +6,23 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-28
+
+### Fixed
+- **Modal primary button was invisible** — `.pp-modal-actions button` repainted the
+  primary action (`.pp-popup-apply`) with the surface colour while its white text
+  survived, so Create (new-calculation dialog) / Done (field-list modal) rendered
+  white-on-white. The accent rule now covers `.pp-popup-apply`.
+- **Modal action buttons were misaligned / uneven** — the primary button carried a
+  stray `margin-top` and a different font-size than the plain button, so they sat
+  on different baselines and looked different sizes. Buttons in `.pp-modal-actions`
+  are now normalised (reset margin, unified font, centre-aligned).
+
+### Changed
+- Removed the redundant `Refresh starter downloads` CI workflow; the opt-in
+  pre-commit hook is now the single source of truth for `docs/downloads/*.zip`
+  (stops the duplicate bot commits + Pages deploys).
+
 ## [0.4.0] - 2026-06-28
 
 ### Added
