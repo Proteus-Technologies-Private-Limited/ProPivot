@@ -451,11 +451,65 @@ function buildAxisTree(
   store: ColumnStore, selection: number[], fields: string[], normal: NormalReport, datePattern?: string,
 ): AxisNode[] {
   if (!fields.length) return [];
+
   const sorts = new Map<string, 'asc' | 'desc' | 'unsorted'>();
   for (const h of [...(normal.report.slice?.rows ?? []), ...(normal.report.slice?.columns ?? [])]) {
     if (h.sort) sorts.set(h.uniqueName, h.sort);
   }
   const expandAll = normal.report.slice?.expands?.expandAll ?? true;
+
+  /** Member comparator for one field, or null when that field is left unsorted. */
+  const memberCmp = (field: string): ((a: string, b: string) => number) | null => {
+    const sort = sorts.get(field) ?? 'asc';
+    if (sort === 'unsorted') return null;
+    const natural = store.columns.get(field)?.naturalOrder;
+    return (a, b) => {
+      let cmp: number;
+      if (natural) {
+        // Natural order (month/weekday/quarter); unknown members fall to the end.
+        const ia = natural.indexOf(a); const ib = natural.indexOf(b);
+        cmp = (ia < 0 ? natural.length : ia) - (ib < 0 ? natural.length : ib);
+      } else {
+        const na = Number(a); const nb = Number(b);
+        cmp = !Number.isNaN(na) && !Number.isNaN(nb) ? na - nb : a.localeCompare(b);
+      }
+      return sort === 'desc' ? -cmp : cmp;
+    };
+  };
+
+  // Flat-mode fast path (rows axis only). A flat grid renders one line per unique row
+  // combination and drops the hierarchy (see `leafNodes` in the renderer), so building the
+  // full nested tree below — rows x fields node objects, each copying its parent path — is
+  // pure waste, and it is what exhausts browser memory on large "every column in rows" flat
+  // views. Emitting the leaves directly keeps allocation ~O(rows) so lakhs of records load
+  // instead of crashing the tab. Sorting the leaves lexicographically with the same
+  // per-field comparators reproduces the nested walk's order exactly.
+  if (normal.grid?.type === 'flat' && fields === normal.rowFields) {
+    const leaves: AxisNode[] = [];
+    const seen = new Set<string>();
+    const depth = fields.length - 1;
+    const field = fields[depth];
+    const blank = normal.localization.blankMember;
+    for (const row of selection) {
+      const path = new Array<string>(fields.length);
+      for (let i = 0; i < fields.length; i++) path[i] = displayValue(store, fields[i], row, datePattern) || blank;
+      const key = path.join(US);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      leaves.push({ path, label: path[depth], field, depth, expanded: expandAll, isLeaf: true, children: [] });
+    }
+    const cmps = fields.map(memberCmp);
+    leaves.sort((a, b) => {
+      for (let i = 0; i < cmps.length; i++) {
+        const cmp = cmps[i];
+        if (!cmp) continue;
+        const d = cmp(a.path[i], b.path[i]);
+        if (d) return d;
+      }
+      return 0;
+    });
+    return leaves;
+  }
 
   interface Tmp { label: string; children: Map<string, Tmp>; }
   const root: Tmp = { label: '', children: new Map() };
@@ -474,22 +528,8 @@ function buildAxisTree(
   const build = (tmp: Tmp, path: string[], depth: number): AxisNode[] => {
     const field = fields[depth];
     const entries = [...tmp.children.entries()];
-    const sort = sorts.get(field) ?? 'asc';
-    const natural = store.columns.get(field)?.naturalOrder;
-    if (sort !== 'unsorted') {
-      entries.sort((a, b) => {
-        let cmp: number;
-        if (natural) {
-          // Natural order (month/weekday/quarter); unknown members fall to the end.
-          const ia = natural.indexOf(a[0]); const ib = natural.indexOf(b[0]);
-          cmp = (ia < 0 ? natural.length : ia) - (ib < 0 ? natural.length : ib);
-        } else {
-          const na = Number(a[0]); const nb = Number(b[0]);
-          cmp = !Number.isNaN(na) && !Number.isNaN(nb) ? na - nb : a[0].localeCompare(b[0]);
-        }
-        return sort === 'desc' ? -cmp : cmp;
-      });
-    }
+    const cmp = memberCmp(field);
+    if (cmp) entries.sort((a, b) => cmp(a[0], b[0]));
     return entries.map(([label, child]) => {
       const nodePath = [...path, label];
       const isLeaf = depth === fields.length - 1;

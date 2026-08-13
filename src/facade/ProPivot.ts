@@ -170,7 +170,23 @@ export class ProPivot {
   }
 
   setReport(report: Report): void {
-    this.report = JSON.parse(JSON.stringify(report ?? {}));
+    // Clone the report STRUCTURE only, carrying `dataSource.data` across by reference.
+    // Deep-cloning the whole report serialized every data row into one giant string and
+    // then allocated a second full copy of the dataset, synchronously, before any compute —
+    // a transient ~3x spike that exhausted the renderer heap on large results and crashed
+    // the tab before data loaded. The engine reads `data`, never rewrites it, so sharing
+    // the array is safe.
+    const src = report ?? ({} as Report);
+    const ds = src.dataSource;
+    const data = ds ? ds.data : undefined;
+    const detached = !!ds && data !== undefined;
+    if (detached) ds!.data = undefined;
+    try {
+      this.report = JSON.parse(JSON.stringify(src));
+    } finally {
+      if (detached) ds!.data = data;
+    }
+    if (detached) (this.report.dataSource ??= {}).data = data;
     this.emitter.emit('loadingdata');
     void this.computeAndRender(true).then(() => {
       this.emitter.emit('dataloaded');

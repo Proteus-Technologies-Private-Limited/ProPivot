@@ -20,111 +20,75 @@
   "rowTree": [
     {
       "path": [
-        "East"
+        "East",
+        "Furniture"
       ],
-      "label": "East",
-      "field": "region",
-      "depth": 0,
+      "label": "Furniture",
+      "field": "category",
+      "depth": 1,
       "expanded": true,
-      "isLeaf": false,
-      "children": [
-        {
-          "path": [
-            "East",
-            "Furniture"
-          ],
-          "label": "Furniture",
-          "field": "category",
-          "depth": 1,
-          "expanded": true,
-          "isLeaf": true,
-          "children": []
-        },
-        {
-          "path": [
-            "East",
-            "Tech"
-          ],
-          "label": "Tech",
-          "field": "category",
-          "depth": 1,
-          "expanded": true,
-          "isLeaf": true,
-          "children": []
-        }
-      ]
+      "isLeaf": true,
+      "children": []
     },
     {
       "path": [
-        "North"
+        "East",
+        "Tech"
       ],
-      "label": "North",
-      "field": "region",
-      "depth": 0,
+      "label": "Tech",
+      "field": "category",
+      "depth": 1,
       "expanded": true,
-      "isLeaf": false,
-      "children": [
-        {
-          "path": [
-            "North",
-            "Furniture"
-          ],
-          "label": "Furniture",
-          "field": "category",
-          "depth": 1,
-          "expanded": true,
-          "isLeaf": true,
-          "children": []
-        },
-        {
-          "path": [
-            "North",
-            "Tech"
-          ],
-          "label": "Tech",
-          "field": "category",
-          "depth": 1,
-          "expanded": true,
-          "isLeaf": true,
-          "children": []
-        }
-      ]
+      "isLeaf": true,
+      "children": []
     },
     {
       "path": [
-        "West"
+        "North",
+        "Furniture"
       ],
-      "label": "West",
-      "field": "region",
-      "depth": 0,
+      "label": "Furniture",
+      "field": "category",
+      "depth": 1,
       "expanded": true,
-      "isLeaf": false,
-      "children": [
-        {
-          "path": [
-            "West",
-            "Furniture"
-          ],
-          "label": "Furniture",
-          "field": "category",
-          "depth": 1,
-          "expanded": true,
-          "isLeaf": true,
-          "children": []
-        },
-        {
-          "path": [
-            "West",
-            "Tech"
-          ],
-          "label": "Tech",
-          "field": "category",
-          "depth": 1,
-          "expanded": true,
-          "isLeaf": true,
-          "children": []
-        }
-      ]
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "North",
+        "Tech"
+      ],
+      "label": "Tech",
+      "field": "category",
+      "depth": 1,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West",
+        "Furniture"
+      ],
+      "label": "Furniture",
+      "field": "category",
+      "depth": 1,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
+    },
+    {
+      "path": [
+        "West",
+        "Tech"
+      ],
+      "label": "Tech",
+      "field": "category",
+      "depth": 1,
+      "expanded": true,
+      "isLeaf": true,
+      "children": []
     }
   ],
   "colTree": [
