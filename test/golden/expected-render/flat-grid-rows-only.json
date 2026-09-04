@@ -1,0 +1,120 @@
+{
+  "head": [
+    [
+      {
+        "tag": "th",
+        "text": "region<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
+        "cls": "pp-corner pp-sortable pp-draggable",
+        "style": "top: 0px;"
+      },
+      {
+        "tag": "th",
+        "text": "category<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
+        "cls": "pp-corner pp-sortable pp-draggable",
+        "style": "top: 0px;"
+      },
+      {
+        "tag": "th",
+        "text": "year<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
+        "cls": "pp-corner pp-sortable pp-draggable",
+        "style": "top: 0px;"
+      },
+      {
+        "tag": "th",
+        "text": "sales<button type=\"button\" class=\"pp-colprops\" title=\"Column properties\" aria-label=\"Column properties\" tabindex=\"-1\">▾</button><span class=\"pp-resize\" title=\"Drag to resize\" aria-hidden=\"true\"></span>",
+        "cls": "pp-corner pp-sortable pp-draggable",
+        "style": "top: 0px;"
+      }
+    ]
+  ],
+  "body": [
+    [
+      {
+        "tag": "th",
+        "text": "East",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Furniture",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "2023",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "600",
+        "cls": "pp-rowh"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "East",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Tech",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "2024",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "2600",
+        "cls": "pp-rowh"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "West",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Furniture",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "2023",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "1200",
+        "cls": "pp-rowh"
+      }
+    ],
+    [
+      {
+        "tag": "th",
+        "text": "West",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "Tech",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "2024",
+        "cls": "pp-rowh"
+      },
+      {
+        "tag": "th",
+        "text": "9000",
+        "cls": "pp-rowh"
+      }
+    ]
+  ]
+}

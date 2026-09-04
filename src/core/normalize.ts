@@ -43,6 +43,7 @@ export interface ResolvedLocalization {
 
 export interface UIStrings {
   fields: string;
+  export: string;
   csv: string;
   excel: string;
   pdf: string;
@@ -60,6 +61,7 @@ export interface UIStrings {
 
 const DEFAULT_UI: UIStrings = {
   fields: 'Fields',
+  export: 'Export',
   csv: 'CSV',
   excel: 'Excel',
   pdf: 'PDF',

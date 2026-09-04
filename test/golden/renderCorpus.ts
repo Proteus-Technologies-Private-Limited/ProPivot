@@ -110,6 +110,22 @@ export const renderCorpus: RenderCorpusEntry[] = [
     },
   },
   {
+    name: 'flat-grid-rows-only',
+    pins: 'rows-only flat report (all fields in rows, no measures/columns) renders NO trailing value column',
+    report: {
+      dataSource: {
+        type: 'json', data: sales,
+        mapping: { region: { type: 'string' }, category: { type: 'string' }, year: { type: 'number' }, sales: { type: 'number' } },
+      },
+      slice: {
+        rows: [{ uniqueName: 'region' }, { uniqueName: 'category' }, { uniqueName: 'year' }, { uniqueName: 'sales' }],
+        columns: [],
+        measures: [],
+      },
+      options: { grid: { type: 'flat', showTotals: 'off', showGrandTotals: 'off' } },
+    },
+  },
+  {
     name: 'per-slot-condition',
     pins: 'measureKey scopes a conditional format to one measure slot (sum, not average)',
     report: {

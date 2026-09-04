@@ -247,6 +247,30 @@
 .pp-fl-top-left { top: 8px; left: 8px; }
 .pp-fl-bottom-right { bottom: 8px; right: 8px; }
 .pp-fl-bottom-left { bottom: 8px; left: 8px; }
+/* ⋮ trigger (fieldList mode 'menu') — same chip as the ⚙ button, denser glyph. */
+.pp-menu-btn { font-size: 18px; font-weight: 700; }
+/* Dropdown anchored to the ⋮ button's corner (button is 30px at an 8px inset). */
+.pp-menu {
+  position: absolute; z-index: 7; min-width: 148px; padding: 5px;
+  background: var(--pp-surface); color: var(--pp-text);
+  border: 1px solid var(--pp-border); border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+.pp-menu-top-right { top: 42px; right: 8px; }
+.pp-menu-top-left { top: 42px; left: 8px; }
+.pp-menu-bottom-right { bottom: 42px; right: 8px; }
+.pp-menu-bottom-left { bottom: 42px; left: 8px; }
+.pp-menu-item {
+  display: block; width: 100%; text-align: left; padding: 7px 10px;
+  border: 0; border-radius: 5px; background: transparent; color: inherit;
+  cursor: pointer; font-size: 12.5px; line-height: 1.2;
+}
+.pp-menu-item:hover { background: var(--pp-bg, #f6f7f9); color: var(--pp-accent); }
+.pp-menu-label {
+  padding: 6px 10px 3px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: uppercase; color: var(--pp-muted);
+}
+.pp-menu-sep { height: 1px; margin: 5px 4px; background: var(--pp-border); }
 .pp-fieldlist-modal { min-width: 320px; max-width: min(92vw, 720px); max-height: 86vh; display: flex; flex-direction: column; }
 .pp-fieldlist-modal-body { overflow: auto; }
 /* Inside the modal the field list fills the dialog (no inline max-height clamp). */

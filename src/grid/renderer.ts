@@ -116,6 +116,9 @@ interface BodyState {
   colLeaves: AxisNode[];
   measures: CellMatrix['measures'];
   showColGrand: boolean;
+  /** Columns spanned per column-leaf. 0 for a flat "grid" report (all fields in
+   *  rows, no measures and no column dims) — there is NO value column at all. */
+  measureSpan: number;
   colCount: number;
   rowHeaderCols: number;
   /** Number of stacked header rows (column-field rows + the measure row). */
@@ -142,6 +145,10 @@ export class GridRenderer {
   private fieldListModal: HTMLElement | null = null;
   private fieldListModalBody: HTMLElement | null = null;
   private fieldListModalKey?: (e: KeyboardEvent) => void;
+  // ⋮ toolbar dropdown (fieldList mode 'menu') — a transient popup dismissed on
+  // outside-click / Escape; torn down on every re-render and on destroy.
+  private toolbarMenuEl: HTMLElement | null = null;
+  private toolbarMenuDismiss?: (e: Event) => void;
   /** Per-measure-slot value range, used to auto-scale data_bar / heatmap. */
   private colStats = new Map<string, { min: number; max: number }>();
   /** Roving-tabindex focus position, in 0-based logical grid coords
@@ -169,6 +176,7 @@ export class GridRenderer {
   destroy(): void {
     this.closeEditor();
     this.closeFieldListModal();
+    this.closeToolbarMenu();
     if (this.body) this.body.scroll.removeEventListener('scroll', this.onScroll);
     this.root.innerHTML = '';
     this.root.classList.remove('pp-root');
@@ -182,6 +190,7 @@ export class GridRenderer {
 
   render(matrix: CellMatrix, ctx: RenderContext): void {
     this.closeEditor();
+    this.closeToolbarMenu();
     this.cellIndex.clear();
     if (this.body) this.body.scroll.removeEventListener('scroll', this.onScroll);
     this.body = null;
@@ -190,7 +199,12 @@ export class GridRenderer {
     this.applyTheme(ctx);
     if (this.opts.toolbar) this.gridEl.appendChild(this.buildToolbar(ctx));
     if (ctx.normal.options.configuratorButton !== false) {
-      if (ctx.normal.options.fieldList?.mode === 'icon') {
+      const flMode = ctx.normal.options.fieldList?.mode;
+      if (flMode === 'menu') {
+        // Only the table shows; the ⋮ button is the sole affordance for
+        // rearranging columns (field list) and exporting.
+        this.gridEl.appendChild(this.buildToolbarMenuButton(matrix, ctx));
+      } else if (flMode === 'icon') {
         this.gridEl.appendChild(this.buildFieldListButton(matrix, ctx));
       } else {
         this.gridEl.appendChild(this.buildFieldList(matrix, ctx));
@@ -217,12 +231,18 @@ export class GridRenderer {
     const colLeaves = matrix.colTree.length ? preorderLeaves(matrix.colTree) : [emptyNode()];
     const measures = matrix.measures;
     const showColGrand = totalsEnabled(ctx.normal.grid.showGrandTotals, 'columns') && matrix.colTree.length > 0;
+    // A flat "grid" report — every field placed in rows, with no measures AND no
+    // column dimension — has no value column at all; suppress the single blank
+    // trailing column the pivot would otherwise render for the implicit measure
+    // slot. Every other shape keeps the historical `max(1, measures.length)`.
+    const measureSpan = (measures.length === 0 && matrix.colFields.length === 0)
+      ? 0 : Math.max(1, measures.length);
 
     this.computeColStats(matrix);
-    const colgroup = this.buildColgroup(ctx, colLeaves, measures, showColGrand, rowHeaderCols, multi);
+    const colgroup = this.buildColgroup(ctx, colLeaves, measures, showColGrand, rowHeaderCols, multi, measureSpan);
     if (colgroup) table.appendChild(colgroup);
 
-    table.appendChild(this.buildHead(matrix, ctx, colLeaves, showColGrand, rowHeaderCols, multi));
+    table.appendChild(this.buildHead(matrix, ctx, colLeaves, showColGrand, rowHeaderCols, multi, measureSpan));
 
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
@@ -232,13 +252,12 @@ export class GridRenderer {
     scroll.appendChild(table);
     this.gridEl.appendChild(scroll);
 
-    const measureSpan = Math.max(1, measures.length);
     const colCount = rowHeaderCols + colLeaves.length * measureSpan + (showColGrand ? measureSpan : 0);
 
     this.body = {
       matrix, ctx,
       visualRows: this.collectVisualRows(matrix, ctx, mode),
-      colLeaves, measures, showColGrand, colCount, rowHeaderCols, headerRows, multi,
+      colLeaves, measures, showColGrand, measureSpan, colCount, rowHeaderCols, headerRows, multi,
       rowHeight: this.rowHeight, tbody, scroll,
     };
 
@@ -305,10 +324,9 @@ export class GridRenderer {
   /** A <colgroup> carrying per-column widths so they survive row virtualization. */
   private buildColgroup(
     ctx: RenderContext, colLeaves: AxisNode[], measures: CellMatrix['measures'],
-    showColGrand: boolean, rowHeaderCols: number, multi: boolean,
+    showColGrand: boolean, rowHeaderCols: number, multi: boolean, measureSpan: number,
   ): HTMLElement | null {
     const rowFields = ctx.normal.rowFields;
-    const measureSpan = Math.max(1, measures.length);
     const colCount = rowHeaderCols + colLeaves.length * measureSpan + (showColGrand ? measureSpan : 0);
     const cg = document.createElement('colgroup');
     const addCol = (w?: number) => {
@@ -319,8 +337,9 @@ export class GridRenderer {
     // Row-header columns.
     if (multi) for (let j = 0; j < rowHeaderCols; j++) addCol(hierarchyOf(ctx, rowFields[j])?.width);
     else addCol(rowFields.length ? hierarchyOf(ctx, rowFields[0])?.width : undefined);
-    // Value columns (per leaf, then grand) — one per measure slot.
-    const measureCols = () => { for (const m of measures.length ? measures : [null]) addCol(m?.width); };
+    // Value columns (per leaf, then grand) — one per measure slot. A flat grid
+    // report (measureSpan 0) has none, so this is a no-op there.
+    const measureCols = () => { if (measureSpan === 0) return; for (const m of measures.length ? measures : [null]) addCol(m?.width); };
     for (let i = 0; i < colLeaves.length; i++) measureCols();
     if (showColGrand) measureCols();
     // Guard: only emit when it matches the body column count.
@@ -586,11 +605,10 @@ export class GridRenderer {
 
   private buildHead(
     matrix: CellMatrix, ctx: RenderContext, colLeaves: AxisNode[],
-    showColGrand: boolean, rowHeaderCols: number, multi: boolean,
+    showColGrand: boolean, rowHeaderCols: number, multi: boolean, measureSpan: number,
   ): HTMLElement {
     const thead = document.createElement('thead');
     const measures = matrix.measures;
-    const measureSpan = Math.max(1, measures.length);
     const colDepth = matrix.colFields.length;
     const combinedCaption = matrix.rowFields.map((f) => captionOf(ctx, f)).join(' / ') || ' ';
     const valueBase = rowHeaderCols; // logical column where value columns begin
@@ -675,6 +693,7 @@ export class GridRenderer {
     }
     let mcol = valueBase;
     const measureHeaders = (count: number, grand: boolean) => {
+      if (measureSpan === 0) return; // flat grid report — no value header columns
       for (let c = 0; c < count; c++) {
         if (!measures.length) {
           const th = document.createElement('th');
@@ -1562,7 +1581,7 @@ export class GridRenderer {
   }
 
   private buildRow(b: BodyState, vr: VisualRow, rowIdx: number): HTMLElement {
-    const { matrix, ctx, colLeaves, measures, showColGrand, multi } = b;
+    const { matrix, ctx, colLeaves, measures, showColGrand, multi, measureSpan } = b;
     const R = matrix.rowFields.length;
     const rAbs = b.headerRows + rowIdx; // 0-based logical grid row
     const tr = document.createElement('tr');
@@ -1625,6 +1644,7 @@ export class GridRenderer {
 
     let colIdx = 0;
     const renderGroup = (cp: string[], grandCol: boolean) => {
+      if (measureSpan === 0) return; // flat grid report — no value cells
       for (const m of measures.length ? measures : [null]) {
         tr.appendChild(this.buildValueCell(b, matrix, ctx, vr, cp, m, rowIdx, colIdx++, grandCol));
       }
@@ -1918,6 +1938,90 @@ export class GridRenderer {
     btn.textContent = '⚙';
     btn.addEventListener('click', (e) => { e.stopPropagation(); this.openFieldListModal(matrix, ctx); });
     return btn;
+  }
+
+  /**
+   * ⋮ (3-dot) button placed in a grid corner. It is the ONLY chrome shown over
+   * the table in fieldList mode 'menu' — clicking it opens a dropdown offering
+   * column rearrangement (the field list) and the export formats.
+   */
+  private buildToolbarMenuButton(matrix: CellMatrix, ctx: RenderContext): HTMLElement {
+    const placement = ctx.normal.options.fieldList?.placement ?? 'top-right';
+    const label = ctx.normal.localization.ui.fields;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `pp-fieldlist-btn pp-menu-btn pp-fl-${placement}`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-haspopup', 'menu');
+    btn.textContent = '⋮';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.toolbarMenuEl) { this.closeToolbarMenu(); return; }
+      this.openToolbarMenu(btn, matrix, ctx);
+    });
+    return btn;
+  }
+
+  /** Dropdown for the ⋮ button: Field List (rearrange) + Export formats. */
+  private openToolbarMenu(anchor: HTMLElement, matrix: CellMatrix, ctx: RenderContext): void {
+    this.closeToolbarMenu();
+    const t = ctx.normal.localization.ui;
+    const placement = ctx.normal.options.fieldList?.placement ?? 'top-right';
+    const menu = document.createElement('div');
+    menu.className = `pp-menu pp-menu-${placement}`;
+    menu.setAttribute('role', 'menu');
+
+    const addItem = (text: string, handler: () => void) => {
+      const it = document.createElement('button');
+      it.type = 'button';
+      it.className = 'pp-menu-item';
+      it.setAttribute('role', 'menuitem');
+      it.textContent = text;
+      it.addEventListener('click', (e) => { e.stopPropagation(); this.closeToolbarMenu(); handler(); });
+      menu.appendChild(it);
+    };
+    const addLabel = (text: string) => {
+      const l = document.createElement('div');
+      l.className = 'pp-menu-label';
+      l.textContent = text;
+      menu.appendChild(l);
+    };
+
+    // Column rearrangement.
+    addItem(t.fields, () => this.openFieldListModal(matrix, ctx));
+    // Export.
+    const sep = document.createElement('div');
+    sep.className = 'pp-menu-sep';
+    menu.appendChild(sep);
+    addLabel(t.export);
+    addItem(t.csv, () => this.opts.controller.exportTo('csv'));
+    addItem(t.excel, () => this.opts.controller.exportTo('excel'));
+    addItem(t.pdf, () => this.opts.controller.exportTo('pdf'));
+    addItem(t.html, () => this.opts.controller.exportTo('html'));
+
+    this.gridEl.appendChild(menu);
+    this.toolbarMenuEl = menu;
+
+    // Dismiss on outside mousedown / Escape.
+    this.toolbarMenuDismiss = (e: Event) => {
+      if (e.type === 'keydown') { if ((e as KeyboardEvent).key === 'Escape') this.closeToolbarMenu(); return; }
+      const target = e.target as Node;
+      if (menu.contains(target) || anchor.contains(target)) return;
+      this.closeToolbarMenu();
+    };
+    document.addEventListener('mousedown', this.toolbarMenuDismiss);
+    document.addEventListener('keydown', this.toolbarMenuDismiss);
+  }
+
+  private closeToolbarMenu(): void {
+    if (this.toolbarMenuDismiss) {
+      document.removeEventListener('mousedown', this.toolbarMenuDismiss);
+      document.removeEventListener('keydown', this.toolbarMenuDismiss);
+      this.toolbarMenuDismiss = undefined;
+    }
+    this.toolbarMenuEl?.remove();
+    this.toolbarMenuEl = null;
   }
 
   /** Open the field-list rearrange UI inside a modal dialog. */

@@ -181,7 +181,10 @@ export interface Options {
    * How the drag-drop field list (the rearrange UI) is presented. Omitted or
    * `'inline'` (default) renders it as a panel above the grid — the current
    * behaviour. `'icon'` hides the panel and shows a ⚙ button that opens the same
-   * rearrange UI in a modal. Ignored when `configuratorButton` is `false`.
+   * rearrange UI in a modal. `'menu'` shows only the table plus a ⋮ (3-dot)
+   * button whose dropdown offers both the rearrange UI and the export formats —
+   * use it with `toolbar: false` for a chrome-free grid. Ignored when
+   * `configuratorButton` is `false`.
    */
   fieldList?: FieldListOptions;
   showAggregations?: boolean;
@@ -206,9 +209,12 @@ export interface Options {
 }
 
 export interface FieldListOptions {
-  /** `'inline'` (default) panel above the grid, or `'icon'` ⚙ button → modal. */
-  mode?: 'inline' | 'icon';
-  /** Corner for the ⚙ button when `mode: 'icon'`. Default `'top-right'`. */
+  /**
+   * `'inline'` (default) panel above the grid, `'icon'` ⚙ button → rearrange
+   * modal, or `'menu'` ⋮ button → dropdown with rearrange + export (table-only).
+   */
+  mode?: 'inline' | 'icon' | 'menu';
+  /** Corner for the ⚙ / ⋮ button when `mode` is `'icon'` or `'menu'`. Default `'top-right'`. */
   placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 }
 
