@@ -1,29 +1,40 @@
 # ProPivot (`@proteus/propivot`)
 
 [![CI](https://github.com/Proteus-Technologies-Private-Limited/ProPivot/actions/workflows/ci.yml/badge.svg)](https://github.com/Proteus-Technologies-Private-Limited/ProPivot/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@proteus/propivot.svg)](https://www.npmjs.com/package/@proteus/propivot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-> **Pivot millions of rows in a heartbeat — right inside your app.**
+> # The open-source JavaScript pivot table for serious data.
+>
+> **Pivot millions of rows entirely in the browser.** No backend required.
 
-An **enterprise-grade, open-source JavaScript library** for building pivot tables
-over **millions of rows**. Works with **React**, **Angular**, **Vue**, and any JavaScript
-framework — or plain JavaScript via a `<script>` tag. Lightning fast, lightweight,
-feature-rich, highly configurable — and instantly embedded in any project. The columnar
-engine aggregates **100% client-side** (no server round-trips): 17 aggregations,
-calculated-value formulas, conditional formatting, virtualized rendering, a `customizeCell`
-hook, and five export formats.
+**React · Angular · Vue · Vanilla JS · TypeScript · Web Workers · DuckDB-WASM · MIT**
 
-**[▶ Live demo & docs →](https://proteus-technologies-private-limited.github.io/ProPivot/)**
+ProPivot is a modern, MIT-licensed pivot table and pivot-grid engine for applications that need to explore large datasets without sending every interaction back to a server. Its columnar engine aggregates 100% client-side and combines virtualized rendering, calculated measures, conditional formatting, Top/Bottom-N filtering, sort-by-measure, Web Worker execution, and optional DuckDB-WASM acceleration.
 
-## Install
+### Try it before installing
+
+- **[▶ Pivot 2,000,000 rows in your browser](https://proteus-technologies-private-limited.github.io/ProPivot/demo.html)**
+- **[⬆ Pivot your own CSV / JSON](https://proteus-technologies-private-limited.github.io/ProPivot/upload.html)**
+- **[🧩 Download framework starter apps](https://proteus-technologies-private-limited.github.io/ProPivot/starters.html)**
+- **[📚 Documentation & examples](https://proteus-technologies-private-limited.github.io/ProPivot/)**
 
 ```bash
 npm install @proteus/propivot
 ```
 
-Or drop in a plain `<script>` (no bundler) and read `window.ProPivot`.
+## Why ProPivot?
 
-## Usage
+Many JavaScript pivot components are either tied to commercial licensing, optimized for smaller datasets, or coupled tightly to one framework. ProPivot is designed for a different use case:
+
+- **MIT licensed** — use it in commercial or open-source applications.
+- **100% client-side** — pivot, sort, filter, calculate, and format without server round-trips.
+- **Large-data focused** — columnar storage, dictionary encoding, virtualized rows, Web Workers, and optional DuckDB-WASM.
+- **Framework independent** — React, Angular, Vue, vanilla JavaScript, or a global `<script>` build.
+- **Full pivot feature set** — 17 aggregations, calculated measures, positional calculations, Top/Bottom-N, conditional formatting, subtotals, grand totals, and multiple layouts.
+- **Useful exports** — CSV, HTML, real `.xlsx`, dependency-free PDF, SVG, and browser PNG export.
+
+## Quick start
 
 ```ts
 import { ProPivot } from '@proteus/propivot';
@@ -39,101 +50,173 @@ const pivot = new ProPivot({
       columns: [{ uniqueName: 'year' }],
       measures: [
         { uniqueName: 'sales', aggregation: 'sum', format: 'cur' },
-        { uniqueName: 'aov', formula: "sum('sales')/sum('qty')", caption: 'Avg Price' },
+        {
+          uniqueName: 'aov',
+          formula: "sum('sales')/sum('qty')",
+          caption: 'Avg Price',
+        },
       ],
     },
     formats: [{ name: 'cur', currencySymbol: '$', decimalPlaces: 0 }],
-    conditions: [{ formula: '#value > 100000', measure: 'sales', format: { backgroundColor: '#c5e1a5' } }],
+    conditions: [
+      {
+        formula: '#value > 100000',
+        measure: 'sales',
+        format: { backgroundColor: '#c5e1a5' },
+      },
+    ],
   },
   reportcomplete: () => console.log('ready'),
 });
 ```
 
-## Features
+## Feature snapshot
 
-- **Core engine** (`src/core`): columnar store + dictionary encoding; slice planner
-  with GROUPING-SETS subtotals/grand totals; all **17 aggregations** including the
-  positional family (`difference`, `%difference`, `runningtotals`) along a **configurable
-  row/column axis** (`measure.positionalAxis`, default `columns`);
-  **Top-N / Bottom-N** filtering and **sort-by-measure**; **flat grid** mode;
-  calculated-value formula parser/evaluator; number/date formatting; conditional-format
-  parser (both `#value#` and `#value` dialects).
-- **Engine abstraction** (`src/core/engine.ts`): `LocalEngine` (main-thread) and
-  `WorkerEngine` (off-thread) behind one async interface; matrix is serializable for
-  structured-clone transfer.
-- **Facade** (`src/facade`): `ProPivot` class — constructor, `setReport`/`getReport`,
-  `refresh`, `updateData`, `on`/`off` + full event superset, `customizeCell`,
-  `addCondition`, `addCalculatedMeasure`, `setSort`, `expandAllData`/`collapseAllData`,
-  `getSelectedCell`/`getCell`, `exportTo`, `dispose`, and more.
-- **Renderer** (`src/grid`): DOM pivot grid (compact / flat / classic), **virtualized rows**
-  (viewport-only DOM), frozen headers, expand/collapse, selection, conditional + number
-  formatting, `CellBuilder`/`CellData`, drag-drop Field List.
-- **Export** (`src/export`): all five — `csv`, `html`, `excel` (real `.xlsx`), `pdf`
-  (real, dependency-free `.pdf`), and `image` (a deterministic `.svg` of the grid;
-  `exportTo('image', { imageFormat: 'png' })` rasterizes it to PNG in the browser).
-- **Wrappers**: React (`@proteus/propivot/react`), Vue (`@proteus/propivot/vue`), and
-  Angular (`@proteus/propivot/angular` — the `<pro-pivot>` component, compiled by your
-  Angular toolchain). Or read `window.ProPivot` from the global `<script>` build for any
-  other stack.
+| Capability | ProPivot |
+| --- | --- |
+| License | MIT |
+| Processing | 100% client-side |
+| React | ✅ |
+| Angular | ✅ |
+| Vue | ✅ |
+| Vanilla JS / global build | ✅ |
+| Virtualized rows | ✅ |
+| Web Worker engine | ✅ |
+| Optional DuckDB-WASM accelerator | ✅ |
+| Calculated measures | ✅ |
+| Conditional formatting | ✅ |
+| Top-N / Bottom-N | ✅ |
+| Sort by measure | ✅ |
+| CSV / HTML / XLSX / PDF / image export | ✅ |
 
-### Off-thread compute (optional)
+## Core capabilities
+
+- **Core engine** (`src/core`): columnar store + dictionary encoding; slice planner with GROUPING-SETS subtotals/grand totals; all **17 aggregations**, including positional calculations (`difference`, `%difference`, `runningtotals`) on a configurable row/column axis.
+- **Large-data execution**: `LocalEngine` and `WorkerEngine` share one async interface; computed matrices are structured-clone friendly.
+- **Optional DuckDB-WASM**: opt-in accelerator for large browser datasets.
+- **Pivot operations**: Top-N / Bottom-N, sort-by-measure, flat grid mode, calculated-value formulas, number/date formatting, and conditional formatting.
+- **Renderer**: compact / flat / classic layouts, virtualized rows, frozen headers, expand/collapse, selection, drag-drop field list, and `customizeCell`.
+- **Exports**: CSV, HTML, real `.xlsx`, dependency-free `.pdf`, SVG image export, plus browser SVG→PNG rasterization.
+- **Wrappers**: React (`@proteus/propivot/react`), Vue (`@proteus/propivot/vue`), Angular (`@proteus/propivot/angular`), plus the global `<script>` build.
+
+## Off-thread compute
 
 ```ts
 const pivot = new ProPivot({
   container: '#pivot',
   worker: true,
-  workerUrl: new URL('propivot.worker.js', import.meta.url).href, // served from dist/
+  workerUrl: new URL('propivot.worker.js', import.meta.url).href,
   report,
 });
 ```
-Falls back to the main-thread engine automatically when `Worker` is unavailable or no
-`workerUrl` is provided.
+
+ProPivot automatically falls back to the main-thread engine when `Worker` is unavailable or no `workerUrl` is provided.
+
+## DuckDB-WASM accelerator
+
+```ts
+new ProPivot({
+  container: '#pivot',
+  accelerator: 'duckdb',
+  duckdb: { threshold: 100_000 },
+  report,
+});
+```
+
+The accelerator is optional; the built-in engine remains the default.
+
+## Performance & benchmarks
+
+The live site includes a **2,000,000-row interactive demo** that runs in the browser. For reproducible measurements, hardware/browser details, and benchmark methodology, see **[BENCHMARKS.md](BENCHMARKS.md)**.
+
+Performance depends on row count, cardinality, selected dimensions/measures, browser, memory, and whether the Worker or DuckDB-WASM path is used. Benchmark claims should therefore always be read together with the test configuration.
+
+## ProPivot compared with other approaches
+
+ProPivot is not intended to replace every data-grid product. It is focused specifically on **open-source pivot analytics over large browser-resident datasets**.
+
+| Approach | Best fit | Where ProPivot differs |
+| --- | --- | --- |
+| Traditional open-source pivot libraries | Lightweight/simple pivoting | ProPivot adds modern framework wrappers, virtualization, workers, calculated measures, richer exports, and large-data execution paths. |
+| Commercial pivot components | Enterprises wanting vendor suites/support | ProPivot is MIT licensed and can be embedded without commercial runtime licensing. |
+| General-purpose data grids | Broad table/grid use cases | ProPivot focuses on multidimensional pivoting and aggregation rather than being a generic grid first. |
+| Server-side OLAP/BI | Centralized analytics and very large remote datasets | ProPivot keeps interactive pivot computation inside the browser when the data is already available client-side. |
+
+Detailed, evidence-based comparison guides are planned. If you are evaluating ProPivot against another library, open a Discussion or issue with your requirements—we want the comparisons to stay factual and reproducible.
+
+## Framework support
+
+### React
+
+```ts
+import { ProPivot } from '@proteus/propivot';
+import '@proteus/propivot/propivot.css';
+```
+
+React bindings are available from `@proteus/propivot/react`.
+
+### Vue
+
+Vue bindings are available from `@proteus/propivot/vue`.
+
+### Angular
+
+Angular bindings are available from `@proteus/propivot/angular` and expose the `<pro-pivot>` component.
+
+### Vanilla JavaScript
+
+Use the browser global build and read `window.ProPivot`.
+
+See the **[starter apps](https://proteus-technologies-private-limited.github.io/ProPivot/starters.html)** for complete runnable examples.
 
 ## Develop
 
 ```bash
 npm install
-npm test               # vitest — engine unit + e2e pivot + golden + a11y + touch
-npm run test:golden    # just the golden suite
-npm run golden:update  # re-record golden reference outputs after an intended change
-npm run build          # tsup -> dist (ESM + CJS + d.ts + browser global + css)
+npm test
+npm run test:golden
+npm run build
 npm run typecheck
-npm run ci             # everything CI runs: version check + typecheck + test + build
+npm run ci
 ```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and the release
-process, and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
-
-Open `demo/index.html` after a build to see it run.
-
-The **golden suite** (`test/golden`, see [`docs/Golden Tests.md`](docs/Golden%20Tests.md))
-pins the output contract so unintended changes fail in review. Two layers: **engine
-goldens** snapshot the computed cell matrix (values/formatting/structure), and **render
-goldens** snapshot the rendered grid in a headless DOM (layout modes, grand-total
-position, conditional-format styling, localization, `customizeCell`).
+The golden test suite pins both computed engine output and rendered grid behavior so unintended changes fail in review.
 
 ## Documentation
 
-- [Architecture](docs/Architecture.md) — engine, planner, aggregations, rendering, exports.
-- [Golden tests](docs/Golden%20Tests.md) — the two-layer contract test suite.
-- [Known issues](docs/Known%20Issues.md).
+- **[Live demo & docs](https://proteus-technologies-private-limited.github.io/ProPivot/)**
+- [Architecture](docs/Architecture.md)
+- [Golden tests](docs/Golden%20Tests.md)
+- [Known issues](docs/Known%20Issues.md)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
+- [Benchmarks](BENCHMARKS.md)
 
-## Roadmap
+## Roadmap & contributing
 
-Done: virtualized rendering, compact / flat / classic layouts, positional
-difference-family along a configurable row/column axis, Top/Bottom-N, sort-by-measure,
-Web Worker engine, **opt-in DuckDB-WASM accelerator** (parity-tested vs the built-in
-engine), all five exports (csv/html/excel/pdf/image), and a two-layer golden test suite
-(engine matrix + render-layer DOM).
+ProPivot is actively developed. Contributions are welcome in areas such as framework examples, accessibility, documentation, performance testing, integrations, themes, and developer experience.
 
-```ts
-// Opt-in accelerator for large data (browser-only; loads duckdb-wasm from a CDN).
-new ProPivot({ container: '#pivot', accelerator: 'duckdb', duckdb: { threshold: 100_000 }, report });
-```
+Look for issues labeled **`good first issue`**, **`help wanted`**, or **`documentation`**. If you are already using ProPivot, opening an issue with a real dataset shape or workflow is especially valuable—even when the library already works for you.
 
-Next:
-- PNG image export pinned in CI (the browser SVG→PNG path is feature-gated today).
+### Already available
+
+- Virtualized rendering
+- Compact / flat / classic layouts
+- Positional difference-family calculations on row or column axis
+- Top/Bottom-N
+- Sort-by-measure
+- Web Worker engine
+- Optional DuckDB-WASM accelerator
+- Five export families
+- Two-layer golden test suite
+
+### Next
+
+- PNG image export pinned in CI
+- Broader framework starter coverage
+- Public reproducible benchmark suite expansion
+- Accessibility and documentation improvements
 
 ## License
 
-[MIT](LICENSE) © Proteus Technologies Private Limited
+MIT © Proteus Technologies Private Limited
